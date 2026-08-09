@@ -805,31 +805,67 @@ const VM=Object.fromEntries(VENUES.map(v=>[v.id,v]));
 /* q = minoseg, e = ENERGIA (0-100). Az energia adja a setlist ivet: a jo show nem
    a legnagyobb pontszamu dalok halmaza, hanem jol felepitett energia-gorbe. */
 function songs(a){return a.map(s=>({n:s[0],q:s[1],e:s[2]===undefined?60:s[2]}));}
+/* ---------- ELŐADÓK ----------
+   Paródia-roster: felismerhető típusok átírt névvel. A képek MŰFAJ/HANGULAT kulcsszavakkal
+   érkeznek a képforrásból — szándékosan általános színpadi hangulat, nem konkrét személy.
+   tier → hírnév / minRep (mikor nyílik) / leigazolási díj / dalminőség sávja.
+   A dalok ENERGIÁJA (e) szét van szórva, hogy legyen miből ívet építeni. */
 const ARTISTS=[
- {id:'nova',n:'Nova Kex',ic:'mic',genre:'Pop',fame:26,cut:0.12,minRep:0,sign:0,photo:'pop,singer,woman,stage',lk:101,
-  bio:'Feltörekvő popénekesnő, tele TikTok-slágerekkel.',reg:{EU:1.15,NA:0.9,SA:1.0,AS:1.05,OC:0.95,AF:0.9},
-  songs:songs([['Neon Heart',72,80],['Sugar Static',65,85],['Midnight Text',80,45],['Paper Crown',58,50],['Glow',70,62],['Loud',54,95],['Ctrl U',61,70]])},
- {id:'dlush',n:'D-Lush',ic:'headphones',genre:'Rap',fame:22,cut:0.14,minRep:0,sign:0,photo:'rapper,microphone,stage',lk:102,
-  bio:'Underground rapper, brutális szövegekkel és hűséges bázissal.',reg:{EU:0.95,NA:1.2,SA:0.95,AS:0.85,OC:0.9,AF:1.1},
-  songs:songs([['Block Heat',68,88],['No Cosign',74,78],['Verse 44',60,55],['Cold Chain',77,70],['Trapdoor',55,90],['Loyalty Tax',63,48]])},
- {id:'papert',n:'The Paper Tigers',ic:'guitar',genre:'Rock',fame:31,cut:0.16,minRep:0,sign:0,photo:'rock,band,concert',lk:103,
-  bio:'Indie rock banda, akiket a fesztiválközönség imád.',reg:{EU:1.2,NA:1.05,SA:1.0,AS:0.9,OC:1.15,AF:0.85},
-  songs:songs([['Static Ghost',75,72],['Riverbend',82,40],['Amp Fire',66,92],['Slow Collapse',70,30],['Hometown',60,50],['Wired',64,88],['Last Encore',85,68]])},
- {id:'marina',n:'Marina Vale',ic:'crown',genre:'Pop',fame:56,cut:0.18,minRep:120,sign:15000,photo:'pop,singer,concert,glamour',lk:104,
-  bio:'Elismert popsztár, három platinalemezzel.',reg:{EU:1.2,NA:1.1,SA:1.05,AS:1.1,OC:1.0,AF:0.95},
-  songs:songs([['Diamond Rain',88,58],['Vertigo',80,82],['Chandelier',84,45],['Echo',72,38],['Afterglow',86,55],['Porcelain',77,28],['Wildfire',82,90],['Blue Hour',79,35]])},
- {id:'kaiser',n:'Kaiser Bolt',ic:'guitar',genre:'Rock',fame:62,cut:0.2,minRep:150,sign:22000,photo:'rockstar,guitar,stadium',lk:105,
-  bio:'Stadionrock-ikon, aki évek óta úton van.',reg:{EU:1.15,NA:1.2,SA:1.1,AS:0.95,OC:1.2,AF:0.9},
-  songs:songs([['Thunder Vote',90,95],['Iron Lung',83,75],['Highway Saint',87,68],['Detonate',78,98],['Kingdom Dust',81,42],['Roar',85,88],['Final Voltage',92,80]])},
- {id:'zephyr',n:'Zephyr',ic:'headphones',genre:'Elektro',fame:58,cut:0.17,minRep:130,sign:18000,photo:'dj,festival,lights',lk:106,
-  bio:'Elektronikus producer-DJ, akinek szettjei legendásak.',reg:{EU:1.3,NA:1.05,SA:1.1,AS:1.2,OC:1.05,AF:1.0},
-  songs:songs([['Pulse',85,85],['Aurora Drop',88,70],['Voltage',79,92],['Deep End',82,45],['Solstice',90,60],['Machine Dream',76,35],['Liftoff',84,96]])},
- {id:'lola',n:'Lola Sunn',ic:'crown',genre:'Pop',fame:88,cut:0.24,minRep:400,sign:80000,photo:'popstar,concert,stage,lights',lk:107,
-  bio:'Globális popkirálynő. Ha bejelenti a turnét, leáll az internet.',reg:{EU:1.25,NA:1.3,SA:1.25,AS:1.3,OC:1.2,AF:1.1},
-  songs:songs([['Supernova',96,88],['Golden Hour',92,45],['Heartquake',94,78],['Crown Me',90,92],['Infinity',93,55],['Riot',95,97],['Eclipse',97,62],['Forever',91,30]])},
- {id:'jaxon',n:'Jaxon Vibe',ic:'mic',genre:'Rap',fame:91,cut:0.26,minRep:450,sign:95000,photo:'rapper,concert,crowd',lk:108,
-  bio:'A generáció hangja. Minden dala streaming-rekordot dönt.',reg:{EU:1.2,NA:1.35,SA:1.15,AS:1.1,OC:1.1,AF:1.25},
-  songs:songs([['Skyline',95,72],['No Ceiling',97,90],['Diamonds',92,60],['Legacy',94,48],['Overtime',90,85],['Throne',96,93],['Last Laugh',93,55],['Vibe Check',98,80]])},
+ /* ===================== LEGENDÁK (hírnév 86+, alap jutalék 12%) ===================== */
+ {id:'tswiss',n:'Taylor Swiss',ic:'crown',genre:'Pop',fame:90,cut:0.24,minRep:440,sign:95000,photo:'pop,concert,stage,glitter,lights',lk:201,
+  bio:'Generációk kedvence. Egy bejelentés, és összeomlik a jegyértékesítő.',reg:{EU:1.2,NA:1.35,SA:1.15,AS:1.15,OC:1.2,AF:1.0},
+  songs:songs([['32',96,48],['We Are Never Be Together',89,84],['Blank Pages',91,72],['Love Tale',94,35],['Bad Bloods',93,90],['Shake It Loose',88,96]])},
+ {id:'drayke',n:'Drayke',ic:'mic',genre:'Rap',fame:89,cut:0.25,minRep:460,sign:100000,photo:'rapper,hoodie,gold,concert,crowd',lk:202,
+  bio:'Rekorder streamelésben. Minden verzéje mém lesz.',reg:{EU:1.1,NA:1.4,SA:1.1,AS:1.05,OC:1.05,AF:1.2},
+  songs:songs([["God's Planning",95,70],['Hotline Fling',90,55],['One Chance',88,42],['In My Feelinz',92,78],['Started From The Bottle',94,86],['Nice For Whom',89,92]])},
+ {id:'bknow',n:'Bianca Knowless',ic:'crown',genre:'Pop',fame:91,cut:0.25,minRep:480,sign:110000,photo:'diva,stage,gold,lights,performance',lk:203,
+  bio:'A tökéletesség mércéje. A próbái legendásan kegyetlenek.',reg:{EU:1.2,NA:1.4,SA:1.2,AS:1.1,OC:1.1,AF:1.3},
+  songs:songs([['Single Ladys',93,88],['Haló',90,38],['Crazy In Luv',95,80],['Formationn',92,94],['Run The Worldz',89,97],['Break My Sole',88,66]])},
+ {id:'fmercuri',n:'Freddie Mercuri',ic:'guitar',genre:'Rock',fame:92,cut:0.26,minRep:520,sign:125000,photo:'rock,frontman,stadium,concert,spotlight',lk:204,
+  bio:'Stadionok ura. Egyetlen mozdulattal vezényel hetvenezer embert.',reg:{EU:1.35,NA:1.2,SA:1.25,AS:1.05,OC:1.2,AF:1.0},
+  songs:songs([['Bohemian Rhapsodie',98,58],["Don't Stop Me Nowh",94,95],['We Will Rocked You',91,74],['Somebody To Luv',93,62],['Under Pressures',90,46],['Radio Gugu',88,34]])},
+ {id:'adelia',n:'Adelia',ic:'crown',genre:'Pop',fame:87,cut:0.24,minRep:420,sign:90000,photo:'singer,ballad,elegant,spotlight,stage',lk:205,
+  bio:'Se koreográfia, se pirotechnika — csak a hang. Elég is.',reg:{EU:1.35,NA:1.25,SA:1.0,AS:1.0,OC:1.1,AF:0.95},
+  songs:songs([['Hallo',96,40],["Rollin' In The Deeps",94,78],['Someone Like Yu',93,28],['Set Fire',91,86],['Easy On Mee',88,34],['Skyfallen',92,60]])},
+
+ /* ===================== SZTÁROK (hírnév 65+, alap jutalék 16%) ===================== */
+ {id:'weekop',n:'The Weekop',ic:'headphones',genre:'Elektro',fame:76,cut:0.21,minRep:280,sign:58000,photo:'neon,night,concert,synth,lights',lk:206,
+  bio:'Éjszakai neon és falsett. A koncertjei egy hangulat, nem egy műsor.',reg:{EU:1.2,NA:1.3,SA:1.1,AS:1.15,OC:1.05,AF:1.0},
+  songs:songs([['Blinding Lightz',92,90],['Starboyz',88,76],['Save Your Tearz',86,68],["Can't Feel My Faces",89,84],['The Hillz',82,42],['After Hourz',84,30]])},
+ {id:'esharon',n:'Ed Sharon',ic:'guitar',genre:'Pop',fame:74,cut:0.2,minRep:250,sign:52000,photo:'acoustic,guitar,singer,warm,stage',lk:207,
+  bio:'Egy szál gitár, egy loop pedál, teltházas aréna.',reg:{EU:1.35,NA:1.15,SA:1.05,AS:1.0,OC:1.25,AF:0.95},
+  songs:songs([['Shape Of U',90,78],['Perfektó',88,52],['Castle On The Hill',85,70],["Thinkin' Out Loudd",86,26],['Photographs',83,34],['Bad Habitz',84,88]])},
+ {id:'rihannon',n:'Rihannon',ic:'crown',genre:'Pop',fame:73,cut:0.2,minRep:240,sign:50000,photo:'pop,diva,confident,stage,lights',lk:208,
+  bio:'Kilenc éve nem adott ki lemezt, és még mindig ő a menő.',reg:{EU:1.2,NA:1.3,SA:1.15,AS:1.05,OC:1.05,AF:1.25},
+  songs:songs([['Umbrellla',89,64],['Diamondz',87,50],['Workk',84,80],['We Found Luv',88,86],['Only Girll',82,58],['Stayy',85,24]])},
+ {id:'bmarz',n:'Bruno Marz',ic:'mic',genre:'Pop',fame:71,cut:0.2,minRep:220,sign:46000,photo:'funk,retro,suit,band,stage,brass',lk:209,
+  bio:'Retro-funk showman. A zenekara önmagában megérné a jegyárat.',reg:{EU:1.15,NA:1.3,SA:1.2,AS:1.1,OC:1.05,AF:1.05},
+  songs:songs([['Uptown Funkk',91,95],['24K Magick',87,88],['Just The Way U Are',85,32],['Grenadee',83,56],["That's What I Likee",86,74],['Finesee',82,68]])},
+ {id:'dlipova',n:'Dua Lipová',ic:'headphones',genre:'Elektro',fame:68,cut:0.19,minRep:190,sign:36000,photo:'disco,pop,dance,lights,club,stage',lk:210,
+  bio:'Diszkó-pop hűvös eleganciával. Hetven percig nem áll meg a tömeg.',reg:{EU:1.35,NA:1.15,SA:1.1,AS:1.1,OC:1.1,AF:1.0},
+  songs:songs([['New Rulez',87,80],['Levitatingg',89,86],["Don't Start Nowh",86,74],['Physicall',84,92],['IDGAFF',80,60],['One Kissz',85,70]])},
+
+ /* ===================== FELTÖREKVŐK (hírnév 45+, alap jutalék 20%) ===================== */
+ {id:'beyelash',n:'Billie Eyelash',ic:'headphones',genre:'Elektro',fame:54,cut:0.18,minRep:110,sign:18000,photo:'alt,pop,dark,green,neon,stage',lk:211,
+  bio:'Suttogva énekel, és mégis mindenki hallja. A hálószobából jött.',reg:{EU:1.2,NA:1.25,SA:1.0,AS:1.05,OC:1.1,AF:0.9},
+  songs:songs([['Bad Boy',80,72],['Ocean Eyez',76,28],['Happier Than Everr',82,88],['Lovelyy',74,22],["When The Party's Overr",78,18],['Therefore I Amm',75,70]])},
+ {id:'orodrigo',n:'Olivia Rodrigó',ic:'guitar',genre:'Rock',fame:50,cut:0.17,minRep:90,sign:14000,photo:'pop,rock,purple,young,band,stage',lk:212,
+  bio:'Tini pop-rock, szívfájdalom és torzított gitár.',reg:{EU:1.1,NA:1.3,SA:1.05,AS:1.0,OC:1.15,AF:0.85},
+  songs:songs([['Drivers Licence',80,24],['Good 4 U',82,92],['Vampyre',76,58],['Deja Voo',74,46],['Traitorr',78,30],['Brutall',75,88]])},
+ {id:'pmalone',n:'Post Maloné',ic:'mic',genre:'Rap',fame:52,cut:0.17,minRep:100,sign:16000,photo:'rap,tattoo,casual,concert,crowd',lk:213,
+  bio:'Rap, country és rock egyszerre. Senki sem tudja hova tenni — mindenki szereti.',reg:{EU:1.05,NA:1.35,SA:1.05,AS:0.95,OC:1.05,AF:1.0},
+  songs:songs([['Rockstarr',81,74],['Circlez',78,50],['Sunflowerr',79,62],['Congratulationz',77,86],['Betterr Now',74,56],['Wowh',72,90]])},
+ {id:'scarpanter',n:'Sabrina Carpanter',ic:'crown',genre:'Pop',fame:47,cut:0.16,minRep:70,sign:10000,photo:'retro,pop,glitter,stage,performance',lk:214,
+  bio:'Csillogó retro-pop, kacsintós szövegekkel. Épp most robban.',reg:{EU:1.15,NA:1.25,SA:1.0,AS:1.05,OC:1.1,AF:0.9},
+  songs:songs([['Espressoh',79,78],['Please Please Pleese',76,58],['Featherr',74,70],['Nonsensse',70,84],['Bed Chemm',72,44],['Taste It',71,90]])},
+
+ /* ===================== KEZDŐK (ingyen, alap jutalék 25%) ===================== */
+ {id:'tmcrea',n:'Tate McRea',ic:'mic',genre:'Pop',fame:28,cut:0.13,minRep:0,sign:0,photo:'dance,pop,young,singer,stage,lights',lk:215,
+  bio:'Táncosból lett popénekes. Négy dal, de mind üt.',reg:{EU:1.1,NA:1.2,SA:0.95,AS:1.0,OC:1.05,AF:0.85},
+  songs:songs([['Greedyy',70,82],['Youu Broke Me First',66,34],['Exes',64,76],['Rundd',61,56]])},
+ {id:'croone',n:'Chapell Roone',ic:'crown',genre:'Pop',fame:25,cut:0.12,minRep:0,sign:0,photo:'drag,camp,pink,theatrical,pop,stage',lk:216,
+  bio:'Drámai színpadi pop, rózsaszínben. A közönsége jelmezben jön.',reg:{EU:1.15,NA:1.15,SA:0.95,AS:0.9,OC:1.05,AF:0.85},
+  songs:songs([['Good Luck Babes',68,60],['Pink Ponyy Club',71,72],['Hot To Go',65,90],['Red Wine Supernovah',63,84]])},
 ];
 const AM=Object.fromEntries(ARTISTS.map(a=>[a.id,a]));
 const LEVELS=[0,60,140,260,420,620,860,1150,1500];
@@ -1032,7 +1068,18 @@ function migrate(s){if(!s)return newGame();
  if(s.credits===undefined)s.credits=CRED_WELCOME;
  if(!s.themes)s.themes=['lime'];
  if(!s.theme)s.theme='lime';
- if(!s.scout)s.scout=null;
+ /* Roster-csere: az ismeretlen (régi) előadó-azonosítókat mindenhonnan kipucoljuk,
+    hogy a futó mentés ne törjön el. */
+ const known=function(id){return !!AM[id];};
+ if(Array.isArray(s.roster))s.roster=s.roster.filter(known);
+ [['deal'],['art'],['artUp'],['artArc']].forEach(function(k){const o=s[k[0]];
+  if(o&&typeof o==='object')Object.keys(o).forEach(function(id){if(!known(id))delete o[id];});});
+ if(s.tour&&!known(s.tour.artist))s.tour=null;
+ if(s.live&&!known(s.live.artist)){s.live=null;s.resultPending=false;s.lastResult=null;}
+ if(s.lastResult&&!Object.values(AM).some(function(x){return x.n===s.lastResult.artist;})){
+  s.lastResult=null;s.resultPending=false;}
+ if(Array.isArray(s.scout))s.scout=s.scout.filter(known);
+ if(!s.scout||!s.scout.length)s.scout=null;
  if(!s.deal)s.deal={};
  if(!s.fac)s.fac={};if(!s.staff)s.staff={};if(!s.artUp)s.artUp={};
  if(!s.mile)s.mile={};if(!s.recs)s.recs={};if(!s.hall)s.hall=[];
@@ -1160,6 +1207,8 @@ function band(raw,sigma,cap){return{lo:clamp(Math.round(raw*(1-1.28*sigma)),0,ca
    erős nyitás → építkezés → lélegzetvételnyi lassú → csúcs → ráadás.
    Csupa nagy energiájú szám egymás után kifárasztja a közönséget (állóképesség). */
 const MIN_SET=5;                                  // ennyi dal kell egy indítható szethez
+/* A kezdő előadóknak rövidebb a katalógusuk — náluk a teljes repertoár a minimum. */
+function minSet(a){return Math.min(MIN_SET,(a&&a.songs)?a.songs.length:MIN_SET);}
 const ARC=[70,80,60,74,90,97,88];                 // ideális energia-görbe kulcspontjai (0→1)
 function arcTarget(t){const x=clamp(t,0,1)*(ARC.length-1),i=Math.floor(x),f=x-i;
  return ARC[i]+((ARC[Math.min(i+1,ARC.length-1)]-ARC[i])*f);}
@@ -1192,7 +1241,8 @@ function crowdSim(a,list){
  if(fatigue)notes.push(`${fatigue} helyen 3+ nagy szám torlódik — a közönség kifárad.`);
  if(songs.length>=3&&pts[pts.length-1].crowd<peak-10)notes.push('Gyengén zárul — a végére erős, nagy energiájú szám kell.');
  if(songs.length>=4&&!songs.some(s=>s.e<=55))notes.push('Nincs lassú szám: egy lélegzetvétel feljebb vinné a csúcsot.');
- if(songs.length<MIN_SET)notes.push(`Még ${MIN_SET-songs.length} dal kell — a teljes ívhez legalább ${MIN_SET} szám.`);
+ const need=minSet(a);
+ if(songs.length<need)notes.push(`Még ${need-songs.length} dal kell — a teljes ívhez legalább ${need} szám.`);
  return{pts,score,avgE,notes,fatigue};
 }
 function showGrade(s){return s>=86?{g:'A+',c:'var(--cash)'}:s>=76?{g:'A',c:'var(--cash)'}:
@@ -2384,8 +2434,12 @@ function renderDeal(){
 function dealRound(){
  D.round++;
  const a=D.a,ch=dealChance(a,D.ask);
- D.zone=0.18+Math.random()*0.64;                 // a zóna közepe véletlen
- D.zw=clamp(ch,0.06,0.9);                        // a zóna SZÉLESSÉGE = a sikeresély
+ /* A nehézség SZOROSAN a sikeresélyhez kötött, két tengelyen egyszerre:
+    a zóna négyzetesen szűkül, a jelölő pedig gyorsul. Egy mohó ajánlat így valódi
+    kockázat: 90% → fél sáv és lassú inga, 5% → hajszálcsík és villámgyors inga. */
+ D.zw=clamp(0.05+ch*ch*0.52,0.05,0.60);
+ D.spd=0.014+(1-ch)*0.024;
+ D.zone=D.zw/2+Math.random()*(1-D.zw);           // a zóna végig a sávon belül marad
  D.pos=0;D.dir=1;D.locked=false;
  const h='<div class="ev"><div class="bd">'+
   '<h3>Alku · '+D.round+'/3 próba</h3>'+
@@ -2400,7 +2454,7 @@ function dealRound(){
  /* időzítőn fut, nem rAF-on: akkor is helyesen mozog, ha a rajzolás akadozik */
  const step=function(){
   if(!D||D.locked)return;
-  D.pos+=D.dir*0.018;
+  D.pos+=D.dir*(D.spd||0.018);
   if(D.pos>=1){D.pos=1;D.dir=-1;} if(D.pos<=0){D.pos=0;D.dir=1;}
   const mk=$('#dMark');if(mk)mk.style.left=(D.pos*100).toFixed(1)+'%';};
  D.raf=setInterval(step,16);
@@ -3002,11 +3056,11 @@ function renderSongs(){
  </div>`;
 
  h+=`<div class="sec" style="margin:16px 2px 10px"><h2 style="font-size:15px">A szet sorrendje</h2>
-   <span class="r ${list.length>=MIN_SET?'act':''}">${list.length}/${MIN_SET} dal</span></div>`;
+   <span class="r ${list.length>=minSet(a)?'act':''}">${list.length}/${minSet(a)} dal</span></div>`;
  h+=`<div id="slwrap">`;
  if(!list.length)h+=`<div class="empty" style="padding:18px 16px">
    <b style="font-family:var(--disp);font-size:15px">Üres a szet</b><br>
-   Válassz legalább <b>${MIN_SET}</b> dalt a repertoárból.</div>`;
+   Válassz legalább <b>${minSet(a)}</b> dalt a repertoárból.</div>`;
  list.forEach((si,pos)=>{const s=a.songs[si];if(!s)return;
   h+=`<div class="slrow" data-pos="${pos}">
     <div class="hnd" data-drag="${pos}"><span></span></div>
@@ -3204,7 +3258,7 @@ function updateSticky(){const stops=S.tour.stops,cost=promoCost(stops,S.tour.pro
     Így nem lehet véletlenül félig beállítva, alap jegyárral turnét indítani. */
  let main;
  if(stops.length<1) main=`<button class="btn lime" disabled>Adj hozzá legalább 1 várost</button>`;
- else if(S.tour.setlist.length<MIN_SET) main=`<button class="btn lime" id="goSet">${icon('notes','17px')} Rakd össze a szetet · még ${MIN_SET-S.tour.setlist.length} dal</button>`;
+ else if(S.tour.setlist.length<minSet(AM[S.tour.artist])) main=`<button class="btn lime" id="goSet">${icon('notes','17px')} Rakd össze a szetet · még ${minSet(AM[S.tour.artist])-S.tour.setlist.length} dal</button>`;
  else if(todo>0) main=`<button class="btn lime" id="goTodo">${icon('alert','17px')} Állomások beállítása · ${todo} maradt →</button>`;
  else main=`<button class="btn lime" id="sim">${icon('mic','18px')} Turné indítása · ${stops.length} állomás${cost?' · promó '+money(cost):''}</button>`;
 
