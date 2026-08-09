@@ -530,6 +530,12 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
   border-radius:14px;padding:11px 13px;margin-top:11px}
 .drumres .v3{font-family:var(--disp);font-weight:700;font-size:20px;font-feature-settings:"tnum" 1}
 
+.dealbar{position:relative;height:34px;border-radius:12px;background:var(--panel2);border:1px solid var(--line2);
+  margin-top:16px;overflow:hidden}
+.dealbar .dz2{position:absolute;top:0;bottom:0;background:linear-gradient(180deg,rgba(198,255,58,.42),rgba(198,255,58,.18));
+  border-left:2px solid var(--neon);border-right:2px solid var(--neon);box-shadow:0 0 18px var(--neonglow) inset}
+.dealbar .dm{position:absolute;top:-3px;bottom:-3px;width:5px;margin-left:-2px;border-radius:4px;background:#fff;
+  box-shadow:0 0 14px #fff;left:0}
 .goalcard{display:flex;gap:12px;align-items:flex-start;border-radius:18px;padding:13px 14px;margin-top:4px;
   background:linear-gradient(135deg,rgba(198,255,58,.15),rgba(198,255,58,.04));border:1px solid rgba(198,255,58,.36);box-shadow:var(--sh)}
 .goalcard.alt{background:linear-gradient(135deg,rgba(255,194,75,.13),rgba(255,194,75,.03));border-color:rgba(255,194,75,.34)}
@@ -1007,7 +1013,7 @@ let S=migrate(load()||newGame());
 function newGame(){return{money:60000,rep:0,week:1,roster:[],upg:{marketing:0,staff:0,merch:0},tab:'iroda',tour:null,live:null,
  art:{},rel:null,relLog:[],streamIncome:0,lastResult:null,toursDone:0,detail:null,studio:null,
  feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false,credits:CRED_WELCOME,themes:['lime'],theme:'lime',scout:null,
- mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false};}
+ mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false,deal:{}};}
 /* régi mentések kiegészítése az új mezőkkel */
 function migrate(s){if(!s)return newGame();
  if(s.live===undefined)s.live=null;
@@ -1026,6 +1032,7 @@ function migrate(s){if(!s)return newGame();
  if(!s.themes)s.themes=['lime'];
  if(!s.theme)s.theme='lime';
  if(!s.scout)s.scout=null;
+ if(!s.deal)s.deal={};
  if(!s.mile)s.mile={};if(!s.recs)s.recs={};if(!s.hall)s.hall=[];
  if(s.chal===undefined)s.chal=null;if(!s.chalDone)s.chalDone=0;if(!s.artArc)s.artArc={};s.career=false;
  if(s.autoShow===undefined)s.autoShow=false;
@@ -1102,7 +1109,7 @@ function estimate(a,city,v,price,setQ,mom,promo){
     a kapacitásra — így a jóval túlkeresett koncert biztosan telt ház lesz, a félig telt viszont
     tényleg ingadozik. */
  const raw=Math.max(0,Math.round(pool*pf));
- let att=clamp(raw,0,v.cap), fill=att/v.cap, rev=att*price, pay=rev*a.cut;
+ let att=clamp(raw,0,v.cap), fill=att/v.cap, rev=att*price, pay=rev*artistCut(a);
  /* KÖLTSÉGMODELL — két rész:
     fix  = kapacitás × €/férőhely × produkció-méret (a sztár nagyobb show-t hoz), a stáb-fejlesztés csökkenti.
            Ez akkor is jár, ha üres a ház → ettől kockázatos a túl nagy helyszín.
@@ -1114,7 +1121,7 @@ function estimate(a,city,v,price,setQ,mom,promo){
  const base=fix+Math.round(att*varRate);
  const merch=merchRev(att,fans);            // ← a merch a nézőszámból és a rajongói szintből jön
  /* hány nézőnél fordul nyereségbe — ez a helyszínválasztás valódi tétje */
- const contrib=price*(1-a.cut)+merchPerHead(fans)-varRate;
+ const contrib=price*(1-artistCut(a))+merchPerHead(fans)-varRate;
  const beAtt=contrib>0?Math.ceil(fix/contrib):Infinity;
  return{att,raw,fill,rev,base,pay,fp,fans,merch,fix,varRate,beAtt,beFill:beAtt/v.cap,fresh,taste,avgE};
 }
@@ -1363,7 +1370,7 @@ function runShow(i){
     L.log.push({t:'Langyos fogadtatás',s:'A kiadatlan szám nem fogott — a közönség kivárt · −4 hírnév',ic:'alert'});}
   }
   const f=rollFactor(sig)*L.attMul*riskMul;
-  att=clamp(Math.round(e.raw*f),0,v.cap);fill=att/v.cap;rev=att*st.price;pay=rev*a.cut;
+  att=clamp(Math.round(e.raw*f),0,v.cap);fill=att/v.cap;rev=att*st.price;pay=rev*artistCut(a);
   cost=e.fix+Math.round(att*e.varRate);   // a fejenkénti rész a TÉNYLEGES nézőszámmal számol
   merch=merchRev(att,fansBefore);      // merch: nézőszám × rajongói szint × pult-fejlesztés
   profit=rev+merch-cost-pay;
@@ -2296,6 +2303,115 @@ function rewardText(rw){
  if(rw.theme)b.push('téma');return b.join(' + ')||'—';
 }
 
+/* ============================ RÉSZESEDÉS-ALKU ============================
+   Leigazoláskor a játékos megalkudja az ÜGYNÖKSÉGI részesedést. A csúszka a kért %,
+   a sikeresély élőben látszik: minél többet kérsz az alaphoz képest, annál kisebb —
+   és egy felfutott sztárt sokkal nehezebb megszorítani, mint egy feltörekvőt.
+   Az alku egy mozgó jelölő megállítása: a siker-zóna MÉRETE = a sikeresély. */
+function dealBase(a){const f=af(a);return f>=85?18:f>=65?22:f>=45?28:35;}
+function dealChance(a,ask){
+ const base=dealBase(a), steep=0.9+af(a)/50;      // sztárnál meredekebb a romlás
+ return clamp(0.92-Math.max(0,ask-base)*0.022*steep,0.05,0.95);
+}
+function dealShare(a){const d=S.deal&&S.deal[a.id];return d===undefined?dealBase(a):d;}
+/* az alku a KIFIZETÉST mozgatja: az alapszázaléknál a mai gazdaság változatlan */
+function artistCut(a){
+ return clamp(a.cut*(1-(dealShare(a)-dealBase(a))/100*1.2), a.cut*0.35, a.cut*1.15);
+}
+function openDeal(id){
+ const a=AM[id];
+ if(S.money<a.sign){toast('Nincs elég pénz.');return;}
+ const base=dealBase(a);
+ D={a:a,ask:base,round:0,done:false,pos:0,dir:1,raf:0,zone:0.5};
+ renderDeal();
+}
+let D=null;
+function dealStatus(a){const f=af(a);return f>=85?'Legenda':f>=65?'Sztár':f>=45?'Áttörés':'Feltörekvő';}
+function renderDeal(){
+ const a=D.a,base=dealBase(a),ch=dealChance(a,D.ask);
+ const cut=clamp(a.cut*(1-(D.ask-base)/100*1.2),a.cut*0.35,a.cut*1.15);
+ let h='<div class="ev"><div class="ph"><img src="'+artistPhoto(a,700,300)+'" '+imgFB()+'><div class="g"></div>'+
+   '<span class="kick" style="color:var(--neon)">Szerződés-tárgyalás</span>'+
+   '<div class="ic" style="color:var(--neon)">'+icon(a.ic)+'</div></div>'+
+  '<div class="bd"><h3>'+esc(a.n)+'</h3>'+
+   '<p>'+dealStatus(a)+' · hírnév '+af(a)+' · alap ügynökségi rész <b>'+base+'%</b><br>'+
+     'Leigazolási díj: <b>'+(a.sign?money(a.sign):'ingyen')+'</b></p>'+
+   '<div class="grp2" style="margin-top:14px"><div class="gl gl2"><span>Ügynökségi részesedés</span>'+
+     '<span class="bigprice" id="dPct">'+D.ask+'%</span></div>'+
+     '<div class="prow"><button class="step" data-dn="-1">−</button>'+
+       '<input type="range" min="10" max="60" step="1" value="'+D.ask+'" id="dRange">'+
+       '<button class="step" data-dn="1">+</button></div></div>'+
+   '<div class="band"><span>Sikeresély</span><span><b id="dCh" style="color:'+(ch>=0.6?'var(--cash)':ch>=0.3?'var(--gold)':'var(--hot)')+'">'+Math.round(ch*100)+'%</b></span></div>'+
+   '<div class="band"><span>Az előadó ennyit visz</span><span><b id="dCut">'+Math.round(cut*100)+'%</b> a bevételből</span></div>'+
+   '<div class="hint"><span class="i">'+icon('alert','13px')+'</span><span>Ha mind a 3 kör bebukik, az <b>alap '+base+'%</b>-on szerződtök — nem veszítesz semmit, csak a jobb üzletet.</span></div>'+
+   '<div class="evch" style="margin-top:13px">'+
+     '<button class="evb good" data-go="1"><div class="l">'+icon('star','15px')+' Alkudjunk · '+D.ask+'%</div><div class="s">3 kör, mozgó jelölő megállítása</div></button>'+
+     '<button class="evb" data-base="1"><div class="l">Elfogadom az alapot · '+base+'%</div><div class="s">Azonnali szerződés, alku nélkül</div></button>'+
+     '<button class="evb" data-cancel="1"><div class="l">Mégse</div></button>'+
+   '</div></div></div>';
+ const m=$('#modal');m.innerHTML=h;m.className='on';
+ const rg=$('#dRange');
+ const upd=function(){D.ask=+rg.value;const c2=dealChance(a,D.ask),cu=clamp(a.cut*(1-(D.ask-base)/100*1.2),a.cut*0.35,a.cut*1.15);
+  $('#dPct').textContent=D.ask+'%';
+  const e=$('#dCh');e.textContent=Math.round(c2*100)+'%';
+  e.style.color=c2>=0.6?'var(--cash)':c2>=0.3?'var(--gold)':'var(--hot)';
+  $('#dCut').textContent=Math.round(cu*100)+'%';
+  m.querySelector('[data-go] .l').innerHTML=icon('star','15px')+' Alkudjunk · '+D.ask+'%';};
+ rg.oninput=upd;
+ m.querySelectorAll('[data-dn]').forEach(function(b){b.onclick=function(){rg.value=clamp(+rg.value+(+b.dataset.dn),10,60);upd();};});
+ m.querySelector('[data-go]').onclick=function(){D.round=0;dealRound();};
+ m.querySelector('[data-base]').onclick=function(){D.ask=base;closeDeal(true);};
+ m.querySelector('[data-cancel]').onclick=function(){D=null;$('#modal').className='';$('#modal').innerHTML='';};
+}
+function dealRound(){
+ D.round++;
+ const a=D.a,ch=dealChance(a,D.ask);
+ D.zone=0.18+Math.random()*0.64;                 // a zóna közepe véletlen
+ D.zw=clamp(ch,0.06,0.9);                        // a zóna SZÉLESSÉGE = a sikeresély
+ D.pos=0;D.dir=1;D.locked=false;
+ const h='<div class="ev"><div class="bd">'+
+  '<h3>Alku · '+D.round+'/3 kör</h3>'+
+  '<p>Állítsd meg a jelölőt a <b style="color:var(--neon)">zöld sávban</b>. '+
+    'A sáv szélessége a sikeresélyed: <b>'+Math.round(ch*100)+'%</b>.</p>'+
+  '<div class="dealbar" id="dBar"><span class="dz2" id="dZone"></span><i class="dm" id="dMark"></i></div>'+
+  '<button class="cuebtn" id="dStop" style="margin-top:16px">MEGÁLLÍT</button>'+
+  '<div class="band" style="justify-content:center;margin-top:12px"><span id="dMsg">Kért részesedés: <b>'+D.ask+'%</b></span></div>'+
+  '</div></div>';
+ const m=$('#modal');m.innerHTML=h;m.className='on';
+ const z=$('#dZone');z.style.left=((D.zone-D.zw/2)*100).toFixed(1)+'%';z.style.width=(D.zw*100).toFixed(1)+'%';
+ $('#dStop').onclick=dealStop;
+ /* időzítőn fut, nem rAF-on: akkor is helyesen mozog, ha a rajzolás akadozik */
+ const step=function(){
+  if(!D||D.locked)return;
+  D.pos+=D.dir*0.018;
+  if(D.pos>=1){D.pos=1;D.dir=-1;} if(D.pos<=0){D.pos=0;D.dir=1;}
+  const mk=$('#dMark');if(mk)mk.style.left=(D.pos*100).toFixed(1)+'%';};
+ D.raf=setInterval(step,16);
+}
+function dealStop(){
+ if(!D||D.locked)return;D.locked=true;clearInterval(D.raf);
+ const ok=Math.abs(D.pos-D.zone)<=D.zw/2;
+ const msg=$('#dMsg');
+ if(ok){blip(1200,0.12,'sine',0.18);
+  if(msg)msg.innerHTML='<b style="color:var(--cash)">MEGVAN! '+D.ask+'% az ügynökségé.</b>';
+  setTimeout(function(){closeDeal(true);},700);
+ }else{blip(140,0.14,'square',0.13);
+  if(msg)msg.innerHTML='<b style="color:var(--hot)">Nem ment.</b> '+(D.round<3?'Maradt '+(3-D.round)+' kör.':'Elfogyott a 3 kör.');
+  setTimeout(function(){
+    if(D.round<3)dealRound();
+    else{D.ask=dealBase(D.a);closeDeal(false);}
+  },900);
+ }
+}
+function closeDeal(won){
+ const a=D.a,ask=D.ask;
+ if(D.raf)clearInterval(D.raf);
+ D=null;$('#modal').className='';$('#modal').innerHTML='';
+ S.deal=S.deal||{};S.deal[a.id]=ask;
+ doSign(a.id);
+ toast(won?('Megállapodtatok: '+ask+'% az ügynökségé.'):('Alap feltételekkel: '+ask+'% az ügynökségé.'));
+}
+
 /* ============================ RENDER ============================ */
 function render(){applyTheme();checkUnlocks();chalLive();checkArcs();checkMiles();renderHUD();renderNav();stickyHost.innerHTML='';
  if(S.tab!=='terkep')teardownMap();
@@ -2443,7 +2559,7 @@ function acardHTML(a,rich){
  return `<div class="acard" data-artist="${a.id}"><div class="ph"><img src="${artistPhoto(a,300,380)}" ${imgFB()}><div class="g"></div>
    <span class="badge">${icon(a.ic,'11px')} ${a.genre}</span>
    <div class="info"><div class="nm">${esc(a.n)}</div>
-     <div class="gen">${rich?`${REGIONS[top[0]]} · ${Math.round(top[1])} rajongó`:`Részesedés ${Math.round(a.cut*100)}%`}</div>
+     <div class="gen">${rich?`${REGIONS[top[0]]} · ${Math.round(top[1])} rajongó`:`Előadó ${Math.round(artistCut(a)*100)}%`}</div>
      <div class="fame"><div class="fbar"><i style="width:${af(a)}%"></i></div><span class="fn">${af(a)}</span></div>
      ${rich?`<div class="meta">${icon('headphones','11px')} ${fmtStream(A.streams)} havi hallgató</div>`:''}
    </div></div></div>`;}
@@ -2469,7 +2585,7 @@ function tabEloadok(){
  h+=`</div>`;
  view.innerHTML=h;
  bind('[data-artist]',b=>openDetail(b.dataset.artist));
- bind('[data-sign]',b=>doSign(b.dataset.sign));
+ bind('[data-sign]',b=>openDeal(b.dataset.sign));
  const sr=$('#scoutRe');if(sr)sr.onclick=()=>{
    if(!spendCredits(COST_REROLL)){openShop(`Az új felhozatal ${COST_REROLL} kredit. Minden turné után amúgy is ingyen frissül!`);return;}
    rollScout();save();render();toast('Új nevek a listán.');};
@@ -2489,11 +2605,11 @@ function openDetail(id){S.detail=id;S.tab='eloadok';save();render();}
 function detailScreen(){const a=AM[S.detail],mine=S.roster.includes(a.id),canPay=S.money>=a.sign;
  let h=`<div class="adhero"><img src="${artistPhoto(a,900,700)}" ${imgFB()}><div class="g"></div>
    <div class="back" data-back="1">‹</div>
-   <div class="info"><div class="gen">${icon(a.ic)} ${a.genre} · Részesedés ${Math.round(a.cut*100)}%</div><h1>${esc(a.n)}</h1></div></div>`;
+   <div class="info"><div class="gen">${icon(a.ic)} ${a.genre} · Előadó ${Math.round(artistCut(a)*100)}% · Ügynökség ${dealShare(a)}%</div><h1>${esc(a.n)}</h1></div></div>`;
  h+=`<div class="pad"><p style="color:var(--muted);font-size:14px;margin:14px 0;line-height:1.5">${esc(a.bio)}</p>`;
  const A=artState(a.id);
  h+=`<div class="tiles"><div class="tile c2">${icon('star','20px')}<div class="v">${af(a)}</div><div class="k">Hírnév</div></div>
-     <div class="tile c1">${icon('banknote','20px')}<div class="v">${Math.round(a.cut*100)}%</div><div class="k">Részesedés</div></div>
+     <div class="tile c1">${icon('banknote','20px')}<div class="v">${dealShare(a)}%</div><div class="k">Ügynökségi rész</div></div>
      <div class="tile c3">${icon('headphones','20px')}<div class="v">${fmtStream(A.streams)}</div><div class="k">Havi hallgató</div></div></div>`;
  const arc=artArc(a),nx=artNext(a);
  h+=`<div class="sec"><h2>Karrier-ív</h2><span class="r act">${arc.n}</span></div>
@@ -2514,7 +2630,7 @@ function detailScreen(){const a=AM[S.detail],mine=S.roster.includes(a.id),canPay
  h+=`</div>`;
  view.innerHTML=h;
  $('.back').onclick=()=>{S.detail=null;save();render();};
- const sb=view.querySelector('[data-sign]');if(sb)sb.onclick=()=>{doSign(a.id);};
+ const sb=view.querySelector('[data-sign]');if(sb)sb.onclick=()=>{openDeal(a.id);};
  const tb=view.querySelector('[data-tour]');if(tb)tb.onclick=()=>{startTour(a.id);};
 }
 
