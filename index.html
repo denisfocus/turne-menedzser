@@ -1544,7 +1544,7 @@ const KIT=[
 /* KÖNNYÍTETT ritmus: lassabb tempó, ritkább minta, jóval nagyvonalúbb időablakok */
 /* VILÁGÍTÓ ABLAK modell: a dob kigyullad és világít egy ideig — amíg világít, üss rá.
    Nincs pillanat-találgatás; a világító állapot maga a jelzés. */
-const RG={win:900,winHard:520,perfectFrac:0.225,bars:12000};
+const RG={win:900,winHard:560,perfectFrac:0.225,bars:26000,bpm:100};   // hosszabb menet, ütemre eső nóták
 let M=null;
 
 /* apró WebAudio visszajelzés — a találat legyen kielégítő */
@@ -1570,7 +1570,7 @@ function noiseBuf(){
  NOISE=b;return b;
 }
 function drumHit(kind){
- if(S.sound===false)return;
+ if(S.sound===false)return;   // a saját ütés MGAIN nélkül szól, a háttérzene fölé
  try{
   if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
   const t=AC.currentTime, out=AC.destination;
@@ -1605,12 +1605,14 @@ function drumHit(kind){
  }catch(e){}
 }
 function buildPattern(){
- const notes=[];let t=1100,pad=-1;
- while(t<RG.bars-650){
-  const hard=Math.random()<0.22;                 // néhány gyorsabb, nehezebb nóta
+ /* A nóták a HÁTTÉRZENE ütemére esnek — így tényleg a dalra dobolsz.
+    8 ütemből 6-ra jut nóta, hogy legyen levegő; minden ötödik rövidebb ablakú. */
+ const beat=60000/RG.bpm, notes=[]; let pad=-1, k=0;
+ for(let b=4;b*beat<RG.bars-900;b++){
+  if(b%8===1||b%8===5)continue;
   let p;do{p=Math.floor(Math.random()*KIT.length);}while(p===pad);pad=p;
-  notes.push({t,dur:hard?RG.winHard:RG.win,hard,pad:p,done:false});
-  t+= hard ? 540+Math.random()*170 : 800+Math.random()*260;
+  const hard=(k%5===4);k++;
+  notes.push({t:b*beat,dur:hard?RG.winHard:RG.win,hard:hard,pad:p,done:false});
  }
  return notes;
 }
@@ -1618,7 +1620,7 @@ function openMini(stopIdx){
  const L=S.live;if(!L)return;
  const a=AM[L.artist],peak=peakSong(a,L.setlist),city=CM[L.stops[stopIdx].city];
  L.pausedLeft=remainMs();       // csak memóriában: ha újratöltenek játék közben, a turné magától folytatódik
- M={notes:buildPattern(),t0:0,raf:0,stop:stopIdx,crowd:46,combo:0,best:0,
+ M={notes:buildPattern(),t0:0,raf:0,iv:0,sched:-1,stop:stopIdx,crowd:46,combo:0,best:0,
     perfect:0,good:0,miss:0,total:0,started:false,ended:false};
  M.total=M.notes.length;
  const el=$('#mini');
@@ -1691,6 +1693,20 @@ function tapPad(pi,padEl){
 function miniTick(){
  if(!M||M.ended)return;
  const now=performance.now()-M.t0;
+ /* háttérzene: basszus + hi-hat + halk kick + szinti dallam, a nóták ugyanerre az ütemre esnek */
+ if(S.sound!==false&&AC){
+  const bm=60000/RG.bpm, b=Math.floor(now/bm);
+  MGAIN=0.5;
+  while(M.sched<b+2&&M.sched*bm<RG.bars){
+   M.sched++;const k=M.sched, t=AC.currentTime+Math.max(0,(k*bm-now))/1000;
+   if(k%2===0)schedKick(t);
+   schedHat(t+bm/2000,false);
+   if(k%2===0)schedBass(t,BASSN[(k>>1)%BASSN.length]);
+   if(k>=8&&k%2===1)schedLead(t,LEADN[((k-9)>>1)%LEADN.length]);
+   if(k%16===0)schedStab(t,220);
+  }
+  MGAIN=1;
+ }
  M.notes.forEach(n=>{if(!n.done&&now>n.t+n.dur){n.done=true;judge('miss',null);}});
  if(now>=RG.bars)endMini();
 }
@@ -1741,9 +1757,9 @@ function endMini(){
    nyalábok, haze, színwash, strobe — canvasra rajzolva. Alatta PROCEDURÁLIS zene
    (WebAudio, licencmentes), és a fények, a cue-k és a pontozás a ZENE ÜTEMÉRE mennek.
    Skill: irány + intenzitás húzással, szín-illesztés, és a dropra elsütött cue. */
-const LT={dur:12800,bpm:124,nBack:9,nFront:11,
+const LT={dur:26000,bpm:124,nBack:9,nFront:11,
   cols:[{id:'ice',n:'Kék',c:[110,215,255]},{id:'white',n:'Fehér',c:[235,245,255]},{id:'amber',n:'Arany',c:[255,180,70]}],
-  drops:[8,16,22],
+  drops:[8,16,24,32,40,48],
   cueWin:420};
 function countdown(done){
  let c=3;const cd=$('#mCount');
@@ -1753,33 +1769,40 @@ function countdown(done){
  step();
 }
 function beatMs(){return 60000/LT.bpm;}
+let MGAIN=1;   // háttérzene hangereje (a dobosnál halkabb, hogy a saját ütés kiemelkedjen)
 
 /* ---- procedurális zene: kick / hat / basszus / stab, tiszta ütemmel ---- */
 function schedKick(t){const o=AC.createOscillator(),g=AC.createGain();
  o.type='sine';o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(46,t+0.11);
- g.gain.setValueAtTime(0.8,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.34);
+ g.gain.setValueAtTime(0.8*MGAIN,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.34);
  o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+0.36);}
 function schedHat(t,open){const s2=AC.createBufferSource(),g=AC.createGain(),hp=AC.createBiquadFilter();
  s2.buffer=noiseBuf();hp.type='highpass';hp.frequency.value=7600;
- g.gain.setValueAtTime(open?0.15:0.09,t);g.gain.exponentialRampToValueAtTime(0.0001,t+(open?0.16:0.045));
+ g.gain.setValueAtTime((open?0.15:0.09)*MGAIN,t);g.gain.exponentialRampToValueAtTime(0.0001,t+(open?0.16:0.045));
  s2.connect(hp);hp.connect(g);g.connect(AC.destination);s2.start(t);s2.stop(t+0.2);}
 function schedBass(t,f){const o=AC.createOscillator(),g=AC.createGain(),lp=AC.createBiquadFilter();
  o.type='sawtooth';o.frequency.setValueAtTime(f,t);lp.type='lowpass';lp.frequency.setValueAtTime(420,t);
- g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.2,t+0.02);
+ g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.2*MGAIN,t+0.02);
  g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);
  o.connect(lp);lp.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+0.34);}
 function schedStab(t,f){[1,1.5,2].forEach(function(m,i){const o=AC.createOscillator(),g=AC.createGain();
  o.type='square';o.frequency.setValueAtTime(f*m,t);
- g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.07/(i+1),t+0.015);
+ g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.07*MGAIN/(i+1),t+0.015);
  g.gain.exponentialRampToValueAtTime(0.0001,t+0.42);
  o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+0.45);});}
 function schedRiser(t,dur){const s2=AC.createBufferSource(),g=AC.createGain(),bp=AC.createBiquadFilter();
  s2.buffer=noiseBuf();bp.type='bandpass';bp.Q.value=3;
  bp.frequency.setValueAtTime(500,t);bp.frequency.exponentialRampToValueAtTime(6500,t+dur);
- g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.16,t+dur*0.9);
+ g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.16*MGAIN,t+dur*0.9);
  g.gain.exponentialRampToValueAtTime(0.0001,t+dur+0.06);
  s2.connect(bp);bp.connect(g);g.connect(AC.destination);s2.start(t);s2.stop(t+dur+0.1);}
 const BASSN=[55,55,73.4,65.4];
+const LEADN=[440,523.3,587.3,523.3,440,392,440,587.3];
+function schedLead(t,f){const o=AC.createOscillator(),g=AC.createGain();
+ o.type='triangle';o.frequency.setValueAtTime(f,t);
+ g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.06*MGAIN,t+0.02);
+ g.gain.exponentialRampToValueAtTime(0.0001,t+0.34);
+ o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+0.36);}
 
 function openLights(stopIdx){
  const L=S.live;if(!L)return;
@@ -1873,7 +1896,7 @@ function lightTick(){
   }
  }
  if(b!==M.beat){M.beat=b;
-  M.wantCol=Math.floor(b/4)%LT.cols.length;
+  M.wantCol=Math.floor(b/6)%LT.cols.length;
   const wc=$('#mini');if(wc)wc.querySelectorAll('[data-col]').forEach(function(x){x.classList.toggle('want',+x.dataset.col===M.wantCol);});
  }
  const ph=now/bm;
