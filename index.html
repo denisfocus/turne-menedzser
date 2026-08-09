@@ -997,7 +997,7 @@ const KEY='turne_menedzser_v3';
 let S=migrate(load()||newGame());
 function newGame(){return{money:60000,rep:0,week:1,roster:[],upg:{marketing:0,staff:0,merch:0},tab:'iroda',tour:null,live:null,
  art:{},rel:null,relLog:[],streamIncome:0,lastResult:null,toursDone:0,detail:null,studio:null,
- feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false,credits:CRED_WELCOME};}
+ feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false,credits:CRED_WELCOME,themes:['lime'],theme:'lime',scout:null};}
 /* régi mentések kiegészítése az új mezőkkel */
 function migrate(s){if(!s)return newGame();
  if(s.live===undefined)s.live=null;
@@ -1013,6 +1013,9 @@ function migrate(s){if(!s)return newGame();
  if(!s.feed)s.feed=[];
  if(s.sound===undefined)s.sound=true;
  if(s.credits===undefined)s.credits=CRED_WELCOME;
+ if(!s.themes)s.themes=['lime'];
+ if(!s.theme)s.theme='lime';
+ if(!s.scout)s.scout=null;
  if(s.autoShow===undefined)s.autoShow=false;
  if(s.live){if(s.live.drum&&!s.live.mini){s.live.mini=s.live.drum;s.live.miniSkip=s.live.drumSkip||{};}
   if(!s.live.mini)s.live.mini={};if(!s.live.miniSkip)s.live.miniSkip={};
@@ -1041,6 +1044,19 @@ function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function signed(){return S.roster.map(id=>AM[id]);}
 function avail(){return ARTISTS.filter(a=>a.minRep<=S.rep);}
+/* Scouting-felhozatal: a leigazolhatók közül egy 3-as rövidlista.
+   INGYEN frissül minden turné után; kreditért azonnal újragenerálható. */
+function rollScout(){
+ const pool=avail().filter(a=>!S.roster.includes(a.id)).map(a=>a.id);
+ for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+ S.scout=pool.slice(0,3);return S.scout;
+}
+function scoutList(){
+ const ok=(S.scout||[]).filter(id=>AM[id]&&!S.roster.includes(id)&&AM[id].minRep<=S.rep);
+ if(ok.length!==(S.scout||[]).length||!S.scout)S.scout=ok;
+ if(!S.scout.length)rollScout();
+ return S.scout.map(id=>AM[id]).filter(Boolean);
+}
 function level(){let l=1;for(let i=0;i<LEVELS.length;i++)if(S.rep>=LEVELS[i])l=i+1;return l;}
 function levelProg(){const l=level();const lo=LEVELS[l-1],hi=LEVELS[l]||LEVELS[LEVELS.length-1]+400;return{l,lo,hi,pct:clamp((S.rep-lo)/(hi-lo),0,1),need:Math.max(0,hi-S.rep)};}
 function cityPhoto(c,w,h){return `https://loremflickr.com/${w}/${h}/${c.photo}?lock=${c.lk}`;}
@@ -1372,6 +1388,7 @@ function endTour(){
   net,rep:L.rep,tAtt:L.tAtt,setQ:Math.round(setlistQ(a,L.setlist)),promoSpent:L.promoSpent,tEvent:L.tEvent,days:L.days,log:L.log,
   tMerch:L.tMerch,fanRows,decay,streams:A.streams};
  pushFeed(`Turné vége · ${a.n}`,`${L.rows.length} állomás · ${k(L.tAtt)} néző · ${money(net)}`,'trophy',net>=0?'var(--cash)':'var(--hot)');
+ rollScout();
  S.live=null;S.resultPending=true;      // ha közben bezárták a játékot, újranyitáskor is lássa
  stopTicker();save();teardownMap();showResult();
 }
@@ -1465,7 +1482,21 @@ const PACKS=[
  {c:550,  eur:'7,99 €',  tag:'+10%'},
  {c:1200, eur:'14,99 €', tag:'+20%', best:1},
 ];
-const COST_AUTOSET=2;                       // az első kredit-sink: setlist auto-rendezés
+/* KREDIT-SINKEK — mind kényelem/kozmetika, az ingyenes út végig teljes értékű.
+   Árazás: egy 100-as csomag néhány értelmes vásárlásra elég, nem tucatnyira. */
+const COST_AUTOSET=18;      // setlist auto-rendezés
+const COST_SKIP=12;         // turné-szakasz azonnali átugrása (a reklám fizetős párja)
+const COST_REROLL=12;       // scouting-felhozatal újragenerálása
+const COST_REL={single:10,ep:20,album:30};   // kiadás azonnali befejezése
+const THEMES=[
+ {id:'lime', n:'Elektromos lime', c:'#C6FF3A', d:'#9bd211', dd:'#6f9400', g:'rgba(198,255,58,.55)', cost:0},
+ {id:'ice',  n:'Jégkék',          c:'#5BE8FF', d:'#18b8d8', dd:'#0d8199', g:'rgba(91,232,255,.55)', cost:150},
+ {id:'ember',n:'Parázs',          c:'#FF9F3A', d:'#e0761a', dd:'#9c4f08', g:'rgba(255,159,58,.55)', cost:150},
+];
+function applyTheme(){
+ const t=THEMES.find(x=>x.id===(S.theme||'lime'))||THEMES[0], r=document.documentElement.style;
+ r.setProperty('--neon',t.c);r.setProperty('--neon-d',t.d);r.setProperty('--neon-dd',t.dd);r.setProperty('--neonglow',t.g);
+}
 function credits(){return S.credits||0;}
 function spendCredits(n){if(credits()<n)return false;S.credits=credits()-n;save();renderHUD();return true;}
 const Store={
@@ -1960,7 +1991,7 @@ function renderNav(){const tabs=[['iroda','house','Iroda'],['terkep','globe','T�
  navEl.querySelectorAll('[data-tab]').forEach(a=>a.onclick=()=>{if(S.tab!==a.dataset.tab){S.detail=null;if(a.dataset.tab!=='terkep')teardownMap();S.tab=a.dataset.tab;save();render();}});}
 
 /* ============================ RENDER ============================ */
-function render(){checkUnlocks();renderHUD();renderNav();stickyHost.innerHTML='';
+function render(){applyTheme();checkUnlocks();renderHUD();renderNav();stickyHost.innerHTML='';
  if(S.tab!=='terkep')teardownMap();
  ({iroda:tabIroda,terkep:tabTerkep,eloadok:tabEloadok,studio:tabStudio,fejlesztes:tabFejlesztes}[S.tab]||tabIroda)();
  view.scrollTop=0;
@@ -2103,15 +2134,17 @@ function acardHTML(a,rich){
 /* ---------- ELŐADÓK ---------- */
 function tabEloadok(){
  if(S.detail){detailScreen();return;}
- const mine=signed(), pool=avail().filter(a=>!S.roster.includes(a.id)), locked=ARTISTS.filter(a=>a.minRep>S.rep);
+ const mine=signed(), pool=scoutList(), locked=ARTISTS.filter(a=>a.minRep>S.rep);
  let h=`<div class="hud-space"></div><div class="pad">
    <div class="shead"><div class="eyebrow">Roster</div><h1>Előadók</h1><p>A leigazolt előadóiddal tervezhetsz turnét. Nagyobb nevek magasabb hírnévnél szerződnek.</p></div>`;
  h+=`<div class="sec"><h2>A csapatod</h2><span class="r ${mine.length?'act':''}">${mine.length}</span></div>`;
  if(!mine.length)h+=`<div class="empty">Még nincs előadód.<br>Válassz lentről egy feltörekvő tehetséget – ingyen!</div>`;
  mine.forEach(a=>h+=lcardArtist(a,'mine'));
- h+=`<div class="sec"><h2>Leigazolható</h2></div>`;
+ h+=`<div class="sec"><h2>Felhozatal</h2><span class="r act">${pool.length} név</span></div>`;
  if(!pool.length)h+=`<div class="empty">Most nincs új elérhető név. Növeld a hírneved turnékkal!</div>`;
  pool.forEach(a=>h+=lcardArtist(a,'sign'));
+ h+=`<button class="btn dark sm" id="scoutRe" style="margin-top:4px">${icon('vinyl','15px')} Új felhozatal · ${COST_REROLL} kredit</button>
+   <div class="hint"><span class="i">${icon('calendar','13px')}</span><span>A felhozatal <b>minden turné után ingyen</b> frissül — a kredit csak azonnali újrakeverés.</span></div>`;
  if(locked.length){h+=`<div class="sec"><h2 style="color:var(--muted);font-size:15px">${icon('star')} Magasabb hírnév kell</h2></div>`;
   locked.forEach(a=>h+=`<div class="lcard" style="opacity:.6"><div class="ph"><img src="${artistPhoto(a,220,240)}" ${imgFB()}></div>
    <div class="bd"><div class="nm">${esc(a.n)}</div><div class="chips"><span class="chip">${a.genre}</span><span class="chip gold">Hírnév ${af(a)}</span></div>
@@ -2120,6 +2153,9 @@ function tabEloadok(){
  view.innerHTML=h;
  bind('[data-artist]',b=>openDetail(b.dataset.artist));
  bind('[data-sign]',b=>doSign(b.dataset.sign));
+ const sr=$('#scoutRe');if(sr)sr.onclick=()=>{
+   if(!spendCredits(COST_REROLL)){openShop(`Az új felhozatal ${COST_REROLL} kredit. Minden turné után amúgy is ingyen frissül!`);return;}
+   rollScout();save();render();toast('Új nevek a listán.');};
 }
 function lcardArtist(a,mode){const canPay=S.money>=a.sign, top=Object.entries(a.reg).sort((x,y)=>y[1]-x[1]).slice(0,2).map(([r])=>REGIONS[r]).join(', ');
  return `<div class="lcard"><div class="ph" data-artist="${a.id}"><img src="${artistPhoto(a,220,260)}" ${imgFB()}><span class="gi">${icon(a.ic,'13px')}</span></div>
@@ -2248,8 +2284,10 @@ function liveScreen(){
 
  /* reklámvideós gyorsítás */
  const used=!!L.adUsed[L.i];
- h+=`<button class="btn ${used?'dark':'lime'} sm" id="lvAd" style="margin-top:12px" ${used?'disabled':''}>
-   ${icon('play','16px')} ${used?'Ehhez a szakaszhoz már megnézted':'Reklám megnézése · szakasz átugrása'}</button>`;
+ h+=`<div class="btnrow" style="margin-top:12px">
+   <button class="btn ${used?'dark':'lime'} sm" id="lvAd" ${used?'disabled':''}>
+     ${icon('play','16px')} ${used?'Videó megvolt':'Reklám · átugrás'}</button>
+   <button class="btn dark sm" id="lvCredSkip">${icon('vinyl','15px')} ${COST_SKIP}</button></div>`;
 
  /* térkép a haladással */
  if(HAS_MAP){h+=`<div class="sec"><h2>Az útvonal</h2><span class="r act">${icon('plane','11px')} élő</span></div>
@@ -2283,6 +2321,9 @@ function liveScreen(){
  view.innerHTML=h;view.scrollTop=sc;
  if(HAS_MAP){initMap();}
  $('#lvAd').onclick=adSkip;
+ const cs=$('#lvCredSkip');if(cs)cs.onclick=()=>{
+   if(!spendCredits(COST_SKIP)){openShop(`Az azonnali átugrás ${COST_SKIP} kredit. Reklámvideóval ingyen is átugorhatod!`);return;}
+   S.live.ends=Date.now()-1;save();toast('Szakasz átugorva.');tick();};
  const dbtn=$('#lvDrum');if(dbtn)dbtn.onclick=()=>{const i2=curPhase().i;
    miniKindFor(i2)==='drum'?openMini(i2):openLights(i2);};
  const dno=$('#lvDrumNo');if(dno)dno.onclick=()=>{L.miniSkip=L.miniSkip||{};L.miniSkip[curPhase().i]=true;save();liveScreen();};
@@ -2622,7 +2663,9 @@ function tabStudio(){
       <div class="sub">${k.days} nap a stúdióban · megjelenés után azonnal hat a keresletre</div>
       <div class="pbar"><i id="relBar" style="width:0%"></i></div>
       <div class="pmeta"><span class="t">${icon('clock','15px')}<span id="relTime">0:00</span></span><span>Már nem szakítható meg</span></div>
-      <button class="btn lime sm" id="relAd" style="margin-top:11px">${icon('play','16px')} Reklám megnézése · felvétel gyorsítása</button>
+      <div class="btnrow" style="margin-top:11px">
+        <button class="btn lime sm" id="relAd">${icon('play','16px')} Reklám · gyorsítás</button>
+        <button class="btn dark sm" id="relCred">${icon('vinyl','15px')} Kész most · ${COST_REL[S.rel.kind]||20}</button></div>
     </div></div>`;}
 
  /* előadóválasztó */
@@ -2664,6 +2707,9 @@ function tabStudio(){
  bind('[data-studio]',b=>{S.studio=b.dataset.studio;save();tabStudio();});
  bind('[data-rel]',b=>startRelease(a.id,b.dataset.rel));
  const ad=$('#relAd');if(ad)ad.onclick=relAdSkip;
+ const rc=$('#relCred');if(rc)rc.onclick=()=>{const c=COST_REL[S.rel.kind]||20;
+   if(!spendCredits(c)){openShop(`A felvétel azonnali befejezése ${c} kredit. Reklámvideóval is gyorsíthatsz, vagy egyszerűen megvárhatod!`);return;}
+   S.rel.ends=Date.now()-1;save();toast('A felvétel elkészült!');tick();};
  paintRel();
 }
 function paintRel(){
@@ -2698,8 +2744,21 @@ const UPG={
 function tabFejlesztes(){
  let h=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">Iroda</div><h1>Fejlesztés</h1><p>Fektesd vissza a bevételt: a marketing több nézőt hoz, az erős stáb csökkenti a költséget.</p></div>`;
  h+=upgCard('marketing')+upgCard('staff')+upgCard('merch');
- h+=`<div class="hint"><span class="i">✦</span><span>Tipp: az erős stáb főleg nagy helyszíneknél (aréna, stadion) fizetődik ki, ahol a produkció drága.</span></div></div>`;
+ h+=`<div class="hint"><span class="i">✦</span><span>Tipp: az erős stáb főleg nagy helyszíneknél (aréna, stadion) fizetődik ki, ahol a produkció drága.</span></div>`;
+ /* KOZMETIKA — kizárólag kinézet, a balanszt nem érinti */
+ h+=`<div class="sec"><h2>Kinézet</h2><span class="r">${icon('vinyl','11px')} ${credits()}</span></div>
+   <div class="cchips">`;
+ THEMES.forEach(t=>{const own=(S.themes||[]).indexOf(t.id)>=0, on=S.theme===t.id;
+  h+=`<div class="cchip ${on?'on':''}" data-theme="${t.id}" style="border-color:${t.c};${on?'':'opacity:.85'}">
+    <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${t.c};box-shadow:0 0 8px ${t.c}"></span>
+    ${t.n} <small>${own?(on?'aktív':'megvan'):t.cost+' kredit'}</small></div>`;});
+ h+=`</div><div class="hint"><span class="i">${icon('vinyl','13px')}</span><span>A témák csak a kinézetet változtatják — a játékmenetre semmilyen hatásuk nincs. Később továbbiak is jönnek.</span></div></div>`;
  view.innerHTML=h;
+ bind('[data-theme]',b=>{const t=THEMES.find(x=>x.id===b.dataset.theme);if(!t)return;
+   if((S.themes||[]).indexOf(t.id)<0){
+     if(!spendCredits(t.cost)){openShop(`A(z) „${t.n}" téma ${t.cost} kredit. Tisztán kozmetika — a játékmenetre nincs hatása.`);return;}
+     S.themes.push(t.id);toast(`${t.n} téma feloldva!`);}
+   S.theme=t.id;save();applyTheme();render();});
  bind('[data-up]',b=>{const key=b.dataset.up,cost=UPG[key].cost[S.upg[key]+1];
   if(cost===undefined){toast('Ez már maximumon van.');return;}
   if(S.money<cost){toast('Nincs elég pénz.');return;}
