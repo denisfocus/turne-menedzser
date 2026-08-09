@@ -262,6 +262,8 @@ img{display:block;max-width:100%}
   color:var(--muted);display:flex;flex-direction:column;gap:2px;line-height:1.15}
 .seg button small{font-size:9px;color:var(--faint);font-weight:600}
 .seg button.on{background:rgba(198,255,58,.14);border-color:var(--neon);color:#fff}
+.seg button.lk{opacity:.55;border-style:dashed;border-color:var(--line);color:var(--faint);cursor:not-allowed}
+.seg button.lk small{color:var(--gold)}
 .pr{display:flex;align-items:center;gap:11px;margin-bottom:11px}
 .pr label{font-size:12px;color:var(--muted);min-width:52px;font-weight:600}
 input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:7px;border-radius:7px;
@@ -507,10 +509,14 @@ const CM=Object.fromEntries(CITIES.map(c=>[c.id,c]));
 const VENUES=[
  /* fix = €/férőhely FIX költség (bérlet + színpad + technika) — a kapacitással skálázódik,
     ezért a nagy helyszín akkor is sokba kerül, ha nem telik meg. Nagyobb tier = drágább férőhelyenként. */
- {id:'club',   n:'Klub',    cap:2500,  fix:9.5,  pmul:0.85,tmul:0.7,rep:4,ic:'headphones'},
- {id:'theatre',n:'Színház', cap:9000,  fix:12.5, pmul:1.0, tmul:1.0,rep:9,ic:'notes'},
- {id:'arena',  n:'Aréna',   cap:20000, fix:14.5, pmul:1.15,tmul:1.7,rep:18,ic:'star'},
- {id:'stadium',n:'Stadion', cap:55000, fix:16.5, pmul:1.35,tmul:2.6,rep:34,ic:'trophy'},
+ /* minRep = az iroda hírneve, amitől a helyszíntípus felnyílik. Ugyanaz a valuta, mint az
+    előadó-feloldásoknál (a.minRep), ezért a két létra párba áll: színház a kezdő szakasz
+    végén, aréna a középkategóriás előadókkal (minRep 120–150), stadion a világsztárokkal (400+).
+    Egyben megvédi a kezdőt a stadion-csapdától is. */
+ {id:'club',   n:'Klub',    cap:2500,  fix:9.5,  pmul:0.85,tmul:0.7,rep:4, minRep:0,  ic:'headphones'},
+ {id:'theatre',n:'Színház', cap:9000,  fix:12.5, pmul:1.0, tmul:1.0,rep:9, minRep:40, ic:'notes'},
+ {id:'arena',  n:'Aréna',   cap:20000, fix:14.5, pmul:1.15,tmul:1.7,rep:18,minRep:150,ic:'star'},
+ {id:'stadium',n:'Stadion', cap:55000, fix:16.5, pmul:1.35,tmul:2.6,rep:34,minRep:400,ic:'trophy'},
 ];
 const VM=Object.fromEntries(VENUES.map(v=>[v.id,v]));
 function songs(a){return a.map(s=>({n:s[0],q:s[1]}));}
@@ -723,6 +729,16 @@ function migrate(s){if(!s)return newGame();
  if(!s.relLog)s.relLog=[];
  if(s.streamIncome===undefined)s.streamIncome=0;
  if(s.studio===undefined)s.studio=null;
+ /* helyszín-feloldás bevezetése: a régi mentésben megtervezett, de már zárolt helyszínt lehúzzuk.
+    A FUTÓ turnét nem bántjuk — az a szerződés már megköttetett. */
+ if(s.tour&&s.tour.stops){const ar=AM[s.tour.artist];
+  const fadd=(s.art&&s.art[s.tour.artist]?s.art[s.tour.artist].fameAdd:0)||0;
+  s.tour.stops.forEach(st=>{const v=VM[st.venue];
+   if(v&&(v.minRep||0)>(s.rep||0)){let ok=VENUES[0];
+    for(let i=VENUES.indexOf(v);i>=0;i--)if((VENUES[i].minRep||0)<=(s.rep||0)){ok=VENUES[i];break;}
+    st.venue=ok.id;
+    /* a jegyár is igazodjon a kisebb helyszínhez (af() itt még nem hívható, S még nincs kész) */
+    if(ar)st.price=Math.round((14+Math.min(100,ar.fame+fadd)*0.75)*ok.pmul);}});}
  return s;}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 function load(){try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
@@ -1224,6 +1240,14 @@ function tabIroda(){
      <div class="tile c1">${icon('banknote','20px')}<div class="v">${money(S.streamIncome||0)}</div><div class="k">Streamingből</div></div>
      <div class="tile c2">${icon('notes','20px')}<div class="v">${S.relLog.length}</div><div class="k">Megjelenés</div></div>
    </div>`;
+ // helyszín-létra: mit szervezhetsz most, és mi a következő cél
+ const nlv=nextLockedVenue();
+ h+=`<div class="sec"><h2>Helyszínek</h2><span class="r act">${bestOpenVenue().n}-ig</span></div><div class="cchips">`;
+ VENUES.forEach(v=>{const op=venueOpen(v);
+  h+=`<span class="cchip ${op?'on':''}" style="${op?'':'opacity:.6;border-style:dashed'}">
+    ${op?icon(v.ic,'12px'):icon('lock','12px')} ${v.n} <small>${op?k(v.cap)+' fő':v.minRep+' hírnév'}</small></span>`;});
+ h+=`</div>`;
+ if(nlv)h+=`<div class="hint"><span class="i">${icon('lock','13px')}</span><span><b>${nlv.n}</b> feloldásához <b>${nlv.minRep}</b> hírnév kell — most <b>${S.rep}</b> van. A telt házas koncertek hozzák a legtöbbet.</span></div>`;
  if(S.lastResult){const l=S.lastResult;
    h+=`<div class="sec"><h2>Legutóbbi turné</h2></div>
      <div class="lcard"><div class="ph"><img src="${l.photo}" ${imgFB()}></div>
@@ -1302,7 +1326,14 @@ function detailScreen(){const a=AM[S.detail],mine=S.roster.includes(a.id),canPay
 function startTour(id){if(S.live){toast('Előbb fejezd be a folyamatban lévő turnét.');S.tab='terkep';save();render();return;}
  const a=AM[id];const top=a.songs.map((s,i)=>[i,s.q]).sort((x,y)=>y[1]-x[1]).slice(0,5).map(x=>x[0]);
  S.tour={artist:id,stops:[],setlist:top,promo:0};S.detail=null;S.tab='terkep';save();render();}
-function defVenue(a){const f=af(a);return f>=80?VM.arena:f>=50?VM.theatre:VM.club;}
+/* ---------- helyszín-feloldás ---------- */
+function venueOpen(v){return S.rep>=(v.minRep||0);}
+function bestOpenVenue(){for(let i=VENUES.length-1;i>=0;i--)if(venueOpen(VENUES[i]))return VENUES[i];return VENUES[0];}
+function nextLockedVenue(){return VENUES.find(v=>!venueOpen(v))||null;}
+/* az előadóhoz illő méret, de sosem nagyobb, mint amit a hírneved már feloldott */
+function defVenue(a){const f=af(a);let want=f>=80?VM.arena:f>=50?VM.theatre:VM.club;
+ for(let i=VENUES.indexOf(want);i>=0;i--)if(venueOpen(VENUES[i]))return VENUES[i];
+ return VM.club;}
 
 function tabTerkep(){
  if(S.live){liveScreen();return;}
@@ -1456,10 +1487,15 @@ function renderStops(){const a=AM[S.tour.artist],stops=S.tour.stops,setQ=setlist
   const leg=i>0?legCost(CM[stops[i-1].city],city,v):0,e=estimate(a,city,v,st.price,setQ,1,pro),
     profit=e.rev+e.merch-e.base-e.pay-leg,fp=Math.round(e.fill*100),
     fc=e.fill>=0.85?'var(--cash)':e.fill>=0.5?'var(--gold)':'var(--hot)',b=band(e.raw,sg,v.cap),fit=venueFit(e.fill);
-  let seg='';VENUES.forEach(vv=>seg+=`<button class="${vv.id===st.venue?'on':''}" data-venue="${i}:${vv.id}">${vv.n}<small>${k(vv.cap)} fő</small></button>`);
+  let seg='';VENUES.forEach(vv=>{const op=venueOpen(vv);
+   seg+=`<button class="${vv.id===st.venue?'on':''} ${op?'':'lk'}" ${op?`data-venue="${i}:${vv.id}"`:'disabled'}>${vv.n}
+     <small>${op?k(vv.cap)+' fő':icon('lock','9px')+' '+vv.minRep}</small></button>`;});
+  const nl=nextLockedVenue();
   h+=`<div class="stop"><div class="ph"><img src="${cityPhoto(city,600,300)}" ${imgFB()}><div class="g"></div>
     <div class="lab"><div><span class="no">${i+1}. állomás</span><div class="c">${city.n}</div></div><span class="leg">${i>0?icon('globe','11px')+' '+money(leg):'nyitó'}</span></div></div>
     <div class="bd"><div class="seg">${seg}</div>
+      ${nl?`<div class="band" style="margin:-4px 0 10px"><span style="color:var(--gold)">${icon('lock','11px')} ${nl.n} feloldása</span>
+        <span style="color:var(--gold)"><b>${nl.minRep}</b> hírnév — most ${S.rep}</span></div>`:''}
       <div class="pr"><label>Jegyár</label><input type="range" min="5" max="250" step="5" value="${st.price}" data-price="${i}"><span class="pv-price" id="pp${i}">€${st.price}</span></div>
       <div class="pv"><div class="b"><span class="k">Várható</span><span class="v" id="pa${i}">${k(e.att)}/${k(v.cap)}</span></div>
         <div class="b"><span class="k">Bevétel</span><span class="v">${money(e.rev)}</span></div>

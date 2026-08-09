@@ -9,3 +9,8 @@ Object.assign(window.ICONS,{
 "play":"M128 64 416 256 128 448z",
 "ff":"M32 96 224 256 32 416z M256 96 448 256 256 416z"
 });
+
+/* --- lakat ikon (zarolt helyszinek) --- */
+Object.assign(window.ICONS,{
+"lock":"M112 224h288v256H112z M256 32c-61.8 0-112 50.2-112 112v80h48v-80c0-35.3 28.7-64 64-64s64 28.7 64 64v80h48v-80c0-61.8-50.2-112-112-112z"
+});
