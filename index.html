@@ -742,6 +742,32 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 .lgh{font-size:10px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;margin-bottom:6px}
 .lgc.bad .lgh{color:var(--hot)} .lgc.good .lgh{color:var(--cash)}
 .lgb{font-size:11px;line-height:1.55;color:var(--muted)}
+/* A Clash Display szóközei nagyon szűkek: rövid, nagy feliratoknál összefolytak
+   a szavak („3 egyszerű lépés"). Szövegben tágítunk, számoknál nem. */
+.sec h2,.shead h1,.hero h1,.coach .t .h,.gh,.gs,.ev h3,.evb .l,.btn,.lcard .nm,
+.acard .info .nm,.acard.add .l,.nextshow .city,.stop .ph .c,.adhero .info h1,
+.ag-who .nm,.office .nm,.office .rank,.tile .k,.pill .k,.eyebrow,.lgh,.legr,
+.chip,.cchip,.h3,.s3,.fold,.lvb{word-spacing:.13em}
+.num,.pill .v,.tile .v,.st .v,.route-sum .v,.pv .v,.pv-price,.bigprice,
+.acard .info .fn,.pips .fn,.song .qn,.lvc{word-spacing:normal}
+
+/* 6) a mini-játék felkínálás gombsora: a .btn width:100%-a kilógatta a 2. gombot */
+.btnrow{align-items:stretch}
+.btnrow .btn{width:auto;min-width:0;flex:1 1 auto;white-space:nowrap;padding-left:10px;padding-right:10px}
+.btnrow .btn.keep{flex:0 0 auto}
+
+/* 5) összecsukható másodlagos blokk az Iroda fülön */
+.fold{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:20px;
+  padding:14px 15px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.03);
+  font-family:var(--disp);font-weight:700;font-size:14px;color:var(--text)}
+.fold .fa{color:var(--faint);font-size:19px;transition:transform .18s;line-height:1}
+.fold.on .fa{transform:rotate(90deg)}
+
+/* 4) a HUD-csempék és a kredit-chip koppinthatók */
+.pill.tap,.credchip{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pill.tap:active{transform:scale(.97)}
+.credchip:active{transform:scale(.94)}
+.credchip .plus{font-weight:900;opacity:.75;margin-left:1px}
 </style>
 </head>
 <body>
@@ -1066,7 +1092,7 @@ let S=migrate(load()||newGame());
 function newGame(){return{money:60000,rep:0,week:1,roster:[],upg:{marketing:0,staff:0,merch:0},tab:'iroda',tour:null,live:null,
  art:{},rel:null,relLog:[],streamIncome:0,lastResult:null,toursDone:0,detail:null,studio:null,
  feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false,credits:CRED_WELCOME,themes:['lime'],theme:'lime',scout:null,
- mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false,deal:{},fac:{},staff:{},artUp:{},earned:0,leg:null,recsAll:{}};}
+ mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false,deal:{},fac:{},staff:{},artUp:{},earned:0,leg:null,recsAll:{},ioOpen:false};}
 /* régi mentések kiegészítése az új mezőkkel */
 function migrate(s){if(!s)return newGame();
  if(s.deal){Object.keys(s.deal).forEach(function(k){if(s.deal[k]>30)delete s.deal[k];});}  // régi 10-60%-os modell alaphelyzetbe
@@ -1099,6 +1125,7 @@ function migrate(s){if(!s)return newGame();
  if(!s.scout||!s.scout.length)s.scout=null;
  if(s.earned===undefined)s.earned=0;
  if(!s.recsAll)s.recsAll={};
+ if(s.ioOpen===undefined)s.ioOpen=false;
  if(!s.leg)s.leg={pts:0,tot:0,rank:0,perks:{}};
  if(!s.leg.perks)s.leg.perks={};
  if(!s.deal)s.deal={};
@@ -1872,7 +1899,7 @@ function endMini(){
  if(!M||M.ended)return;M.ended=true;cancelAnimationFrame(M.raf);if(M.iv)clearInterval(M.iv);
  const tot=Math.max(1,M.perfect+M.good+M.miss);
  const acc=(M.perfect+M.good*0.6)/tot;
- miniResult('drum',acc,`${M.perfect} perfect · ${M.good} jó · ${M.miss} melló · leghosszabb sorozat ${M.best}×`);
+ miniResult('drum',acc,`${M.perfect} perfect · ${M.good} jó · ${M.miss} mellé · leghosszabb sorozat ${M.best}×`);
 }
 
 /* ============================ FÉNYSHOW MINI-JÁTÉK (fénypult) ============================
@@ -2196,13 +2223,18 @@ function renderHUD(){
    <div class="ag-av">${av?`<img src="${av}" ${imgFB()}>`:icon('star','20px')}</div>
    <div class="ag-who"><div class="nm">Star Agency</div>
      <div class="lv">Iroda <b>Lv.${lp.l}</b> · ${lp.need>0?`${lp.need} hírnév a Lv.${lp.l+1}-ig`:'max szint'}</div></div>
-   <div class="credchip" id="hudCred">${icon('vinyl','14px')}${credits()}</div>
+   <div class="credchip" id="hudCred" role="button" title="Arany lemez — koppints a boltért">${icon('vinyl','14px')}${credits()}<span class="plus">+</span></div>
  </div>
  <div class="res">
-   <div class="pill cash">${icon('banknote','18px')}<div><div class="k">Kassza</div><div class="v" id="hudMoney"></div></div></div>
-   <div class="pill rep">${icon('star','18px')}<div><div class="k">Hírnév</div><div class="v" id="hudRep"></div></div></div>
-   <div class="pill wk">${icon('calendar','18px')}<div><div class="k">Hét</div><div class="v" id="hudWk"></div></div></div>
+   <div class="pill cash tap" data-hud="cash">${icon('banknote','18px')}<div><div class="k">A pénzed</div><div class="v" id="hudMoney"></div></div></div>
+   <div class="pill rep tap" data-hud="rep">${icon('star','18px')}<div><div class="k">Hírnév</div><div class="v" id="hudRep"></div></div></div>
+   <div class="pill wk tap" data-hud="wk">${icon('calendar','18px')}<div><div class="k">Hét</div><div class="v" id="hudWk"></div></div></div>
  </div>`;
+ const HUDTIP={cash:'Az ügynökséged pénze. Ebből fizeted a fejlesztéseket, a stábot és a leigazolásokat.',
+   rep:'Az iroda hírneve. Ez nyitja a nagyobb helyszíneket és a nagyobb neveket.',
+   wk:'Hányadik heténél tart az ügynökség. Turnék és kiadások alatt telik.'};
+ hud.querySelectorAll('[data-hud]').forEach(function(el){el.onclick=function(){toast(HUDTIP[el.dataset.hud]);};});
+ const hc=$('#hudCred');if(hc)hc.onclick=function(){openShop();};
  animateNum($('#hudMoney'),S.money,v=>money(v));
  animateNum($('#hudRep'),S.rep,v=>Math.round(v).toLocaleString('hu-HU'));
  $('#hudWk').textContent=String(S.week).padStart(2,'0');
@@ -2739,7 +2771,8 @@ function staffCard(st){
 }
 
 /* ============================ RENDER ============================ */
-function render(){applyTheme();checkUnlocks();chalLive();checkArcs();checkMiles();renderHUD();renderNav();stickyHost.innerHTML='';
+function render(){applyTheme();checkUnlocks();chalLive();checkArcs();checkMiles();renderHUD();renderNav();
+ stickyHost.innerHTML='';view.style.paddingBottom='';   // az updateSticky() állítja be, ha kell
  if(S.tab!=='terkep')teardownMap();
  if(S.tab==='iroda'&&S.career)careerScreen();
  else ({iroda:tabIroda,terkep:tabTerkep,eloadok:tabEloadok,studio:tabStudio,fejlesztes:tabFejlesztes}[S.tab]||tabIroda)();
@@ -2788,7 +2821,7 @@ function tabIroda(){
  }else h+=`<div class="goalcard" id="goalGo" style="margin-top:12px"><div class="g1">${icon('trophy','20px')}</div>
    <div class="g2"><div class="gh">Minden mérföldkő megvan</div><div class="gs">Nézd meg a rekordjaidat és a dicsőségfalat ›</div></div></div>`;
  // coach
- h+=`<div class="coach" data-go="${coach.go}"><div class="n">${coach.n}</div>
+ if(coach.n!=='★')h+=`<div class="coach" data-go="${coach.go}"><div class="n">${coach.n}</div>
    <div class="t"><div class="h">${coach.h}</div><div class="s">${coach.s}</div></div><div class="go">›</div></div>`;
 
  // folyamatban lévő turné, vagy gyorsindítás
@@ -2830,8 +2863,11 @@ function tabIroda(){
 
       </div></div></div>`;}
 
- /* Koppintható statok — szándékosan NEM ismétlik a HUD kasszáját/hírnevét/hetét. */
- h+=`<div class="pad"><div class="sec"><h2>Merre tartasz</h2></div>
+ /* A másodlagos infó egy fiókba kerül: elsőre a lényeg látszik (iroda, cél, turné, roster). */
+ const io=!!S.ioOpen;
+ h+=`<div class="pad"><button class="fold${io?' on':''}" id="ioFold">Részletek és statisztika<span class="fa">›</span></button>`;
+ h+=`<div id="ioBody"${io?'':' hidden'}>`;
+ h+=`<div class="sec"><h2>Merre tartasz</h2></div>
    <div class="tiles">
      <div class="tile c3 tap" data-go="studio">${icon('headphones','20px')}<div class="v" id="ioStreams">0</div><div class="k">Havi hallgató</div></div>
      <div class="tile c2 tap" data-go="terkep">${icon('trophy','20px')}<div class="v" id="ioTours">0</div><div class="k">Lement turné</div></div>
@@ -2866,9 +2902,12 @@ function tabIroda(){
      <div class="bd"><div class="nm">${esc(l.artist)}</div>
        <div class="chips"><span class="chip">${l.rows.length} állomás</span><span class="chip">${k(l.tAtt)} néző</span></div>
        <div class="btm"><span class="num" style="font-size:20px;color:${l.net>=0?'var(--cash)':'var(--hot)'}">${money(l.net)}</span></div></div></div>`;}
- h+=`</div>`;
+ h+=`</div></div>`;
 
  view.innerHTML=h;
+ const fo=$('#ioFold');
+ if(fo)fo.onclick=function(){S.ioOpen=!S.ioOpen;save();
+   const b=$('#ioBody');if(b){b.hidden=!S.ioOpen;fo.classList.toggle('on',!!S.ioOpen);}};
  bind('[data-go]',b=>{S.tab=b.dataset.go;save();render();});
  bind('[data-artist]',b=>openDetail(b.dataset.artist));
  const gg=$('#goalGo');if(gg)gg.onclick=()=>{S.career=true;save();render();};
@@ -3057,7 +3096,7 @@ function liveScreen(){
      <div class="t3"><div class="h3">${isDrum?'Nagy este — állj a dobok mögé!':'Nagy este — tiéd a fénypult!'}</div>
        <div class="s3">${isDrum?'Dobolj a dalra.':'Vezesd a fényeket.'}</div></div></div>
      <div class="btnrow" style="margin-top:9px"><button class="btn lime sm" id="lvDrum">${icon('play','15px')} ${isDrum?'Beállok':'Fénypulthoz'}</button>
-       <button class="btn dark sm" id="lvDrumNo" style="flex:0 0 auto">Most nem</button></div>
+       <button class="btn dark sm keep" id="lvDrumNo">Most nem</button></div>
      <div style="text-align:center;margin-top:8px"><button id="lvAuto" style="font-size:11.5px;color:var(--faint);font-weight:700;text-decoration:underline">Ne kérdezd többször — menjen automatán</button></div>`;
   }else{
    h+=`<button class="btn dark sm" id="lvDrum" style="margin-top:12px">${icon(isDrum?'mic':'bolt','15px')} ${isDrum?'Beállok dobolni':'Beállok a fénypulthoz'} · bónusz a show-ra</button>`;
@@ -3405,6 +3444,10 @@ function updateSticky(){const stops=S.tour.stops,cost=promoCost(stops,S.tour.pro
               :`${icon('clock','12px')} ${days} nap · nálad kb. ${realMin} perc${stops.length>1?` · <b style="color:var(--cash)">−${Math.round((1-tourScale(stops.length))*100)}%</b> fix költség a turné méretéért`:''}`}</div>`:''}
    ${main}
    <button class="btn dark sm" id="cancel" style="margin-top:8px">Mégse, vissza</button></div></div>`;
+ /* A sticky gomb magassága változó (hint + 2 gomb). Enélkül a lap alja — épp a
+    promóció-választó — a gomb alá csúszik, és webnézetben nem lehet elérni. */
+ const sb=stickyHost.querySelector('.sticky');
+ view.style.paddingBottom=(sb?sb.offsetHeight+90:96)+'px';
  const sim=$('#sim');if(sim)sim.onclick=launchTour;
  const gt=$('#goTodo');if(gt)gt.onclick=gotoNextTodo;
  const gs=$('#goSet');if(gs)gs.onclick=()=>{const el=view.querySelector('#songs');
