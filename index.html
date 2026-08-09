@@ -530,45 +530,41 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
   border-radius:14px;padding:11px 13px;margin-top:11px}
 .drumres .v3{font-family:var(--disp);font-weight:700;font-size:20px;font-feature-settings:"tnum" 1}
 
-/* ---------- FÉNYSHOW MINI-JÁTÉK ---------- */
-.stage{position:relative;flex:1;margin:10px 14px 0;border-radius:20px;overflow:hidden;touch-action:none;
-  border:1px solid var(--line2);min-height:230px;
-  background:linear-gradient(180deg,#0b0f14 0%,#0a0d12 55%,#070809 100%)}
-.stage .grid{position:absolute;inset:0;opacity:.5;
-  background:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 34px),
-             repeating-linear-gradient(180deg,rgba(255,255,255,.035) 0 1px,transparent 1px 34px)}
-.stage .crowdband{position:absolute;left:0;right:0;bottom:0;height:38%;
-  background:linear-gradient(180deg,transparent,rgba(198,255,58,.05));
-  border-top:1px dashed rgba(255,255,255,.09)}
-.stage .crowdband::after{content:"KÖZÖNSÉG";position:absolute;left:10px;bottom:7px;font-size:8.5px;letter-spacing:.2em;
-  color:var(--faint);font-weight:700}
-.spot{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle,rgba(198,255,58,.42) 0%,rgba(198,255,58,.16) 45%,transparent 72%);
-  border:2px solid rgba(198,255,58,.55);box-shadow:0 0 34px rgba(198,255,58,.32);
-  transition:box-shadow .1s;will-change:transform}
-.spot.hit{box-shadow:0 0 58px rgba(198,255,58,.7);border-color:var(--neon)}
-.perf{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle at 40% 35%,#fff,#ffd76a 55%,#c98f00);
-  box-shadow:0 0 18px rgba(255,214,106,.65);will-change:transform}
-.perf::after{content:"";position:absolute;inset:-9px;border-radius:50%;border:1.5px dashed rgba(255,215,106,.45)}
-.dring{position:absolute;width:180px;height:180px;margin:-90px 0 0 -90px;border-radius:50%;pointer-events:none;
-  border:4px solid var(--hot);opacity:0;will-change:transform}
-.hot{position:absolute;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;pointer-events:none;
-  border:3px solid var(--gold);background:radial-gradient(circle,rgba(255,194,75,.3),transparent 70%);
-  opacity:0;will-change:transform}
-/* FONTOS: a pulzálás NEM transform-ot animál — az felülírná a pozicionáló translate-et */
-.hot.on{opacity:1;animation:hotp 1s ease-in-out infinite}
-@keyframes hotp{0%,100%{box-shadow:0 0 0 0 rgba(255,194,75,.55);border-color:rgba(255,194,75,.7)}
-                50%{box-shadow:0 0 26px 7px rgba(255,194,75,.3);border-color:var(--gold)}}
-.stage .flash2{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
-.stage .flash2.go{animation:fl .3s ease-out}
-@keyframes fl{0%{opacity:.55}100%{opacity:0}}
-.stage .hint2{position:absolute;left:0;right:0;top:44%;text-align:center;font-family:var(--disp);font-weight:700;
-  font-size:13px;letter-spacing:.16em;color:rgba(255,255,255,.34);pointer-events:none}
-.dropcue{position:absolute;left:0;right:0;top:10px;text-align:center;font-family:var(--disp);font-weight:700;
-  font-size:15px;letter-spacing:.22em;color:var(--hot);opacity:0;pointer-events:none}
-.dropcue.go{opacity:1;animation:dc .7s ease-out}
-@keyframes dc{0%{transform:scale(.8);opacity:0}30%{transform:scale(1.06);opacity:1}100%{transform:scale(1);opacity:.85}}
+/* ---------- FÉNYSHOW MINI-JÁTÉK (fénypult) ---------- */
+.rig{position:relative;flex:1;margin:8px 12px 0;border-radius:20px;overflow:hidden;min-height:230px;
+  border:1px solid var(--line2);touch-action:none;background:#04060a}
+.rig canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.rig .hud2{position:absolute;left:10px;right:10px;top:8px;display:flex;justify-content:space-between;
+  align-items:flex-start;gap:8px;pointer-events:none}
+.rig .aimbar{position:absolute;left:12px;right:12px;bottom:10px;height:8px;border-radius:8px;
+  background:rgba(255,255,255,.1);pointer-events:none;overflow:hidden}
+.rig .aimbar u{position:absolute;top:0;bottom:0;background:rgba(255,255,255,.28);border-radius:8px}
+.rig .aimbar i{position:absolute;top:-3px;width:4px;height:14px;border-radius:3px;background:#fff;
+  box-shadow:0 0 10px #fff}
+.rig .cuebig{position:absolute;left:0;right:0;top:38%;text-align:center;font-family:var(--disp);font-weight:700;
+  font-size:30px;letter-spacing:.2em;color:#fff;opacity:0;pointer-events:none;text-shadow:0 0 24px #fff}
+.rig .cuebig.go{animation:cb .6s ease-out}
+@keyframes cb{0%{opacity:0;transform:scale(.8)}25%{opacity:1;transform:scale(1.08)}100%{opacity:0;transform:scale(1)}}
+.rig .hint3{position:absolute;left:0;right:0;top:46%;text-align:center;font-family:var(--disp);font-weight:700;
+  font-size:12.5px;letter-spacing:.14em;color:rgba(255,255,255,.4);pointer-events:none;padding:0 20px;line-height:1.6}
+.deskbar{display:flex;gap:8px;padding:10px 12px 0;flex:0 0 auto}
+.colb{flex:1;height:56px;border-radius:15px;border:2px solid var(--line2);background:var(--panel2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  font-family:var(--disp);font-weight:700;font-size:10.5px;letter-spacing:.06em;color:var(--faint);
+  transition:transform .07s,border-color .12s}
+.colb .dot2{width:20px;height:20px;border-radius:50%;box-shadow:0 0 12px currentColor}
+.colb:active{transform:translateY(2px)}
+.colb.on{border-color:#fff;color:#fff;background:rgba(255,255,255,.08)}
+.colb.want{animation:cwant 1s ease-in-out infinite}
+@keyframes cwant{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}50%{box-shadow:0 0 0 3px rgba(255,255,255,.35)}}
+.cuebtn{width:100%;height:62px;border-radius:17px;border:2px solid var(--hot);
+  background:linear-gradient(180deg,rgba(255,61,132,.28),rgba(255,61,132,.10));color:#fff;
+  font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:.14em;
+  display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 5px 0 #7d1338;transition:transform .07s}
+.cuebtn:active{transform:translateY(4px);box-shadow:0 1px 0 #7d1338}
+.cuebtn.armed{border-color:#fff;background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,61,132,.2));
+  animation:carm .34s ease-in-out infinite}
+@keyframes carm{0%,100%{box-shadow:0 5px 0 #7d1338}50%{box-shadow:0 5px 0 #7d1338,0 0 24px rgba(255,255,255,.6)}}
 
 /* ---------- SETLIST: energia-ív ---------- */
 .curve{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:13px 14px;box-shadow:var(--sh)}
@@ -1740,145 +1736,226 @@ function endMini(){
  miniResult('drum',acc,`${M.perfect} perfect · ${M.good} jó · ${M.miss} melló · leghosszabb sorozat ${M.best}×`);
 }
 
-/* ============================ FÉNYSHOW MINI-JÁTÉK ============================
-   Szándékosan MÁS skill, mint a dobos: nem diszkrét koppintás-időzítés, hanem
-   FOLYAMATOS KÖVETÉS + TÉRBELI IDŐZÍTÉS. Az ujjaddal viszed a reflektort:
-     · végig az előadón kell tartani (folyamatos pontgyűjtés),
-     · a dropra ott kell lenned a fényben (pozíció + időzítés egyszerre),
-     · közben felvillanó közönség-pontokat lehet elkapni — de közben leveszed
-       a fényt az előadóról, tehát valódi döntés. */
-const LT={dur:12000,spotR:58,perfectR:36,goodR:74,hotR:46,hotWin:2100,lead:1400,
-  drops:[3000,5600,8300,10800],hots:[1700,4400,7100,9600]};
-function perfPos(t,W,H){
- return{x:clamp(W*(0.5+0.34*Math.sin(t/1450)+0.10*Math.sin(t/620+1.2)),34,W-34),
-        y:clamp(H*(0.30+0.14*Math.sin(t/980+0.6)+0.05*Math.sin(t/430)),28,H*0.56)};
-}
+/* ============================ FÉNYSHOW MINI-JÁTÉK (fénypult) ============================
+   Profi koncert-fényrig: hátsó truss + színpad-perem mozgó fejgépekkel, volumetrikus
+   nyalábok, haze, színwash, strobe — canvasra rajzolva. Alatta PROCEDURÁLIS zene
+   (WebAudio, licencmentes), és a fények, a cue-k és a pontozás a ZENE ÜTEMÉRE mennek.
+   Skill: irány + intenzitás húzással, szín-illesztés, és a dropra elsütött cue. */
+const LT={dur:12800,bpm:124,nBack:9,nFront:11,
+  cols:[{id:'ice',n:'Kék',c:[110,215,255]},{id:'white',n:'Fehér',c:[235,245,255]},{id:'amber',n:'Arany',c:[255,180,70]}],
+  drops:[8,16,22],
+  cueWin:420};
 function countdown(done){
  let c=3;const cd=$('#mCount');
- const step=()=>{ if(!M||M.ended)return;
+ const step=function(){ if(!M||M.ended)return;
    if(c>0){if(cd)cd.textContent=c;blip(520+(3-c)*90,0.07,'sine',0.12);c--;setTimeout(step,620);}
    else{const r=$('#mReady');if(r)r.style.display='none';done();}};
  step();
 }
+function beatMs(){return 60000/LT.bpm;}
+
+/* ---- procedurális zene: kick / hat / basszus / stab, tiszta ütemmel ---- */
+function schedKick(t){const o=AC.createOscillator(),g=AC.createGain();
+ o.type='sine';o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(46,t+0.11);
+ g.gain.setValueAtTime(0.8,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.34);
+ o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+0.36);}
+function schedHat(t,open){const s2=AC.createBufferSource(),g=AC.createGain(),hp=AC.createBiquadFilter();
+ s2.buffer=noiseBuf();hp.type='highpass';hp.frequency.value=7600;
+ g.gain.setValueAtTime(open?0.15:0.09,t);g.gain.exponentialRampToValueAtTime(0.0001,t+(open?0.16:0.045));
+ s2.connect(hp);hp.connect(g);g.connect(AC.destination);s2.start(t);s2.stop(t+0.2);}
+function schedBass(t,f){const o=AC.createOscillator(),g=AC.createGain(),lp=AC.createBiquadFilter();
+ o.type='sawtooth';o.frequency.setValueAtTime(f,t);lp.type='lowpass';lp.frequency.setValueAtTime(420,t);
+ g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.2,t+0.02);
+ g.gain.exponentialRampToValueAtTime(0.0001,t+0.3);
+ o.connect(lp);lp.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+0.34);}
+function schedStab(t,f){[1,1.5,2].forEach(function(m,i){const o=AC.createOscillator(),g=AC.createGain();
+ o.type='square';o.frequency.setValueAtTime(f*m,t);
+ g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.07/(i+1),t+0.015);
+ g.gain.exponentialRampToValueAtTime(0.0001,t+0.42);
+ o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+0.45);});}
+function schedRiser(t,dur){const s2=AC.createBufferSource(),g=AC.createGain(),bp=AC.createBiquadFilter();
+ s2.buffer=noiseBuf();bp.type='bandpass';bp.Q.value=3;
+ bp.frequency.setValueAtTime(500,t);bp.frequency.exponentialRampToValueAtTime(6500,t+dur);
+ g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.16,t+dur*0.9);
+ g.gain.exponentialRampToValueAtTime(0.0001,t+dur+0.06);
+ s2.connect(bp);bp.connect(g);g.connect(AC.destination);s2.start(t);s2.stop(t+dur+0.1);}
+const BASSN=[55,55,73.4,65.4];
+
 function openLights(stopIdx){
  const L=S.live;if(!L)return;
  const a=AM[L.artist],peak=peakSong(a,L.setlist),city=CM[L.stops[stopIdx].city];
  L.pausedLeft=remainMs();
- M={kind:'lights',stop:stopIdx,crowd:46,combo:0,best:0,down:false,sx:0,sy:0,px:0,py:0,
-    drops:LT.drops.map(t=>({t,done:false})),
-    hots:LT.hots.map(t=>({t,done:false,caught:false,shown:false,x:0,y:0})),
-    dPerfect:0,dGood:0,dMiss:0,hotCaught:0,trackOn:0,trackAll:0,
-    t0:0,started:false,ended:false,raf:0,iv:0,W:1,H:1};
- $('#mini').innerHTML=`
-  <div class="mtop">
-    <div class="r1"><div style="min-width:0">
-      <div class="kick2">${esc(city.n)} · tiéd a fénypult</div>
-      <div class="sng">${esc(peak?peak.n:'Fényshow')}</div></div>
-      <button class="x" id="mSound" style="color:${S.sound===false?'var(--faint)':'var(--neon)'}">HANG</button></div>
-    <div class="mbar"><i id="mCrowd" style="width:46%"></i><b>KÖZÖNSÉG</b></div>
-  </div>
-  <div class="stage" id="stg">
-    <div class="grid"></div><div class="crowdband"></div>
-    <div class="hint2" id="stgHint">HÚZD AZ UJJAD — TARTSD RAJTA A FÉNYT</div>
-    <div class="hot" id="hot"></div>
-    <div class="perf" id="perf"></div>
-    <div class="dring" id="dring"></div>
-    <div class="spot" id="spot"></div>
-    <div class="flash2" id="flash"></div>
-    <div class="dropcue" id="dcue">DROP!</div>
-  </div>
-  <div class="mmid" style="flex:0 0 auto;min-height:52px"><div class="mjudge" id="mJudge"></div><div class="mcombo" id="mCombo"></div></div>
-  <div class="mfoot"><button class="btn dark sm" id="mQuit">Kihagyom — menjen automatán</button></div>
-  <div class="mready" id="mReady">
-    <div class="mcount" id="mCount">3</div>
-    <h3>Tiéd a fénypult</h3>
-    <p>Tartsd a reflektort az előadón. A <b style="color:var(--hot)">DROP</b>-ra legyél pontosan rajta,
-       és kapd el a felvillanó <b style="color:var(--gold)">közönség-pontokat</b>.</p>
-  </div>`;
+ const nBeats=Math.ceil(LT.dur/beatMs());
+ M={kind:'lights',stop:stopIdx,crowd:46,combo:0,best:0,down:false,
+    aimX:0.5,aimY:0.5,col:0,tgtX:0.5,tgtY:0.6,wantCol:0,
+    beat:-1,sched:-1,flash:0,strobe:0,
+    trackOn:0,trackAll:0,colOn:0,colAll:0,
+    cues:LT.drops.map(function(b){return{b:b,t:b*beatMs(),done:false,hit:false};}),
+    cueOk:0,cueMiss:0,
+    t0:0,started:false,ended:false,raf:0,iv:0,W:1,H:1,nBeats:nBeats};
+ $('#mini').innerHTML=
+  '<div class="mtop">'+
+    '<div class="r1"><div style="min-width:0">'+
+      '<div class="kick2">'+esc(city.n)+' · tiéd a fénypult</div>'+
+      '<div class="sng">'+esc(peak?peak.n:'Fényshow')+'</div></div>'+
+      '<button class="x" id="mSound" style="color:'+(S.sound===false?'var(--faint)':'var(--neon)')+'">HANG</button></div>'+
+    '<div class="mbar"><i id="mCrowd" style="width:46%"></i><b>KÖZÖNSÉG</b></div>'+
+  '</div>'+
+  '<div class="rig" id="rig">'+
+    '<canvas id="rigC"></canvas>'+
+    '<div class="hint3" id="rigHint">HÚZD AZ UJJAD — IRÁNY ÉS INTENZITÁS<br>KÖVESD A FEHÉR JELET</div>'+
+    '<div class="aimbar"><u id="abT"></u><i id="abM"></i></div>'+
+    '<div class="cuebig" id="cueBig">DROP!</div>'+
+  '</div>'+
+  '<div class="deskbar">'+LT.cols.map(function(c,i){return '<button class="colb '+(i===0?'on':'')+'" data-col="'+i+'" style="color:rgb('+c.c.join(',')+')">'+
+      '<span class="dot2" style="background:rgb('+c.c.join(',')+')"></span>'+c.n+'</button>';}).join('')+'</div>'+
+  '<div class="deskbar"><button class="cuebtn" id="cueBtn">'+icon('bolt','18px')+' CUE</button></div>'+
+  '<div class="mmid" style="flex:0 0 auto;min-height:44px"><div class="mjudge" id="mJudge" style="font-size:29px"></div><div class="mcombo" id="mCombo"></div></div>'+
+  '<div class="mfoot"><button class="btn dark sm" id="mQuit">Kihagyom — menjen automatán</button></div>'+
+  '<div class="mready" id="mReady">'+
+    '<div class="mcount" id="mCount">3</div>'+
+    '<h3>Tiéd a fénypult</h3>'+
+    '<p>Húzd az ujjad: <b>vízszintesen az irány</b>, <b>függőlegesen az intenzitás</b>. '+
+       'Kövesd a fehér jelet, tartsd a <b>kért színt</b>, és a <b style="color:var(--hot)">DROP</b>-ra nyomd a CUE-t.</p>'+
+  '</div>';
  $('#mini').className='on';
- $('#mSound').onclick=()=>{S.sound=(S.sound===false);save();$('#mSound').style.color=S.sound===false?'var(--faint)':'var(--neon)';};
- $('#mQuit').onclick=()=>closeMini(false);
- const stg=$('#stg'),sp=$('#spot');
- const put=e=>{const r=stg.getBoundingClientRect();
-   M.sx=clamp(e.clientX-r.left,0,r.width);M.sy=clamp(e.clientY-r.top,0,r.height);
-   sp.style.transform=`translate(${M.sx}px,${M.sy}px)`;};
- stg.onpointerdown=e=>{e.preventDefault();M.down=true;try{stg.setPointerCapture(e.pointerId);}catch(x){}
-   const hh=$('#stgHint');if(hh)hh.style.display='none';put(e);};
- stg.onpointermove=e=>{if(M&&M.down)put(e);};
- stg.onpointerup=stg.onpointercancel=()=>{if(M)M.down=false;};
- /* induló pozíció: a színpad közepe */
- const r0=stg.getBoundingClientRect();M.W=r0.width;M.H=r0.height;
- M.sx=M.W/2;M.sy=M.H*0.34;sp.style.transform=`translate(${M.sx}px,${M.sy}px)`;
- countdown(()=>{M.t0=performance.now();M.started=true;
+ $('#mSound').onclick=function(){S.sound=(S.sound===false);save();$('#mSound').style.color=S.sound===false?'var(--faint)':'var(--neon)';};
+ $('#mQuit').onclick=function(){closeMini(false);};
+ const rig=$('#rig'),cv=$('#rigC');
+ const put=function(e){const r=rig.getBoundingClientRect();
+   M.aimX=clamp((e.clientX-r.left)/r.width,0,1);
+   M.aimY=clamp(1-(e.clientY-r.top)/r.height,0,1);
+   const h=$('#rigHint');if(h)h.style.display='none';};
+ rig.onpointerdown=function(e){e.preventDefault();M.down=true;try{rig.setPointerCapture(e.pointerId);}catch(x){}put(e);};
+ rig.onpointermove=function(e){if(M&&M.down)put(e);};
+ rig.onpointerup=rig.onpointercancel=function(){if(M)M.down=false;};
+ $('#mini').querySelectorAll('[data-col]').forEach(function(b){b.onclick=function(){M.col=+b.dataset.col;
+   $('#mini').querySelectorAll('[data-col]').forEach(function(x){x.classList.toggle('on',+x.dataset.col===M.col);});};});
+ $('#cueBtn').onclick=fireCue;
+ const r0=rig.getBoundingClientRect();M.W=r0.width;M.H=r0.height;
+ const dpr=Math.min(2,window.devicePixelRatio||1);
+ cv.width=Math.round(M.W*dpr);cv.height=Math.round(M.H*dpr);
+ countdown(function(){M.t0=performance.now();M.started=true;
+   if(S.sound!==false){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}
    M.iv=setInterval(lightTick,25);M.raf=requestAnimationFrame(lightDraw);});
+}
+
+function fireCue(){
+ if(!M||!M.started||M.ended)return;
+ const now=performance.now()-M.t0;
+ let c=null;M.cues.forEach(function(x){if(!x.done&&Math.abs(x.t-now)<=LT.cueWin&&!c)c=x;});
+ if(!c)return;
+ c.done=true;c.hit=true;M.cueOk++;M.combo++;M.best=Math.max(M.best,M.combo);
+ M.crowd=clamp(M.crowd+8,0,100);M.strobe=1;M.flash=1;
+ judgeL('perfect');
 }
 function judgeL(kind){
  const j=$('#mJudge'),cb=$('#mCombo');
- const map={perfect:['TÖKÉLETES','var(--neon)',1180,'sine',0.2],
-            good:['JÓ FÉNY','var(--cash)',760,'sine',0.16],
-            miss:['SÖTÉT','var(--hot)',130,'square',0.13],
-            hot:['ELKAPVA','var(--gold)',980,'sine',0.17]};
- const m=map[kind];blip(m[2],kind==='miss'?0.11:0.08,m[3],m[4]);
+ const map={perfect:['ROBBANÁS','var(--neon)'],good:['SZÉP','var(--cash)'],miss:['ELSZÚRTAD','var(--hot)']};
+ const m=map[kind];if(!m)return;
+ if(kind==='perfect')blip(1200,0.1,'sine',0.16);else if(kind==='miss')blip(120,0.14,'square',0.12);
  if(j){j.textContent=m[0];j.style.color=m[1];j.classList.remove('go');void j.offsetWidth;j.classList.add('go');}
- if(cb)cb.textContent=M.combo>=3?`${M.combo}× SOROZAT`:'';
- if(kind==='perfect'){const fl=$('#flash');if(fl){fl.classList.remove('go');void fl.offsetWidth;fl.classList.add('go');}}
+ if(cb)cb.textContent=M.combo>=3?(M.combo+'× SOROZAT'):'';
+ if(kind==='perfect'){const c=$('#cueBig');if(c){c.classList.remove('go');void c.offsetWidth;c.classList.add('go');}}
 }
 function lightTick(){
  if(!M||M.ended)return;
- const now=performance.now()-M.t0,W=M.W,H=M.H;
- const P=perfPos(now,W,H);M.px=P.x;M.py=P.y;
- /* folyamatos követés */
+ const now=performance.now()-M.t0, bm=beatMs(), b=Math.floor(now/bm);
+ if(S.sound!==false&&AC){
+  while(M.sched<b+2&&M.sched<M.nBeats){
+   M.sched++;const k=M.sched, t=AC.currentTime+Math.max(0,(k*bm-now))/1000;
+   schedKick(t);
+   schedHat(t+bm/2000,false);
+   if(k%2===0)schedBass(t,BASSN[(k>>1)%BASSN.length]);
+   if(k%8===0)schedStab(t,220);
+   if(LT.drops.indexOf(k)>=0){schedStab(t,330);schedHat(t,true);}
+   if(LT.drops.indexOf(k+2)>=0)schedRiser(t,2*bm/1000);
+  }
+ }
+ if(b!==M.beat){M.beat=b;
+  M.wantCol=Math.floor(b/4)%LT.cols.length;
+  const wc=$('#mini');if(wc)wc.querySelectorAll('[data-col]').forEach(function(x){x.classList.toggle('want',+x.dataset.col===M.wantCol);});
+ }
+ const ph=now/bm;
+ M.tgtX=0.5+0.42*Math.sin(ph*0.72);
+ M.tgtY=0.55+0.35*Math.sin(ph*1.5+1.1);
  M.trackAll++;
- const d=Math.hypot(M.sx-P.x,M.sy-P.y);
- if(d<=LT.spotR){M.trackOn++;M.crowd=clamp(M.crowd+0.22,0,100);}
- else M.crowd=clamp(M.crowd-0.17,0,100);
- /* közönség-pontok */
- M.hots.forEach(h=>{
-  if(!h.shown&&now>=h.t){h.shown=true;h.x=W*(0.16+Math.random()*0.68);h.y=H*(0.68+Math.random()*0.2);}
-  if(h.shown&&!h.done){
-   if(now>h.t+LT.hotWin)h.done=true;
-   else if(Math.hypot(M.sx-h.x,M.sy-h.y)<=LT.hotR){h.done=true;h.caught=true;M.hotCaught++;
-     M.combo++;M.best=Math.max(M.best,M.combo);M.crowd=clamp(M.crowd+4,0,100);judgeL('hot');}
-  }});
- /* dropok: a pillanatban a fényben kell lenni */
- M.drops.forEach(dp=>{ if(dp.done||now<dp.t)return; dp.done=true;
-  if(d<=LT.perfectR){M.dPerfect++;M.combo++;M.crowd=clamp(M.crowd+7,0,100);judgeL('perfect');}
-  else if(d<=LT.goodR){M.dGood++;M.combo++;M.crowd=clamp(M.crowd+3.5,0,100);judgeL('good');}
-  else{M.dMiss++;M.combo=0;M.crowd=clamp(M.crowd-6,0,100);judgeL('miss');}
-  M.best=Math.max(M.best,M.combo);});
+ const d=Math.hypot((M.aimX-M.tgtX),(M.aimY-M.tgtY)*0.8);
+ if(d<=0.19){M.trackOn++;M.crowd=clamp(M.crowd+0.22,0,100);}else M.crowd=clamp(M.crowd-0.16,0,100);
+ M.colAll++;if(M.col===M.wantCol)M.colOn++;
+ M.cues.forEach(function(c){if(!c.done&&now>c.t+LT.cueWin){c.done=true;M.cueMiss++;M.combo=0;
+   M.crowd=clamp(M.crowd-7,0,100);judgeL('miss');}});
+ const cb=$('#cueBtn');
+ if(cb){const near=M.cues.some(function(c){return !c.done&&Math.abs(c.t-now)<=LT.cueWin;});cb.classList.toggle('armed',near);}
+ M.strobe=Math.max(0,M.strobe-0.06);M.flash=Math.max(0,M.flash-0.05);
  const cr=$('#mCrowd');if(cr)cr.style.width=M.crowd.toFixed(1)+'%';
+ const at=$('#abT'),am=$('#abM');
+ if(at){at.style.left=((M.tgtX-0.09)*100).toFixed(1)+'%';at.style.width='18%';}
+ if(am)am.style.left=(M.aimX*100).toFixed(1)+'%';
  if(now>=LT.dur)endLights();
 }
 function lightDraw(){
  if(!M||M.ended)return;
- const now=performance.now()-M.t0,P=perfPos(now,M.W,M.H);
- const pf=$('#perf');if(pf)pf.style.transform=`translate(${P.x}px,${P.y}px)`;
- const dr=$('#dring'),dc=$('#dcue');let inc=false;
- for(let i=0;i<M.drops.length;i++){const dp=M.drops[i];if(dp.done)continue;
-  const dt=dp.t-now;
-  if(dt<=LT.lead&&dt>=-60){inc=true;const p=clamp(1-dt/LT.lead,0,1);
-   if(dr){dr.style.opacity=(0.28+p*0.72).toFixed(2);
-    dr.style.transform=`translate(${P.x}px,${P.y}px) scale(${(2.2-p*1.55).toFixed(3)})`;}
-   if(dc&&dt<720&&!dp.cued){dp.cued=true;dc.classList.remove('go');void dc.offsetWidth;dc.classList.add('go');}
-   break;}
- }
- if(!inc&&dr)dr.style.opacity=0;
- const ho=$('#hot');let h=null;
- for(let i=0;i<M.hots.length;i++){if(M.hots[i].shown&&!M.hots[i].done){h=M.hots[i];break;}}
- if(ho){if(h){ho.className='hot on';ho.style.transform=`translate(${h.x}px,${h.y}px)`;}else ho.className='hot';}
- const sp=$('#spot');if(sp)sp.classList.toggle('hit',Math.hypot(M.sx-P.x,M.sy-P.y)<=LT.spotR);
+ const cv=$('#rigC');
+ if(!cv){M.raf=requestAnimationFrame(lightDraw);return;}
+ const ctx=cv.getContext('2d'),W=cv.width,H=cv.height,now=performance.now()-M.t0,bm=beatMs();
+ const beatF=(now%bm)/bm, pulse=Math.pow(1-beatF,2.2);
+ const c=LT.cols[M.col].c, inten=0.35+M.aimY*0.65;
+ ctx.globalCompositeOperation='source-over';
+ const g=ctx.createLinearGradient(0,0,0,H);
+ g.addColorStop(0,'#060a12');g.addColorStop(1,'#030407');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ ctx.globalCompositeOperation='lighter';
+ const drawBeams=function(n,y0,dir,len,spread,alpha){
+  for(let i=0;i<n;i++){
+   const fx=W*(0.06+0.88*(n===1?0.5:i/(n-1)));
+   const t=(i-(n-1)/2)/Math.max(1,(n-1)/2);
+   const aim=M.aimX*W + t*spread*W*(0.5+0.5*Math.sin(now/700+i*0.5));
+   const ex=aim, ey=y0+dir*len*H;
+   const ang=Math.atan2(ey-y0,ex-fx), wid=W*0.030*(0.7+inten*0.8);
+   const px=Math.cos(ang+Math.PI/2)*wid, py=Math.sin(ang+Math.PI/2)*wid;
+   const gr=ctx.createLinearGradient(fx,y0,ex,ey);
+   const aa=alpha*inten*(0.55+0.45*pulse);
+   gr.addColorStop(0,'rgba(255,255,255,'+(aa*0.85).toFixed(3)+')');
+   gr.addColorStop(0.12,'rgba('+c[0]+','+c[1]+','+c[2]+','+(aa*0.8).toFixed(3)+')');
+   gr.addColorStop(0.6,'rgba('+c[0]+','+c[1]+','+c[2]+','+(aa*0.22).toFixed(3)+')');
+   gr.addColorStop(1,'rgba('+c[0]+','+c[1]+','+c[2]+',0)');
+   ctx.fillStyle=gr;ctx.beginPath();
+   ctx.moveTo(fx-px*0.25,y0-py*0.25);ctx.lineTo(fx+px*0.25,y0+py*0.25);
+   ctx.lineTo(ex+px*2.6,ey+py*2.6);ctx.lineTo(ex-px*2.6,ey-py*2.6);
+   ctx.closePath();ctx.fill();
+   const hg=ctx.createRadialGradient(fx,y0,0,fx,y0,W*0.028);
+   hg.addColorStop(0,'rgba(255,255,255,'+(0.9*inten).toFixed(2)+')');
+   hg.addColorStop(0.35,'rgba('+c[0]+','+c[1]+','+c[2]+','+(0.5*inten).toFixed(2)+')');
+   hg.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=hg;
+   ctx.beginPath();ctx.arc(fx,y0,W*0.028,0,7);ctx.fill();
+  }
+ };
+ drawBeams(LT.nBack, H*0.16, 1, 1.05, 0.55, 0.62);
+ drawBeams(LT.nFront, H*0.93, -1, 1.0, 0.7, 0.52);
+ /* haze: lagy fenykod a szinpad felett */
+ const hz=ctx.createLinearGradient(0,H*0.16,0,H);
+ hz.addColorStop(0,'rgba('+c[0]+','+c[1]+','+c[2]+','+(0.06*inten).toFixed(3)+')');
+ hz.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=hz;ctx.fillRect(0,0,W,H);
+ ctx.globalCompositeOperation='source-over';
+ ctx.fillStyle='rgba(255,255,255,.07)';ctx.fillRect(0,H*0.145,W,H*0.012);ctx.fillRect(0,H*0.925,W,H*0.014);
+ ctx.globalCompositeOperation='lighter';
+ const wg=ctx.createRadialGradient(M.aimX*W,H*0.9,0,M.aimX*W,H*0.9,W*0.55);
+ wg.addColorStop(0,'rgba('+c[0]+','+c[1]+','+c[2]+','+(0.2*inten).toFixed(3)+')');
+ wg.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=wg;ctx.fillRect(0,0,W,H);
+ if(M.strobe>0.02){ctx.fillStyle='rgba(255,255,255,'+(M.strobe*0.5*(Math.random()>0.4?1:0.2)).toFixed(3)+')';ctx.fillRect(0,0,W,H);}
+ ctx.globalCompositeOperation='source-over';
  M.raf=requestAnimationFrame(lightDraw);
 }
 function endLights(){
  if(!M||M.ended)return;M.ended=true;cancelAnimationFrame(M.raf);if(M.iv)clearInterval(M.iv);
  const track=M.trackAll?M.trackOn/M.trackAll:0;
- const dTot=M.dPerfect+M.dGood+M.dMiss||1;
- const dropSc=(M.dPerfect+M.dGood*0.6)/dTot;
- const hotSc=M.hots.length?M.hotCaught/M.hots.length:0;
- const acc=clamp(track*0.40+dropSc*0.45+hotSc*0.15,0,1);
+ const colr=M.colAll?M.colOn/M.colAll:0;
+ const cTot=M.cues.length||1, cue=M.cueOk/cTot;
+ const acc=clamp(track*0.40+cue*0.35+colr*0.25,0,1);
  miniResult('lights',acc,
-  `${Math.round(track*100)}% követés · ${M.dPerfect} tökéletes drop · ${M.hotCaught}/${M.hots.length} közönség-pont<br>leghosszabb sorozat ${M.best}×`);
+  Math.round(track*100)+'% fénykövetés · '+M.cueOk+'/'+cTot+' drop-cue · '+Math.round(colr*100)+'% szín-illesztés<br>leghosszabb sorozat '+M.best+'×');
 }
+
 /* Egy show = EGY mini-játék-pillanat, és váltakozik, melyik jön. */
 function miniKindFor(i){return (((S.toursDone||0)+i)%2===0)?'drum':'lights';}
 function closeMini(played){
