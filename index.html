@@ -256,26 +256,61 @@ img{display:block;max-width:100%}
 .stop .ph .no{font-family:var(--disp);font-weight:700;font-size:11px;color:#141a03;background:var(--neon);border-radius:7px;padding:2px 8px}
 .stop .ph .c{font-family:var(--disp);font-weight:700;font-size:23px;letter-spacing:.01em;text-shadow:0 2px 10px rgba(0,0,0,.7);line-height:1;margin-top:5px}
 .stop .ph .leg{font-size:11px;color:#e6ecd9;background:rgba(0,0,0,.4);padding:3px 9px;border-radius:8px;white-space:nowrap;font-weight:600}
-.stop .bd{padding:13px}
+.stop .bd{padding:15px}
 .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
-.seg button{padding:9px 2px;border-radius:11px;background:var(--panel2);border:1px solid var(--line2);font-size:11.5px;font-weight:700;
+.seg button{padding:11px 3px;border-radius:12px;background:var(--panel2);border:1px solid var(--line2);font-size:12.5px;font-weight:700;
   color:var(--muted);display:flex;flex-direction:column;gap:2px;line-height:1.15}
-.seg button small{font-size:9px;color:var(--faint);font-weight:600}
+.seg button small{font-size:10px;color:var(--faint);font-weight:700;margin-top:2px}
 .seg button.on{background:rgba(198,255,58,.14);border-color:var(--neon);color:#fff}
 .seg button.lk{opacity:.55;border-style:dashed;border-color:var(--line);color:var(--faint);cursor:not-allowed}
 .seg button.lk small{color:var(--gold)}
 .pr{display:flex;align-items:center;gap:11px;margin-bottom:11px}
 .pr label{font-size:12px;color:var(--muted);min-width:52px;font-weight:600}
-input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:7px;border-radius:7px;
-  background:linear-gradient(90deg,var(--hot),var(--neon));outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;
-  border:3px solid var(--neon);box-shadow:0 3px 8px rgba(0,0,0,.5);cursor:pointer}
-input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--neon);cursor:pointer}
+/* 44px magas tap-target, vastag sáv, nagy fogantyu - ujjal is huzhato */
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:44px;background:transparent;outline:none;
+  cursor:pointer;touch-action:pan-y}
+input[type=range]::-webkit-slider-runnable-track{height:13px;border-radius:13px;
+  background:linear-gradient(90deg,var(--hot),var(--gold) 45%,var(--neon));border:1px solid rgba(0,0,0,.35)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:34px;height:34px;margin-top:-11px;border-radius:50%;
+  background:#fff;border:5px solid var(--neon);box-shadow:0 3px 12px rgba(0,0,0,.65),0 0 14px var(--neonglow)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.08)}
+input[type=range]::-moz-range-track{height:13px;border-radius:13px;background:linear-gradient(90deg,var(--hot),var(--gold) 45%,var(--neon))}
+input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;background:#fff;border:5px solid var(--neon)}
+
+/* +/- lepteto gombok a csuszka mellett */
+.step{width:46px;height:46px;flex:0 0 auto;border-radius:15px;background:var(--panel3);border:1px solid var(--line2);
+  color:var(--text);font-family:var(--disp);font-weight:700;font-size:24px;line-height:1;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 4px 0 #0b0d10;transition:transform .07s}
+.step:active{transform:translateY(3px);box-shadow:0 1px 0 #0b0d10}
+.prow{display:flex;align-items:center;gap:9px}
+.bigprice{font-family:var(--disp);font-weight:700;font-size:30px;color:var(--neon);font-feature-settings:"tnum" 1;
+  letter-spacing:.02em;line-height:1}
+.presets{display:flex;gap:7px;margin-top:11px}
+.presets button{flex:1;padding:9px 4px;border-radius:11px;background:var(--panel2);border:1px solid var(--line2);
+  font-size:12px;font-weight:700;color:var(--muted);display:flex;flex-direction:column;gap:2px;line-height:1.2}
+.presets button small{font-size:10px;color:var(--faint);font-weight:700}
+.presets button.on{background:rgba(198,255,58,.14);border-color:var(--neon);color:#fff}
+.presets button.on small{color:var(--neon)}
+
+/* allomas-kartya: csoportok, levego, nagyobb betuk */
+.grp2{margin-bottom:16px}
+.grp2:last-child{margin-bottom:0}
+.grp2 .gl{font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint);font-weight:700;margin-bottom:9px}
+.grp2 .gl2{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px}
+.notes{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:11px 13px;margin-top:2px}
+.stbadge{position:absolute;top:10px;right:10px;border-radius:20px;padding:5px 11px;font-size:10px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;display:inline-flex;align-items:center;gap:5px;
+  background:rgba(255,194,75,.16);border:1px solid rgba(255,194,75,.5);color:var(--gold)}
+.stbadge.done{background:rgba(47,227,155,.14);border-color:rgba(47,227,155,.45);color:var(--cash)}
+.stop.todo{border-color:rgba(255,194,75,.45);box-shadow:var(--sh),0 0 0 1px rgba(255,194,75,.12)}
+.progpill{display:flex;align-items:center;gap:8px}
+.progpill .pb{width:54px;height:6px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}
+.progpill .pb i{display:block;height:100%;background:var(--neon);transition:width .3s}
 .pv-price{font-family:var(--disp);font-weight:700;min-width:52px;text-align:right;color:var(--neon);font-feature-settings:"tnum" 1;letter-spacing:.02em}
 .pv{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.pv .b{background:var(--panel2);border-radius:10px;padding:8px 4px;text-align:center}
-.pv .k{color:var(--faint);font-size:9px;text-transform:uppercase;letter-spacing:.05em;display:block;font-weight:700}
-.pv .v{font-family:var(--disp);font-weight:700;font-size:13.5px;margin-top:2px;font-feature-settings:"tnum" 1;letter-spacing:.02em}
+.pv .b{background:var(--panel2);border-radius:12px;padding:11px 5px;text-align:center;border:1px solid var(--line)}
+.pv .k{color:var(--faint);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;display:block;font-weight:700}
+.pv .v{font-family:var(--disp);font-weight:700;font-size:16.5px;margin-top:4px;font-feature-settings:"tnum" 1;letter-spacing:.02em}
 .good{color:var(--cash)} .bad{color:var(--hot)}
 .fbar2{height:6px;border-radius:6px;background:rgba(255,255,255,.09);overflow:hidden;margin-top:9px}
 .fbar2 i{display:block;height:100%;transition:width .25s}
@@ -504,7 +539,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .pseg button small{font-size:9.5px;color:var(--faint);font-weight:700;font-family:var(--disp);letter-spacing:.02em}
 .pseg button.on{background:rgba(198,255,58,.14);border-color:var(--neon);color:#fff}
 .pseg button.on small{color:var(--neon)}
-.band{font-size:11px;color:var(--muted);margin-top:8px;display:flex;justify-content:space-between;gap:8px;font-weight:600}
+.band{font-size:12.5px;color:var(--muted);margin-top:9px;display:flex;justify-content:space-between;gap:10px;font-weight:600;line-height:1.35}
 .band b{font-family:var(--disp);color:var(--text);font-feature-settings:"tnum" 1;letter-spacing:.02em}
 .rng{height:6px;border-radius:6px;background:rgba(255,255,255,.07);margin-top:6px;position:relative;overflow:hidden}
 .rng i{position:absolute;top:0;bottom:0;background:linear-gradient(90deg,rgba(255,61,132,.55),rgba(198,255,58,.75));border-radius:6px}
@@ -1570,13 +1605,13 @@ function plannerScreen(){
  h+=`<div class="btnrow"><button class="btn dark sm" id="fit" style="flex:0 0 auto">${icon('globe','15px')} Illeszt</button></div>`;
  h+=`<div id="chips"></div>`;
 
- h+=`<div class="sec"><h2>3 · Helyszínek és árak</h2></div><div id="stops"></div>`;
+ h+=`<div class="sec"><h2>3 · Állomások beállítása</h2><span class="r progpill" id="stopProg"></span></div><div id="stops"></div>`;
 
  h+=`<div class="sec"><h2>4 · Promóció</h2><span class="r act" id="promoTag">€0</span></div><div id="promo"></div>`;
  h+=`</div>`;
  view.innerHTML=h;
  if(HAS_MAP){initMap();const f=$('#fit');if(f)f.onclick=fitRoute;}
- renderSongs();renderChips();renderStops();renderPromo();updateRouteSummary();updateSticky();
+ renderSongs();renderChips();renderStops();renderPromo();updateRouteSummary();updateStopProgress();updateSticky();
 }
 /* a jegyár csak a VÁRHATÓ nézőszámot adja — a promóció emeli és kiszámíthatóbbá teszi */
 function renderPromo(){
@@ -1606,8 +1641,8 @@ function renderChips(){const A=artState(S.tour.artist);let h='';
   cs.forEach(c=>{const idx=S.tour.stops.findIndex(s=>s.city===c.id);h+=`<div class="cchip ${idx>=0?'on':''}" data-city="${c.id}"><span class="o">${idx>=0?idx+1:''}</span>${c.n} <small>·${c.reach}</small></div>`;});
   h+=`</div></div>`;});$('#chips').innerHTML=h;bind('[data-city]',el=>toggleCity(el.dataset.city));}
 function toggleCity(id){const a=AM[S.tour.artist],stops=S.tour.stops,p=stops.findIndex(s=>s.city===id);
- if(p>=0)stops.splice(p,1);else{const v=defVenue(a);stops.push({city:id,venue:v.id,price:Math.round(fairPrice(a,v))});}
- save();refreshMarkers();drawRoute();renderChips();renderStops();renderPromo();updateRouteSummary();updateSticky();}
+ if(p>=0)stops.splice(p,1);else{const v=defVenue(a);stops.push({city:id,venue:v.id,price:Math.round(fairPrice(a,v)),ok:false});}
+ save();refreshMarkers();drawRoute();renderChips();renderStops();renderPromo();updateRouteSummary();updateStopProgress();updateSticky();}
 function updateRouteSummary(){const km=routeKm();let cost=0;const stops=S.tour.stops;
  for(let i=1;i<stops.length;i++)cost+=legCost(CM[stops[i-1].city],CM[stops[i].city],VM[stops[i].venue]);
  const a=$('#rStops'),b=$('#rKm'),c=$('#rCost');if(a)a.textContent=stops.length;if(b)b.textContent=km.toLocaleString('hu-HU');if(c)c.textContent=money(cost);}
@@ -1621,28 +1656,53 @@ function renderStops(){const a=AM[S.tour.artist],stops=S.tour.stops,setQ=setlist
    seg+=`<button class="${vv.id===st.venue?'on':''} ${op?'':'lk'}" ${op?`data-venue="${i}:${vv.id}"`:'disabled'}>${vv.n}
      <small>${op?k(vv.cap)+' fő':icon('lock','9px')+' '+vv.minRep}</small></button>`;});
   const nl=nextLockedVenue();
-  h+=`<div class="stop"><div class="ph"><img src="${cityPhoto(city,600,300)}" ${imgFB()}><div class="g"></div>
+  const done=!!st.ok, pr=[['Olcsó',0.75],['Reális',1],['Prémium',1.3]];
+  let pres='';pr.forEach(([nm,m])=>{const val=clamp(Math.round(e.fp*m),5,250);
+   pres+=`<button class="${Math.abs(val-st.price)<=1?'on':''}" data-preset="${i}:${val}">${nm}<small>€${val}</small></button>`;});
+  h+=`<div class="stop ${done?'':'todo'}" data-i="${i}"><div class="ph"><img src="${cityPhoto(city,600,300)}" ${imgFB()}><div class="g"></div>
+    <span class="stbadge ${done?'done':''}" id="pbd${i}">${done?icon('star','10px')+' Beállítva':icon('alert','10px')+' Beállítandó'}</span>
     <div class="lab"><div><span class="no">${i+1}. állomás</span><div class="c">${city.n}</div></div><span class="leg">${i>0?icon('globe','11px')+' '+money(leg):'nyitó'}</span></div></div>
-    <div class="bd"><div class="seg">${seg}</div>
-      ${nl?`<div class="band" style="margin:-4px 0 10px"><span style="color:var(--gold)">${icon('lock','11px')} ${nl.n} feloldása</span>
-        <span style="color:var(--gold)"><b>${nl.minRep}</b> hírnév — most ${S.rep}</span></div>`:''}
-      <div class="pr"><label>Jegyár</label><input type="range" min="5" max="250" step="5" value="${st.price}" data-price="${i}"><span class="pv-price" id="pp${i}">€${st.price}</span></div>
-      <div class="pv"><div class="b"><span class="k">Várható</span><span class="v" id="pa${i}">${k(e.att)}/${k(v.cap)}</span></div>
-        <div class="b"><span class="k">Bevétel</span><span class="v">${money(e.rev)}</span></div>
-        <div class="b"><span class="k">Profit</span><span class="v ${profit>=0?'good':'bad'}" id="pf${i}">${money(profit)}</span></div></div>
-      <div class="fbar2"><i id="pb${i}" style="width:${fp}%;background:${fc}"></i></div>
-      <div class="band"><span>Reális kimenetel</span><span><b id="pl${i}">${k(b.lo)}</b> – <b id="ph${i}">${k(b.hi)}</b> néző</span></div>
-      <div class="rng" id="pr${i}">${rngHTML(b,e.att,v.cap)}</div>
-      <div class="band"><span>${REGIONS[city.r]} rajongótábor <b style="color:${fanCol(e.fans)}">${Math.round(e.fans)}</b></span>
-        <span id="pfit${i}" style="color:${fit.c};font-weight:700">${fit.t}</span></div>
-      <div class="band" id="pturn${i}" style="${e.raw>v.cap*1.15?'':'display:none'}"><span style="color:var(--gold)">${icon('alert','12px')} Kicsi ez a hely</span>
-        <span style="color:var(--gold)"><b id="ptn${i}">${k(Math.max(0,e.raw-v.cap))}</b> embert visszafordítasz</span></div>
-      <div class="band"><span>Fix költség <b id="pfx${i}">${money(e.fix)}</b> + fejenként <b id="pvr${i}">€${Math.round(e.varRate)}</b></span>
-        <span>nyereség <b id="pbe${i}" style="color:var(--gold)">${isFinite(e.beAtt)?k(e.beAtt):'—'}</b> nézőtől</span></div>
-      <div class="band"><span>Merch várhatóan</span><span><b id="pmc${i}" style="color:var(--cash)">${money(e.merch)}</b></span></div>
+    <div class="bd">
+
+      <div class="grp2"><div class="gl">1 · Helyszín</div><div class="seg">${seg}</div>
+        ${nl?`<div class="band" style="margin-top:8px"><span style="color:var(--gold)">${icon('lock','12px')} ${nl.n} feloldása</span>
+          <span style="color:var(--gold)"><b>${nl.minRep}</b> hírnév — most ${S.rep}</span></div>`:''}</div>
+
+      <div class="grp2"><div class="gl gl2"><span>2 · Jegyár</span><span class="bigprice" id="pp${i}">€${st.price}</span></div>
+        <div class="prow"><button class="step" data-nudge="${i}:-1">−</button>
+          <input type="range" min="5" max="250" step="1" value="${st.price}" data-price="${i}" aria-label="Jegyár">
+          <button class="step" data-nudge="${i}:1">+</button></div>
+        <div class="presets" id="pps${i}">${pres}</div></div>
+
+      <div class="grp2"><div class="gl">3 · Várható eredmény</div>
+        <div class="pv"><div class="b"><span class="k">Várható</span><span class="v" id="pa${i}">${k(e.att)}/${k(v.cap)}</span></div>
+          <div class="b"><span class="k">Bevétel</span><span class="v" id="pv${i}">${money(e.rev)}</span></div>
+          <div class="b"><span class="k">Profit</span><span class="v ${profit>=0?'good':'bad'}" id="pf${i}">${money(profit)}</span></div></div>
+        <div class="fbar2"><i id="pb${i}" style="width:${fp}%;background:${fc}"></i></div>
+        <div class="band"><span>Reális kimenetel</span><span><b id="pl${i}">${k(b.lo)}</b> – <b id="ph${i}">${k(b.hi)}</b> néző</span></div>
+        <div class="rng" id="pr${i}">${rngHTML(b,e.att,v.cap)}</div></div>
+
+      <div class="notes">
+        <div class="band" style="margin-top:0"><span>${REGIONS[city.r]} rajongótábor <b style="color:${fanCol(e.fans)}">${Math.round(e.fans)}</b></span>
+          <span id="pfit${i}" style="color:${fit.c};font-weight:700">${fit.t}</span></div>
+        <div class="band" id="pturn${i}" style="${e.raw>v.cap*1.15?'':'display:none'}"><span style="color:var(--gold)">${icon('alert','13px')} Kicsi ez a hely</span>
+          <span style="color:var(--gold)"><b id="ptn${i}">${k(Math.max(0,e.raw-v.cap))}</b> embert visszafordítasz</span></div>
+        <div class="band"><span>Fix költség</span><span><b id="pfx${i}">${money(e.fix)}</b> + fejenként <b id="pvr${i}">€${Math.round(e.varRate)}</b></span></div>
+        <div class="band"><span>Nyereségküszöb</span><span><b id="pbe${i}" style="color:var(--gold)">${isFinite(e.beAtt)?k(e.beAtt):'—'}</b> nézőtől</span></div>
+        <div class="band"><span>Merch várhatóan</span><span><b id="pmc${i}" style="color:var(--cash)">${money(e.merch)}</b></span></div>
+      </div>
+
+      <button class="btn ${done?'dark':'lime'} sm" data-ok="${i}" style="margin-top:13px" id="pok${i}">
+        ${done?icon('star','15px')+' Beállítva':icon('star','15px')+' Rendben, mehet a következő'}</button>
       </div></div>`;});
  wrap.innerHTML=h;
- bind('[data-venue]',b=>{const[i,vid]=b.dataset.venue.split(':');const st=S.tour.stops[+i];st.venue=vid;st.price=Math.round(fairPrice(a,VM[vid]));save();refreshMarkers();renderStops();renderPromo();updateRouteSummary();updateSticky();});
+ bind('[data-venue]',b=>{const[i,vid]=b.dataset.venue.split(':');const st=S.tour.stops[+i];st.venue=vid;st.price=Math.round(fairPrice(a,VM[vid]));st.ok=true;
+   save();refreshMarkers();renderStops();renderPromo();updateRouteSummary();updateSticky();});
+ bind('[data-ok]',b=>markStopOk(+b.dataset.ok,true));
+ bind('[data-preset]',b=>{const[i,val]=b.dataset.preset.split(':').map(Number);
+   const inp=view.querySelector(`[data-price="${i}"]`);inp.value=val;inp.dispatchEvent(new Event('input'));markStopOk(i,false);});
+ bind('[data-nudge]',b=>{const[i,d]=b.dataset.nudge.split(':').map(Number);
+   const inp=view.querySelector(`[data-price="${i}"]`);inp.value=clamp(+inp.value+d,5,250);inp.dispatchEvent(new Event('input'));markStopOk(i,false);});
  view.querySelectorAll('[data-price]').forEach(inp=>{inp.oninput=()=>{const i=+inp.dataset.price,st=S.tour.stops[i];st.price=+inp.value;
    const city=CM[st.city],v=VM[st.venue],leg=i>0?legCost(CM[S.tour.stops[i-1].city],city,v):0,e=estimate(a,city,v,st.price,setlistQ(a),1,pro),
      profit=e.rev+e.merch-e.base-e.pay-leg,fp=Math.round(e.fill*100),fc=e.fill>=0.85?'var(--cash)':e.fill>=0.5?'var(--gold)':'var(--hot)',
@@ -1653,22 +1713,62 @@ function renderStops(){const a=AM[S.tour.artist],stops=S.tour.stops,setQ=setlist
    const pfit=$('#pfit'+i);pfit.textContent=ft.t;pfit.style.color=ft.c;$('#pmc'+i).textContent=money(e.merch);
    const pt=$('#pturn'+i);pt.style.display=e.raw>v.cap*1.15?'':'none';$('#ptn'+i).textContent=k(Math.max(0,e.raw-v.cap));
    $('#pfx'+i).textContent=money(e.fix);$('#pvr'+i).textContent='€'+Math.round(e.varRate);
-   $('#pbe'+i).textContent=isFinite(e.beAtt)?k(e.beAtt):'—';};inp.onchange=()=>save();});}
+   $('#pbe'+i).textContent=isFinite(e.beAtt)?k(e.beAtt):'—';
+   $('#pv'+i).textContent=money(e.rev);
+   /* preset-kiemelés az aktuális árhoz */
+   const ps=$('#pps'+i);if(ps)ps.querySelectorAll('[data-preset]').forEach(pb2=>{
+     const val=+pb2.dataset.preset.split(':')[1];pb2.className=Math.abs(val-st.price)<=1?'on':'';});
+  };inp.onchange=()=>{markStopOk(+inp.dataset.price,false);};});}
+
+/* ---- állomás „beállítva" jelölés + haladás ---- */
+function markStopOk(i,goNext){
+ const st=S.tour.stops[i];if(!st)return;
+ const was=!!st.ok;st.ok=true;save();
+ const card=view.querySelector(`.stop[data-i="${i}"]`);
+ if(card){card.classList.remove('todo');
+  const bd=$('#pbd'+i);if(bd){bd.className='stbadge done';bd.innerHTML=icon('star','10px')+' Beállítva';}
+  const ok=$('#pok'+i);if(ok){ok.className='btn dark sm';ok.innerHTML=icon('star','15px')+' Beállítva';}}
+ updateStopProgress();updateSticky();
+ if(goNext&&was!==null)gotoNextTodo();
+}
+function todoCount(){return S.tour?S.tour.stops.filter(s=>!s.ok).length:0;}
+function updateStopProgress(){const el=$('#stopProg');if(!el||!S.tour)return;
+ const n=S.tour.stops.length,d=n-todoCount();
+ el.innerHTML=`<span>${d}/${n} beállítva</span><span class="pb"><i style="width:${n?d/n*100:0}%"></i></span>`;
+ el.className='r progpill '+(d===n&&n?'act':'');}
+/* a következő beállítatlan állomásra görget */
+function gotoNextTodo(){
+ const el=view.querySelector('.stop.todo');
+ const top=el?Math.max(0,el.offsetTop-70):view.scrollHeight;
+ /* rejtett/animációt nem futtató oldalon a smooth nem mozdul → azonnali görgetés */
+ try{view.scrollTo({top,behavior:document.hidden?'auto':'smooth'});}catch(e){view.scrollTop=top;}
+}
 /* vizuális sáv: meddig terjedhet a tényleges nézőszám a férőhelyhez képest */
 function rngHTML(b,exp,cap){const l=clamp(b.lo/cap*100,0,100),w=clamp((b.hi-b.lo)/cap*100,1,100),m=clamp(exp/cap*100,0,100);
  return `<i style="left:${l}%;width:${w}%"></i><u style="left:${m}%"></u>`;}
 function updateSticky(){const stops=S.tour.stops,cost=promoCost(stops,S.tour.promo||0);
- const ready=stops.length>=1&&S.tour.setlist.length>=1&&cost<=S.money;
- let label=stops.length<1?'Adj hozzá legalább 1 várost':(cost>S.money?'Nincs elég pénz a promócióra':
-   `${icon('mic','18px')} Turné indítása · ${stops.length} állomás${cost?' · promó '+money(cost):''}`);
+ const todo=todoCount(), noMoney=cost>S.money;
  const days=stops.reduce((s,st,i)=>s+1+(i>0?travelDays(haversine(CM[stops[i-1].city],CM[st.city])):1),0);
  const realMin=stops.length?Math.round(tourRealMs(stops)/60000):0;
- stickyHost.innerHTML=`<div class="sticky"><div class="in">
-   ${stops.length?`<div style="text-align:center;font-size:11px;color:var(--faint);font-weight:700;margin-bottom:7px">
-     ${icon('clock','12px')} ${days} nap a turnébuszon — nálad kb. ${realMin} perc, végig követheted</div>`:''}
-   <button class="btn lime" id="sim" ${ready?'':'disabled'}>${label}</button>
+
+ /* A fő teendő a beállítás — az indítás csak akkor lesz elsődleges gomb, ha minden állomás kész.
+    Így nem lehet véletlenül félig beállítva, alap jegyárral turnét indítani. */
+ let main;
+ if(stops.length<1) main=`<button class="btn lime" disabled>Adj hozzá legalább 1 várost</button>`;
+ else if(S.tour.setlist.length<1) main=`<button class="btn lime" disabled>Válassz legalább 1 dalt</button>`;
+ else if(todo>0) main=`<button class="btn lime" id="goTodo">${icon('alert','17px')} Állomások beállítása · ${todo} maradt →</button>`;
+ else if(noMoney) main=`<button class="btn lime" disabled>Nincs elég pénz a promócióra</button>`;
+ else main=`<button class="btn lime" id="sim">${icon('mic','18px')} Turné indítása · ${stops.length} állomás${cost?' · promó '+money(cost):''}</button>`;
+
+ stickyHost.innerHTML=`<div class="sticky"><div class="in" id="stickyTop">
+   ${stops.length?`<div style="text-align:center;font-size:11.5px;font-weight:700;margin-bottom:8px;color:${todo>0?'var(--gold)':'var(--faint)'}">
+     ${todo>0?`${icon('alert','12px')} Még ${todo} állomásnál nem állítottad be a jegyárat`
+              :`${icon('clock','12px')} ${days} nap a turnébuszon — nálad kb. ${realMin} perc`}</div>`:''}
+   ${main}
    <button class="btn dark sm" id="cancel" style="margin-top:8px">Mégse, vissza</button></div></div>`;
- if(ready)$('#sim').onclick=launchTour;$('#cancel').onclick=()=>{S.tour=null;teardownMap();save();render();};}
+ const sim=$('#sim');if(sim)sim.onclick=launchTour;
+ const gt=$('#goTodo');if(gt)gt.onclick=gotoNextTodo;
+ $('#cancel').onclick=()=>{S.tour=null;teardownMap();save();render();};}
 
 /* ---------- STÚDIÓ (kiadások + streaming + rajongótábor) ---------- */
 function fanBars(A,gains){
