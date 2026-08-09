@@ -768,6 +768,17 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 .pill.tap:active{transform:scale(.97)}
 .credchip:active{transform:scale(.94)}
 .credchip .plus{font-weight:900;opacity:.75;margin-left:1px}
+.btn.gold{background:linear-gradient(180deg,#ffd166,#ffb020);color:#241a02;box-shadow:0 5px 0 #b87700}
+.btn.gold:active{transform:translateY(3px);box-shadow:0 2px 0 #b87700}
+.giftcard{display:flex;gap:12px;align-items:center;margin-top:12px;padding:13px 14px;border-radius:16px;
+  border:1px solid rgba(255,194,75,.42);background:linear-gradient(135deg,rgba(255,194,75,.16),rgba(255,194,75,.04));cursor:pointer}
+.giftcard .g1{width:38px;height:38px;border-radius:12px;background:rgba(255,194,75,.2);color:var(--gold);
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.giftcard .g2{flex:1}
+.giftcard .gh{font-family:var(--disp);font-weight:700;font-size:14px;word-spacing:.13em}
+.giftcard .gs{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.35}
+.giftcard .go{color:var(--gold);flex:0 0 auto}
+.giftcard:active{transform:scale(.99)}
 </style>
 </head>
 <body>
@@ -985,8 +996,8 @@ function merchRev(att,fans){return Math.round(att*merchPerHead(fans));}
 /* A játék JÁTÉKBELI percekben gondolkodik, és egyetlen aránnyal váltja valós időre.
    Így a tempó egyetlen szám (hourMs) átírásával hangolható. */
 const TIME={
- hourMs:300000,   // 1 játékbeli óra = 5 valós perc  → egy 60 perces klubkoncert 5 valós perc
- prepMin:45,      // indulás előtti felkészülés (játékbeli perc)
+ hourMs:45000,    // 1 játékbeli óra = 45 valós másodperc → klubkoncert 45 mp, 3 állomás ≈ 4 perc
+ prepMin:25,      // indulás előtti felkészülés (játékbeli perc)
  tick:200
 };
 function msFromMin(min){return Math.round(min*TIME.hourMs/60);}
@@ -1092,7 +1103,7 @@ let S=migrate(load()||newGame());
 function newGame(){return{money:60000,rep:0,week:1,roster:[],upg:{marketing:0,staff:0,merch:0},tab:'iroda',tour:null,live:null,
  art:{},rel:null,relLog:[],streamIncome:0,lastResult:null,toursDone:0,detail:null,studio:null,
  feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false,credits:CRED_WELCOME,themes:['lime'],theme:'lime',scout:null,
- mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false,deal:{},fac:{},staff:{},artUp:{},earned:0,leg:null,recsAll:{},ioOpen:false};}
+ mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false,deal:{},fac:{},staff:{},artUp:{},earned:0,leg:null,recsAll:{},ioOpen:false,giftWk:undefined,giftN:0};}
 /* régi mentések kiegészítése az új mezőkkel */
 function migrate(s){if(!s)return newGame();
  if(s.deal){Object.keys(s.deal).forEach(function(k){if(s.deal[k]>30)delete s.deal[k];});}  // régi 10-60%-os modell alaphelyzetbe
@@ -1126,6 +1137,7 @@ function migrate(s){if(!s)return newGame();
  if(s.earned===undefined)s.earned=0;
  if(!s.recsAll)s.recsAll={};
  if(s.ioOpen===undefined)s.ioOpen=false;
+ if(s.giftN===undefined)s.giftN=0;
  if(!s.leg)s.leg={pts:0,tot:0,rank:0,perks:{}};
  if(!s.leg.perks)s.leg.perks={};
  if(!s.deal)s.deal={};
@@ -1412,7 +1424,7 @@ function launchTour(){
  S.live={artist:t.artist,setlist:t.setlist.slice(),promo:t.promo||0,promoSpent:cost,risk:!!t.risk,riskDone:false,
   stops:t.stops.map(s=>({...s})),ph:buildPhases(t.stops),i:0,ends:Date.now()+msFromMin(TIME.prepMin),
   pausedLeft:null,pendingEv:null,mom:1,attMul:1,skipNext:false,days:0,
-  rows:[],log:[],evUsed:[],adUsed:{},fanGain:{},mini:{},miniSkip:{},
+  rows:[],log:[],evUsed:[],boost:{},fanGain:{},mini:{},miniSkip:{},
   tRev:0,tCost:0,tPay:0,tTrav:0,tAtt:0,tEvent:0,tMerch:0,tArtist:0,tTake:0,pool:0,rep:0};
  S.tour=null;S.tab='terkep';teardownMap();save();render();
 }
@@ -1541,18 +1553,51 @@ function abandonTour(){
  L.i=L.ph.length;endTour();
 }
 
-/* ---------- reklámvideóval gyorsítás ---------- */
-function adSkip(){
+/* ---------- gyorsítás: MINDIG ingyen, egy koppintás ----------
+   A várakozás sosem fizetős fal. A reklám külön, opcionális bónusz-hookként él. */
+function skipPhase(){
  const L=S.live;if(!L||L.pendingEv)return;
- if(L.adUsed[L.i]){toast('Ehhez a szakaszhoz már megnéztél egy videót.');return;}
- L.pausedLeft=remainMs();                       // az idő megáll a videó alatt
- Ads.show(()=>{                                 // teljes megtekintés = jutalom
-   L.adUsed[L.i]=true;L.pausedLeft=null;L.ends=Date.now()-1;save();
-   toast('Szakasz átugorva!');tick();
- },()=>{                                        // megszakítva = nincs jutalom
+ L.pausedLeft=null;L.ends=Date.now()-1;save();tick();
+}
+/* az egész hátralévő turné végigpörgetése — az első döntésnél megáll */
+function skipAll(){
+ let guard=0;
+ while(S.live&&!S.live.pendingEv&&guard++<400){S.live.pausedLeft=null;S.live.ends=Date.now()-1;tick();}
+ save();
+ if(S.live&&S.live.pendingEv)toast('Egy döntés vár rád.');
+}
+/* ---------- OPCIONÁLIS REKLÁM-BÓNUSZOK (soha nem gátolják az ingyenes skipet) ---------- */
+const AD_BOOST=0.15;                        // +15% nézőszám a következő koncertre
+function adBoost(){
+ const L=S.live;if(!L||L.pendingEv)return;
+ const p=curPhase();if(!p||p.k!=='show')return;
+ if(L.boost&&L.boost[p.i]){toast('Erre az estére már megvan a lökés.');return;}
+ L.pausedLeft=remainMs();
+ Ads.show(function(){
+   L.boost=L.boost||{};L.boost[p.i]=1;
+   L.attMul=clamp(L.attMul*(1+AD_BOOST),0.15,2.4);
    L.ends=Date.now()+L.pausedLeft;L.pausedLeft=null;save();
-   toast('A videó megszakadt — nincs gyorsítás.');
+   toast('+'+Math.round(AD_BOOST*100)+'% néző a ma esti koncertre!');liveScreen();
+ },function(){
+   L.ends=Date.now()+L.pausedLeft;L.pausedLeft=null;save();
+   toast('A videó megszakadt — nincs lökés.');
  });
+}
+/* Iroda: időnkénti ingyen ajándék videóért. */
+const GIFTS=[
+ {n:'Arany lemez',ic:'vinyl',d:'2 arany lemez',f:function(){S.credits=credits()+2;return '2 arany lemez';}},
+ {n:'Támogatás',ic:'banknote',d:'készpénz',f:function(){const m=25000*level();S.money+=m;return money(m);}},
+ {n:'Friss felhozatal',ic:'globe',d:'új nevek a scoutingban',f:function(){rollScout();return 'új nevek a scoutingban';}},
+];
+function giftIdx(){return (S.giftN||0)%GIFTS.length;}
+function giftReady(){return (S.week-(S.giftWk===undefined?-99:S.giftWk))>=3;}
+function claimGift(){
+ if(!giftReady())return;
+ const g=GIFTS[giftIdx()];
+ Ads.show(function(){
+   const txt=g.f();S.giftWk=S.week;S.giftN=(S.giftN||0)+1;
+   pushFeed('Ajándék: '+g.n,txt,g.ic,'var(--gold)');save();toast('Megvan: '+txt);render();
+ },function(){toast('A videó megszakadt — nincs ajándék.');});
 }
 
 /* ============================ VÁRATLAN ESEMÉNYEK ============================ */
@@ -1631,10 +1676,10 @@ const PACKS=[
 /* KREDIT-SINKEK — mind kényelem/kozmetika, az ingyenes út végig teljes értékű.
    Árazás: egy 100-as csomag néhány értelmes vásárlásra elég, nem tucatnyira. */
 const COST_AUTOSET=18;      // setlist auto-rendezés
-const COST_SKIP=12;         // turné-szakasz azonnali átugrása (a reklám fizetős párja)
 const COST_REROLL=12;       // scouting-felhozatal újragenerálása
 const COST_DEAL=8;          // a 3. (utolsó) alku-próba ára
-const COST_REL={single:10,ep:20,album:30};   // kiadás azonnali befejezése
+/* A várakozás sehol nem fizetős: a turné-szakasz és a felvétel is ingyen, egy koppintással
+   ugorható. A régi COST_SKIP / COST_REL kredit-sinkek ezért megszűntek. */
 const THEMES=[
  {id:'lime', n:'Elektromos lime', c:'#C6FF3A', d:'#9bd211', dd:'#6f9400', g:'rgba(198,255,58,.55)', cost:0},
  {id:'ice',  n:'Jégkék',          c:'#5BE8FF', d:'#18b8d8', dd:'#0d8199', g:'rgba(91,232,255,.55)', cost:150},
@@ -1892,7 +1937,13 @@ function miniResult(kind,acc,detail){
    <div class="mcount" style="color:${pts>=0?'var(--neon)':'var(--hot)'}">${grade}</div>
    <h3>${Math.round(acc*100)}% ${kind==='drum'?'pontosság':'fényteljesítmény'}</h3>
    <p>${detail}<br><b style="color:${pts>=0?'var(--cash)':'var(--hot)'}">${pts>=0?'+':''}${pts} pont</b> a ma esti show-ra.</p>
+   ${pts>0?`<button class="btn gold" id="mX2" style="max-width:280px;margin-bottom:9px">${icon('play','16px')} Reklám · dupla bónusz (+${pts})</button>`:''}
    <button class="btn lime" id="mDone" style="max-width:280px">Vissza a koncertre</button></div>`;
+ const x2=$('#mX2');
+ if(x2)x2.onclick=function(){Ads.show(function(){
+   const m=S.live.mini[M.stop];m.pts=pts*2;save();
+   toast('Dupla bónusz: +'+m.pts+' pont!');closeMini(true);
+ },function(){toast('A videó megszakadt — marad az eredeti bónusz.');});};
  $('#mDone').onclick=()=>closeMini(true);
 }
 function endMini(){
@@ -2156,7 +2207,7 @@ const Ads={
      <div class="lbl">Hirdetés</div>
      <div class="big">${done?'Kész! Jöhet a jutalom.':'Reklámvideó fut…'}</div>
      ${done?'':`<div class="cd">${left}</div><div class="adring"></div>`}
-     <div class="sm">${done?'Köszönjük, hogy megnézted.':'A videó végén átugorhatod az aktuális szakaszt.'}</div>
+     <div class="sm">${done?'Köszönjük, hogy megnézted.':'A videó végén jár a bónusz.'}</div>
     </div>
     ${done?`<button class="btn lime" id="advOk" style="margin-top:14px">${icon('ff','18px')} Jutalom átvétele</button>`:''}
     </div>`;
@@ -2824,6 +2875,12 @@ function tabIroda(){
  if(coach.n!=='★')h+=`<div class="coach" data-go="${coach.go}"><div class="n">${coach.n}</div>
    <div class="t"><div class="h">${coach.h}</div><div class="s">${coach.s}</div></div><div class="go">›</div></div>`;
 
+ // opcionális ajándék — reklámért, néhány hetente
+ if(giftReady()){const g=GIFTS[giftIdx()];
+  h+=`<div class="giftcard" id="giftGo"><div class="g1">${icon(g.ic,'20px')}</div>
+    <div class="g2"><div class="gh">Ajándék vár: ${g.n}</div><div class="gs">Egy rövid videó, és a tiéd — ${g.d}.</div></div>
+    <div class="go">${icon('play','17px')}</div></div>`;}
+
  // folyamatban lévő turné, vagy gyorsindítás
  if(S.live){
    const L=S.live,la=AM[L.artist],p=curPhase(),city=CM[L.stops[p.i].city];
@@ -2905,6 +2962,7 @@ function tabIroda(){
  h+=`</div></div>`;
 
  view.innerHTML=h;
+ const gf=$('#giftGo');if(gf)gf.onclick=claimGift;
  const fo=$('#ioFold');
  if(fo)fo.onclick=function(){S.ioOpen=!S.ioOpen;save();
    const b=$('#ioBody');if(b){b.hidden=!S.ioOpen;fo.classList.toggle('on',!!S.ioOpen);}};
@@ -3103,12 +3161,13 @@ function liveScreen(){
   }
  }
 
- /* reklámvideós gyorsítás */
- const used=!!L.adUsed[L.i];
+ /* gyorsítás: ingyen, egy koppintás — a reklám csak opcionális bónusz */
  h+=`<div class="btnrow" style="margin-top:12px">
-   <button class="btn ${used?'dark':'lime'} sm" id="lvAd" ${used?'disabled':''}>
-     ${icon('play','16px')} ${used?'Videó megvolt':'Reklám · átugrás'}</button>
-   <button class="btn dark sm" id="lvCredSkip">${icon('vinyl','15px')} ${COST_SKIP}</button></div>`;
+   <button class="btn lime sm" id="lvSkip">${icon('ff','16px')} Ugrás a végére</button>
+   <button class="btn dark sm keep" id="lvSkipAll">${icon('play','15px')} Mind</button></div>`;
+ if(p.k==='show'&&!(L.boost&&L.boost[p.i])){
+  h+=`<button class="btn gold sm" id="lvBoost" style="margin-top:9px">${icon('play','15px')} Reklám · +${Math.round(AD_BOOST*100)}% néző ma este</button>`;
+ }
 
  /* térkép a haladással */
  if(HAS_MAP){h+=`<div class="sec"><h2>Az útvonal</h2><span class="r act">${icon('plane','11px')} élő</span></div>
@@ -3141,10 +3200,9 @@ function liveScreen(){
  h+=`<div class="divider"></div><button class="btn dark sm" id="lvStop">Turné megszakítása</button><div style="height:10px"></div></div>`;
  view.innerHTML=h;view.scrollTop=sc;
  if(HAS_MAP){initMap();}
- $('#lvAd').onclick=adSkip;
- const cs=$('#lvCredSkip');if(cs)cs.onclick=()=>{
-   if(!spendCredits(COST_SKIP)){openShop(`Az azonnali átugrás ${COST_SKIP} kredit. Reklámvideóval ingyen is átugorhatod!`);return;}
-   S.live.ends=Date.now()-1;save();toast('Szakasz átugorva.');tick();};
+ $('#lvSkip').onclick=skipPhase;
+ $('#lvSkipAll').onclick=skipAll;
+ const bo=$('#lvBoost');if(bo)bo.onclick=adBoost;
  const dbtn=$('#lvDrum');if(dbtn)dbtn.onclick=()=>{const i2=curPhase().i;
    miniKindFor(i2)==='drum'?openMini(i2):openLights(i2);};
  const dno=$('#lvDrumNo');if(dno)dno.onclick=()=>{L.miniSkip=L.miniSkip||{};L.miniSkip[curPhase().i]=true;save();liveScreen();};
@@ -3488,9 +3546,7 @@ function tabStudio(){
       <div class="sub">${k.days} nap a stúdióban · megjelenés után azonnal hat a keresletre</div>
       <div class="pbar"><i id="relBar" style="width:0%"></i></div>
       <div class="pmeta"><span class="t">${icon('clock','15px')}<span id="relTime">0:00</span></span><span>Már nem szakítható meg</span></div>
-      <div class="btnrow" style="margin-top:11px">
-        <button class="btn lime sm" id="relAd">${icon('play','16px')} Reklám · gyorsítás</button>
-        <button class="btn dark sm" id="relCred">${icon('vinyl','15px')} Kész most · ${COST_REL[S.rel.kind]||20}</button></div>
+      <button class="btn lime sm" id="relSkip" style="margin-top:11px">${icon('ff','16px')} Felvétel befejezése</button>
     </div></div>`;}
 
  /* előadóválasztó */
@@ -3531,10 +3587,7 @@ function tabStudio(){
  view.innerHTML=h;
  bind('[data-studio]',b=>{S.studio=b.dataset.studio;save();tabStudio();});
  bind('[data-rel]',b=>startRelease(a.id,b.dataset.rel));
- const ad=$('#relAd');if(ad)ad.onclick=relAdSkip;
- const rc=$('#relCred');if(rc)rc.onclick=()=>{const c=COST_REL[S.rel.kind]||20;
-   if(!spendCredits(c)){openShop(`A felvétel azonnali befejezése ${c} kredit. Reklámvideóval is gyorsíthatsz, vagy egyszerűen megvárhatod!`);return;}
-   S.rel.ends=Date.now()-1;save();toast('A felvétel elkészült!');tick();};
+ const rs=$('#relSkip');if(rs)rs.onclick=function(){S.rel.ends=Date.now()-1;save();toast('A felvétel elkészült!');tick();};
  paintRel();
 }
 function paintRel(){
@@ -3543,14 +3596,7 @@ function paintRel(){
  if(b)b.style.width=(prog*100).toFixed(1)+'%';
  if(t)t.textContent=mmss(left);
 }
-/* a felvétel is gyorsítható reklámmal (ugyanaz a modul, mint a turnénál) */
-function relAdSkip(){
- if(!S.rel)return;
- if(S.rel.adUsed){toast('Ehhez a felvételhez már megnéztél egy videót.');return;}
- const left=relRemain();
- Ads.show(()=>{S.rel.adUsed=true;S.rel.ends=Date.now()-1;save();toast('Felvétel kész!');tick();},
-          ()=>{S.rel.ends=Date.now()+left;save();toast('A videó megszakadt — nincs gyorsítás.');});
-}
+
 
 /* ---------- FEJLESZTÉS ---------- */
 /* A kártyák azt mutatják, amit a fizetéssel NYERSZ (jelenlegi → következő szint),
@@ -3670,9 +3716,16 @@ function showResult(){const r=S.lastResult,win=r.net>=0,col=win?'var(--cash)':'v
     <div class="gh">${esc(cc.d.n)}</div><div class="gs">${esc(cc.d.d)}</div>
     <div class="gbar"><i style="width:${(pr2*100).toFixed(0)}%;background:var(--gold)"></i></div>
     <div class="gm"><span>${Math.min(cc.st.p,cc.d.g)} / ${cc.d.g}</span><span>${rewardText(cc.d.rw)}</span></div></div></div>`;}
- h+=`<button class="btn lime" id="resHome" style="margin-top:12px">${icon('house','18px')} Vissza az irodába</button></div>`;
+ const mBonus=Math.round((r.tMerch||0)*((r.comm||0)/100));
+ if(mBonus>0&&!r.merchX2)h+=`<button class="btn gold" id="resX2" style="margin-top:12px">${icon('play','18px')} Reklám · dupla merch (+${money(mBonus)})</button>`;
+ h+=`<button class="btn lime" id="resHome" style="margin-top:${mBonus>0&&!r.merchX2?'9':'12'}px">${icon('house','18px')} Vissza az irodába</button></div>`;
  resultEl.innerHTML=h;resultEl.style.display='block';resultEl.scrollTop=0;
  const rn=$('#resNet');rn.dataset.v=0;animateNum(rn,r.net,v=>money(v));
+ const rx=$('#resX2');
+ if(rx)rx.onclick=function(){Ads.show(function(){
+   S.money+=mBonus;r.merchX2=true;r.net+=mBonus;save();
+   toast('Dupla merch: +'+money(mBonus));showResult();
+ },function(){toast('A videó megszakadt — nincs bónusz.');});};
  $('#resHome').onclick=()=>{resultEl.style.display='none';resultEl.innerHTML='';S.tab='iroda';S.resultPending=false;save();render();};
  renderHUD();
 }
@@ -3681,7 +3734,7 @@ function showResult(){const r=S.lastResult,win=r.net>=0,col=win?'var(--cash)':'v
 render();
 /* a turné a játék bezárása alatt is véget érhetett — az eredményt akkor is meg kell mutatni */
 if(S.resultPending&&S.lastResult)showResult();
-if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs};
+if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs};
 })();
 </script>
 </body>
