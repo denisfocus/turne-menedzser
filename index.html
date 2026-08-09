@@ -779,6 +779,25 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 .giftcard .gs{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.35}
 .giftcard .go{color:var(--gold);flex:0 0 auto}
 .giftcard:active{transform:scale(.99)}
+/* ---------- ONBOARDING (vezetett első kör) ----------
+   A réteg NEM fogja el a koppintást: a kiemelt elem és a görgetés végig természetes marad.
+   A „kapu" a lenti sávon van — a bemutató alatt csak az aktuális lépés füle aktív. */
+#ob{position:absolute;inset:0;z-index:68;pointer-events:none;display:none}  /* modál(70)/mini(85)/reklám(90) alatt */
+#ob.on{display:block}
+.obring{position:absolute;border-radius:16px;box-shadow:0 0 0 3px var(--neon),0 0 0 9999px rgba(4,6,10,.76);
+  transition:top .2s,left .2s,width .2s,height .2s}
+.obdim{position:absolute;inset:0;background:rgba(4,6,10,.76)}
+.obbub{position:absolute;left:12px;right:12px;pointer-events:auto;background:var(--panel);
+  border:1px solid rgba(198,255,58,.42);border-radius:18px;padding:15px 16px;box-shadow:0 20px 54px rgba(0,0,0,.66)}
+.obbub .k{font-size:9.5px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;color:var(--neon)}
+.obbub h4{font-family:var(--disp);font-weight:700;font-size:17px;margin-top:5px;line-height:1.15;word-spacing:.13em}
+.obbub p{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+.obbub .row{display:flex;gap:10px;align-items:center;margin-top:13px}
+.obbub .row .btn{flex:1;width:auto;min-width:0}
+.obbub .skip{font-size:11px;color:var(--faint);font-weight:700;text-decoration:underline;flex:0 0 auto;padding:6px 2px}
+.obbub .tap{font-size:12px;font-weight:700;color:var(--neon);margin-top:12px;display:flex;align-items:center;gap:7px}
+.obbub .tap .d{width:8px;height:8px;border-radius:50%;background:var(--neon);animation:pulse 1.1s infinite}
+#nav a.off{opacity:.28;pointer-events:none}
 </style>
 </head>
 <body>
@@ -791,6 +810,7 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
   <div id="modal"></div>
   <div id="mini"></div>
   <div id="adv"></div>
+  <div id="ob"></div>
 </div>
 
 <svg width="0" height="0" style="position:absolute"><defs id="icondefs"></defs></svg>
@@ -1187,7 +1207,8 @@ let S=migrate(load()||newGame());
 function newGame(){return{money:60000,rep:0,week:1,roster:[],upg:{marketing:0,staff:0,merch:0},tab:'iroda',tour:null,live:null,
  art:{},rel:null,relLog:[],streamIncome:0,lastResult:null,toursDone:0,detail:null,studio:null,
  feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false,credits:CRED_WELCOME,themes:['lime'],theme:'lime',scout:null,
- mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false,deal:{},fac:{},staff:{},artUp:{},earned:0,leg:null,recsAll:{},ioOpen:false,giftWk:undefined,giftN:0};}
+ mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false,deal:{},fac:{},staff:{},artUp:{},earned:0,leg:null,recsAll:{},ioOpen:false,giftWk:undefined,giftN:0,
+ ob:0,obDone:false};}
 /* régi mentések kiegészítése az új mezőkkel */
 function migrate(s){if(!s)return newGame();
  if(s.deal){Object.keys(s.deal).forEach(function(k){if(s.deal[k]>30)delete s.deal[k];});}  // régi 10-60%-os modell alaphelyzetbe
@@ -1222,6 +1243,9 @@ function migrate(s){if(!s)return newGame();
  if(!s.recsAll)s.recsAll={};
  if(s.ioOpen===undefined)s.ioOpen=false;
  if(s.giftN===undefined)s.giftN=0;
+ /* Visszatérő mentés: a bemutató NEM indul újra. Új játéknál a newGame() false-ra állítja. */
+ if(s.obDone===undefined)s.obDone=true;
+ if(s.ob===undefined)s.ob=null;
  if(!s.leg)s.leg={pts:0,tot:0,rank:0,perks:{}};
  if(!s.leg.perks)s.leg.perks={};
  if(!s.deal)s.deal={};
@@ -2427,9 +2451,99 @@ function renderHUD(){
  $('#hudWk').textContent=String(S.week).padStart(2,'0');
 }
 
+/* ============================ ONBOARDING ============================
+   Vezetett ELSŐ KÖR valódi lépésekkel: minden lépés egy tényleges játékbeli
+   művelet, nem diavetítés. A lépés akkor lép tovább, ha a művelet megtörtént. */
+const OB=[
+ {id:'welcome',tab:'iroda',k:'1 · Üdv',t:'Te vagy az ügynökség',
+  p:'Előadókat igazolsz le, felépíted őket, és világ körüli turnékra viszed a csapatot. A turné nyereségéből jutalékot viszel.',btn:'Kezdjük'},
+ {id:'hud',tab:'iroda',sel:'#hud .res',k:'2 · Műszerfal',t:'Pénz, hírnév, hét',
+  p:'A pénzedből fejlesztesz és igazolsz. A hírnév nyitja a nagyobb helyszíneket és a nagyobb neveket.',btn:'Tovább'},
+ {id:'nav',tab:'iroda',sel:'#nav',k:'3 · Fülek',t:'Öt hely, ahol dolgozol',
+  p:'Iroda: az áttekintés. Térkép: turnétervezés. Előadók: leigazolás. Stúdió: kiadások. Fejlesztés: beruházások.',btn:'Tovább'},
+ {id:'goEl',tab:'iroda',sel:'#nav a[data-tab="eloadok"]',k:'4 · Első lépés',t:'Kell egy előadó',
+  p:'Nyisd meg az Előadók fület.',tap:'Koppints az Előadók fülre',
+  done:function(){return S.tab==='eloadok';},allow:['eloadok']},
+ {id:'sign',tab:'eloadok',sel:'#view [data-sign]',k:'5 · Leigazolás',t:'Válassz egy nevet',
+  p:'A kezdők ingyen szerződnek. A tárgyaláson te kéred a jutalékot — az alapot bármikor elfogadhatod.',
+  tap:'Koppints a Leigazolás gombra',done:function(){return S.roster.length>0;},allow:['eloadok']},
+ {id:'goMap',tab:'eloadok',sel:'#nav a[data-tab="terkep"]',k:'6 · Turné',t:'Megvan az előadód',
+  p:'Most jöhet az első turné.',tap:'Koppints a Térkép fülre',
+  done:function(){return S.tab==='terkep';},allow:['terkep']},
+ {id:'pick',tab:'terkep',sel:'#view [data-tour]',k:'7 · Kit viszel',t:'Válaszd ki az előadót',
+  tap:'Koppints a kártyájára',done:function(){return !!S.tour;},allow:['terkep']},
+ {id:'set',tab:'terkep',sel:'#songs',k:'8 · Setlist',t:'Rakd össze a szetet',
+  p:'Nem a legjobb dalok halmaza nyer, hanem az ív: erős nyitás, egy lassú, aztán csúcs a végén.',
+  tap:'Válassz dalokat a repertoárból',done:function(){return S.tour&&S.tour.setlist.length>=minSet(AM[S.tour.artist]);},allow:['terkep']},
+ {id:'city',tab:'terkep',sel:'#chips',k:'9 · Útvonal',t:'Válassz várost',
+  p:'A logikus, egy irányba haladó útvonal olcsóbb. Több állomás olcsóbb fix költséget jelent.',
+  tap:'Koppints egy városra',done:function(){return S.tour&&S.tour.stops.length>=1;},allow:['terkep']},
+ {id:'stop',tab:'terkep',sel:'#stops',k:'10 · Állomás',t:'Helyszín és jegyár',
+  p:'A nagyobb terem több nézőt bír, de drágább — ha nem telik meg, bukó. A jegyár csak a VÁRHATÓ nézőszámot szabja meg.',
+  tap:'Állítsd be az állomást',done:function(){return S.tour&&todoCount()===0&&S.tour.stops.length>=1;},allow:['terkep']},
+ {id:'promo',tab:'terkep',sel:'#promo',k:'11 · Promóció',t:'Mennyit költesz rá',
+  p:'Több promó = több néző és kisebb meglepetés. A turné nyereségéből megy, nem előre.',btn:'Tovább',allow:['terkep']},
+ {id:'go',tab:'terkep',sel:'#sticky-host .in',k:'12 · Indulás',t:'Mehet a turné',
+  tap:'Koppints a Turné indítása gombra',done:function(){return !!S.live;},allow:['terkep']},
+ {id:'live',tab:'terkep',sel:'#view #lvSkip',k:'13 · Élő turné',t:'Nem kell várnod',
+  p:'Telik az idő, de bármikor a végére ugorhatsz — ingyen, egy koppintással. A reklám csak extra bónuszért van.',
+  btn:'Értem',allow:['terkep']},
+ /* az utolsó lépés megvárja a turné végét — addig semmi nincs zárolva */
+ {id:'done',tab:'iroda',k:'14 · Kész',t:'Innen pörög a hurok',
+  p:'Turné → hírnév és pénz → nagyobb helyszín és nagyobb név. Az Iroda fülön mindig ott a következő célod, és a többi fül is nyitva áll.',
+  btn:'Kezdhetem!',allow:['iroda','terkep','eloadok','studio','fejlesztes'],
+  wait:function(){return (S.toursDone||0)>0&&!S.resultPending;}},
+];
+let obLast=-1, obIv=null;
+function obActive(){return !S.obDone&&S.ob!=null&&S.ob<OB.length;}
+function obStep(){return obActive()?OB[S.ob]:null;}
+/* a bemutató alatt csak az aktuális lépéshez tartozó fül aktív */
+function obAllowedTabs(){const st=obStep();if(!st)return null;return st.allow||[st.tab];}
+function obStart(){S.obDone=false;S.ob=0;obLast=-1;S.tab='iroda';S.career=false;save();render();}
+function obFinish(){S.obDone=true;S.ob=null;obLast=-1;if(obIv){clearInterval(obIv);obIv=null;}
+ $('#ob').className='';$('#ob').innerHTML='';save();render();}
+function obNext(){if(!obActive())return;S.ob++;obLast=-1;if(S.ob>=OB.length){obFinish();return;}
+ save();render();}
+function obPaint(){
+ const el=$('#ob');
+ if(!obActive()){el.className='';el.innerHTML='';if(obIv){clearInterval(obIv);obIv=null;}return;}
+ if(!obIv)obIv=setInterval(obPaint,450);
+ const st=OB[S.ob];
+ /* a lépés magától továbblép, ha a művelet megtörtént */
+ if(st.done&&st.done()){obNext();return;}
+ /* modál / mini-játék / reklám alatt félreállunk */
+ if($('#modal').className==='on'||$('#mini').className==='on'||$('#adv').className==='on'
+    ||(st.wait&&!st.wait())||resultEl.style.display==='block'){el.className='';el.innerHTML='';return;}
+ const tgt=st.sel?document.querySelector(st.sel):null;
+ if(st.sel&&!tgt){el.className='';el.innerHTML='';return;}
+ if(obLast!==S.ob){obLast=S.ob;
+  if(tgt&&view.contains(tgt)){const top=Math.max(0,tgt.offsetTop-120);
+   try{view.scrollTo({top,behavior:document.hidden?'auto':'smooth'});}catch(e){view.scrollTop=top;}}}
+ const app=$('#app').getBoundingClientRect();
+ let ring='',bub='';
+ if(tgt){const r=tgt.getBoundingClientRect(),pad=7;
+  ring='<div class="obring" style="top:'+(r.top-app.top-pad)+'px;left:'+(r.left-app.left-pad)+'px;'+
+    'width:'+(r.width+pad*2)+'px;height:'+(r.height+pad*2)+'px"></div>';
+  const below=(r.bottom-app.top)+250<app.height;
+  bub='style="'+(below?'top:'+(r.bottom-app.top+14)+'px':'bottom:'+(app.height-(r.top-app.top)+14)+'px')+'"';
+ }else{ring='<div class="obdim"></div>';bub='style="top:50%;transform:translateY(-50%)"';}
+ el.innerHTML=ring+'<div class="obbub" '+bub+'>'+
+   '<div class="k">'+st.k+' · '+(S.ob+1)+'/'+OB.length+'</div>'+
+   '<h4>'+st.t+'</h4>'+(st.p?'<p>'+st.p+'</p>':'')+
+   (st.tap?'<div class="tap"><span class="d"></span>'+st.tap+'</div>':'')+
+   '<div class="row">'+(st.btn?'<button class="btn lime sm" id="obGo">'+st.btn+'</button>':'')+
+     '<button class="skip" id="obSkip">Kihagyom</button></div>'+
+  '</div>';
+ el.className='on';
+ const g=$('#obGo');if(g)g.onclick=obNext;
+ $('#obSkip').onclick=obFinish;
+}
+
 /* ============================ NAV ============================ */
 function renderNav(){const tabs=[['iroda','house','Iroda'],['terkep','globe','Térkép'],['eloadok','mic','Előadók'],['studio','notes','Stúdió'],['fejlesztes','upgrade','Fejlesztés']];
  navEl.innerHTML=tabs.map(([id,ic,l])=>`<a class="${S.tab===id?'on':''}" data-tab="${id}">${icon(ic)}${l}</a>`).join('');
+ const allow=obAllowedTabs();
+ if(allow)navEl.querySelectorAll('[data-tab]').forEach(a=>{if(allow.indexOf(a.dataset.tab)<0)a.classList.add('off');});
  navEl.querySelectorAll('[data-tab]').forEach(a=>a.onclick=()=>{if(S.tab!==a.dataset.tab){S.detail=null;if(a.dataset.tab!=='terkep')teardownMap();S.tab=a.dataset.tab;save();render();}});}
 
 /* ============================ KARRIER-RENDSZER ============================
@@ -2958,6 +3072,10 @@ function staffCard(st){
 }
 
 /* ============================ RENDER ============================ */
+/* minden koppintás után újraértékeljük a lépést — ez a fő továbblépési jel */
+document.addEventListener('click',function(){if(obActive())setTimeout(obPaint,70);},true);
+view.addEventListener('scroll',function(){if(obActive())obPaint();},{passive:true});
+window.addEventListener('resize',function(){if(obActive())obPaint();});
 function render(){applyTheme();checkUnlocks();chalLive();checkArcs();checkMiles();renderHUD();renderNav();
  stickyHost.innerHTML='';view.style.paddingBottom='';   // az updateSticky() állítja be, ha kell
  if(S.tab!=='terkep')teardownMap();
@@ -2965,6 +3083,7 @@ function render(){applyTheme();checkUnlocks();chalLive();checkArcs();checkMiles(
  else ({iroda:tabIroda,terkep:tabTerkep,eloadok:tabEloadok,studio:tabStudio,fejlesztes:tabFejlesztes}[S.tab]||tabIroda)();
  view.scrollTop=0;
  if(S.live||S.rel)startTicker();else stopTicker();
+ obPaint();
  /* félbehagyott döntés visszaállítása újratöltés után */
  if(S.live&&S.live.pendingEv&&$('#modal').className!=='on'){const e=EVENTS.find(x=>x.id===S.live.pendingEv);if(e)renderEvent(e);}}
 function bind(sel,fn){view.querySelectorAll(sel).forEach(el=>el.onclick=()=>fn(el));}
@@ -3095,9 +3214,12 @@ function tabIroda(){
      <div class="bd"><div class="nm">${esc(l.artist)}</div>
        <div class="chips"><span class="chip">${l.rows.length} állomás</span><span class="chip">${k(l.tAtt)} néző</span></div>
        <div class="btm"><span class="num" style="font-size:20px;color:${l.net>=0?'var(--cash)':'var(--hot)'}">${money(l.net)}</span></div></div></div>`;}
+ h+=`<div class="sec"><h2>Súgó</h2></div>
+   <button class="btn dark sm" id="obAgain">${icon('play','15px')} Bemutató újra</button>`;
  h+=`</div></div>`;
 
  view.innerHTML=h;
+ const oba=$('#obAgain');if(oba)oba.onclick=obStart;
  const gf=$('#giftGo');if(gf)gf.onclick=claimGift;
  const fo=$('#ioFold');
  if(fo)fo.onclick=function(){S.ioOpen=!S.ioOpen;save();
