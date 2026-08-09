@@ -1097,6 +1097,7 @@ function band(raw,sigma,cap){return{lo:clamp(Math.round(raw*(1-1.28*sigma)),0,ca
    Nem a legnagyobb pontszámú dalok halmaza a jó szet, hanem a jól felépített ív:
    erős nyitás → építkezés → lélegzetvételnyi lassú → csúcs → ráadás.
    Csupa nagy energiájú szám egymás után kifárasztja a közönséget (állóképesség). */
+const MIN_SET=5;                                  // ennyi dal kell egy indítható szethez
 const ARC=[70,80,60,74,90,97,88];                 // ideális energia-görbe kulcspontjai (0→1)
 function arcTarget(t){const x=clamp(t,0,1)*(ARC.length-1),i=Math.floor(x),f=x-i;
  return ARC[i]+((ARC[Math.min(i+1,ARC.length-1)]-ARC[i])*f);}
@@ -1129,7 +1130,7 @@ function crowdSim(a,list){
  if(fatigue)notes.push(`${fatigue} helyen 3+ nagy szám torlódik — a közönség kifárad.`);
  if(songs.length>=3&&pts[pts.length-1].crowd<peak-10)notes.push('Gyengén zárul — a végére erős, nagy energiájú szám kell.');
  if(songs.length>=4&&!songs.some(s=>s.e<=55))notes.push('Nincs lassú szám: egy lélegzetvétel feljebb vinné a csúcsot.');
- if(songs.length<3)notes.push('Rövid a szet — legalább 4-5 dal kell egy igazi ívhez.');
+ if(songs.length<MIN_SET)notes.push(`Még ${MIN_SET-songs.length} dal kell — a teljes ívhez legalább ${MIN_SET} szám.`);
  return{pts,score,avgE,notes,fatigue};
 }
 function showGrade(s){return s>=86?{g:'A+',c:'var(--cash)'}:s>=76?{g:'A',c:'var(--cash)'}:
@@ -2043,7 +2044,8 @@ function detailScreen(){const a=AM[S.detail],mine=S.roster.includes(a.id),canPay
 /* ---------- TÉRKÉP / TURNÉ ---------- */
 function startTour(id){if(S.live){toast('Előbb fejezd be a folyamatban lévő turnét.');S.tab='terkep';save();render();return;}
  const a=AM[id];
- S.tour={artist:id,stops:[],setlist:autoSetlist(a,6),promo:0,risk:false};S.detail=null;S.tab='terkep';save();render();}
+ /* ÜRESEN indul: a szet összerakása és sorrendje a játékos döntése */
+ S.tour={artist:id,stops:[],setlist:[],promo:0,risk:false};S.detail=null;S.tab='terkep';save();render();}
 /* kezdo szet: a legjobb dalokbol, de mar az idealis ivhez rendezve - innen lehet tovabb csiszolni */
 function autoSetlist(a,n){n=Math.min(n||6,a.songs.length);
  const pool=a.songs.map((s,i)=>i),out=new Array(n),tgt=p=>arcTarget(n>1?p/(n-1):0.5);
@@ -2251,9 +2253,12 @@ function renderSongs(){
  </div>`;
 
  h+=`<div class="sec" style="margin:16px 2px 10px"><h2 style="font-size:15px">A szet sorrendje</h2>
-   <span class="r ${list.length?'act':''}">${list.length} dal</span></div>`;
+   <span class="r ${list.length>=MIN_SET?'act':''}">${list.length}/${MIN_SET} dal</span></div>`;
  h+=`<div id="slwrap">`;
- if(!list.length)h+=`<div class="empty" style="padding:16px">Válassz dalokat a repertoárból.</div>`;
+ if(!list.length)h+=`<div class="empty" style="padding:18px 16px">
+   <b style="font-family:var(--disp);font-size:15px">Üres a szet</b><br>
+   Válassz legalább <b>${MIN_SET}</b> dalt a repertoárból, és rakd őket ívbe:<br>
+   erős nyitás → építkezés → egy lassú → csúcs → ráadás.</div>`;
  list.forEach((si,pos)=>{const s=a.songs[si];if(!s)return;
   h+=`<div class="slrow" data-pos="${pos}">
     <div class="hnd" data-drag="${pos}"><span></span></div>
@@ -2263,6 +2268,7 @@ function renderSongs(){
       <div class="es">${eLab(s.e)} · energia ${s.e} · minőség ${s.q}</div></div>
     <div class="rm" data-del="${pos}">✕</div></div>`;});
  h+=`</div>`;
+ h+=`<button class="btn dark sm" id="slAuto" style="margin-top:10px">${icon('upgrade','15px')} Auto-rendez · rakja össze helyettem</button>`;
  h+=`<div class="hint"><span class="i">${icon('alert','13px')}</span><span>Húzd a <b>fogantyút</b> a sorrend átrendezéséhez. A jó show nem a legnagyobb pontszámú dalok halmaza, hanem az <b>ív</b>: erős nyitás → építkezés → egy lassú → csúcs → ráadás.</span></div>`;
 
  const rest=a.songs.map((s,i)=>i).filter(i=>list.indexOf(i)<0);
@@ -2286,9 +2292,8 @@ function renderSongs(){
 function afterSetlistChange(){save();renderSongs();renderStops();updateStopProgress();updateSticky();}
 function bindSetlist(a){
  bind('[data-add]',b=>{S.tour.setlist.push(+b.dataset.add);afterSetlistChange();});
- bind('[data-del]',b=>{const p=+b.dataset.del;
-   if(S.tour.setlist.length<=1){toast('Legalább 1 dal kell.');return;}
-   S.tour.setlist.splice(p,1);afterSetlistChange();});
+ bind('[data-del]',b=>{S.tour.setlist.splice(+b.dataset.del,1);afterSetlistChange();});
+ const ab=$('#slAuto');if(ab)ab.onclick=()=>{S.tour.setlist=autoSetlist(AM[S.tour.artist],6);afterSetlistChange();toast('Automatikus ív összerakva — innen csiszolhatod.');};
  const rb=$('#riskBox');if(rb)rb.onclick=()=>{S.tour.risk=!S.tour.risk;afterSetlistChange();};
  initDrag();
 }
@@ -2446,7 +2451,7 @@ function updateSticky(){const stops=S.tour.stops,cost=promoCost(stops,S.tour.pro
     Így nem lehet véletlenül félig beállítva, alap jegyárral turnét indítani. */
  let main;
  if(stops.length<1) main=`<button class="btn lime" disabled>Adj hozzá legalább 1 várost</button>`;
- else if(S.tour.setlist.length<1) main=`<button class="btn lime" disabled>Válassz legalább 1 dalt</button>`;
+ else if(S.tour.setlist.length<MIN_SET) main=`<button class="btn lime" id="goSet">${icon('notes','17px')} Rakd össze a szetet · még ${MIN_SET-S.tour.setlist.length} dal</button>`;
  else if(todo>0) main=`<button class="btn lime" id="goTodo">${icon('alert','17px')} Állomások beállítása · ${todo} maradt →</button>`;
  else if(noMoney) main=`<button class="btn lime" disabled>Nincs elég pénz a promócióra</button>`;
  else main=`<button class="btn lime" id="sim">${icon('mic','18px')} Turné indítása · ${stops.length} állomás${cost?' · promó '+money(cost):''}</button>`;
@@ -2459,6 +2464,8 @@ function updateSticky(){const stops=S.tour.stops,cost=promoCost(stops,S.tour.pro
    <button class="btn dark sm" id="cancel" style="margin-top:8px">Mégse, vissza</button></div></div>`;
  const sim=$('#sim');if(sim)sim.onclick=launchTour;
  const gt=$('#goTodo');if(gt)gt.onclick=gotoNextTodo;
+ const gs=$('#goSet');if(gs)gs.onclick=()=>{const el=view.querySelector('#songs');
+   if(el)try{view.scrollTo({top:Math.max(0,el.offsetTop-70),behavior:document.hidden?'auto':'smooth'});}catch(e){view.scrollTop=el.offsetTop;}};
  $('#cancel').onclick=()=>{S.tour=null;teardownMap();save();render();};}
 
 /* ---------- STÚDIÓ (kiadások + streaming + rajongótábor) ---------- */
