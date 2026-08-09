@@ -530,6 +530,19 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
   border-radius:14px;padding:11px 13px;margin-top:11px}
 .drumres .v3{font-family:var(--disp);font-weight:700;font-size:20px;font-feature-settings:"tnum" 1}
 
+.goalcard{display:flex;gap:12px;align-items:flex-start;border-radius:18px;padding:13px 14px;margin-top:4px;
+  background:linear-gradient(135deg,rgba(198,255,58,.15),rgba(198,255,58,.04));border:1px solid rgba(198,255,58,.36);box-shadow:var(--sh)}
+.goalcard.alt{background:linear-gradient(135deg,rgba(255,194,75,.13),rgba(255,194,75,.03));border-color:rgba(255,194,75,.34)}
+.goalcard .g1{width:40px;height:40px;border-radius:13px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.35);color:var(--neon)}
+.goalcard.alt .g1{color:var(--gold)}
+.goalcard .g2{flex:1;min-width:0}
+.goalcard .gh{font-family:var(--disp);font-weight:700;font-size:15.5px;letter-spacing:.01em}
+.goalcard .gs{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.4}
+.goalcard .gbar{height:8px;border-radius:8px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:9px}
+.goalcard .gbar i{display:block;height:100%;border-radius:8px;background:var(--neon);box-shadow:0 0 10px var(--neonglow);transition:width .5s}
+.goalcard .gm{display:flex;justify-content:space-between;gap:8px;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--muted)}
+
 /* ---------- FÉNYSHOW MINI-JÁTÉK (fénypult) ---------- */
 .rig{position:relative;flex:1;margin:8px 12px 0;border-radius:20px;overflow:hidden;min-height:230px;
   border:1px solid var(--line2);touch-action:none;background:#04060a}
@@ -993,7 +1006,8 @@ const KEY='turne_menedzser_v3';
 let S=migrate(load()||newGame());
 function newGame(){return{money:60000,rep:0,week:1,roster:[],upg:{marketing:0,staff:0,merch:0},tab:'iroda',tour:null,live:null,
  art:{},rel:null,relLog:[],streamIncome:0,lastResult:null,toursDone:0,detail:null,studio:null,
- feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false,credits:CRED_WELCOME,themes:['lime'],theme:'lime',scout:null};}
+ feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false,credits:CRED_WELCOME,themes:['lime'],theme:'lime',scout:null,
+ mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false};}
 /* régi mentések kiegészítése az új mezőkkel */
 function migrate(s){if(!s)return newGame();
  if(s.live===undefined)s.live=null;
@@ -1012,6 +1026,8 @@ function migrate(s){if(!s)return newGame();
  if(!s.themes)s.themes=['lime'];
  if(!s.theme)s.theme='lime';
  if(!s.scout)s.scout=null;
+ if(!s.mile)s.mile={};if(!s.recs)s.recs={};if(!s.hall)s.hall=[];
+ if(s.chal===undefined)s.chal=null;if(!s.chalDone)s.chalDone=0;if(!s.artArc)s.artArc={};s.career=false;
  if(s.autoShow===undefined)s.autoShow=false;
  if(s.live){if(s.live.drum&&!s.live.mini){s.live.mini=s.live.drum;s.live.miniSkip=s.live.drumSkip||{};}
   if(!s.live.mini)s.live.mini={};if(!s.live.miniSkip)s.live.miniSkip={};
@@ -1254,6 +1270,7 @@ function finishRelease(){
  S.relLog.unshift({artist:a.n,kind:k.n,ic:k.ic,week:S.week,
    gain:st.streams-before,fame:k.fameAdd,fans:k.fansAdd});
  S.relLog=S.relLog.slice(0,8);
+ chalAdd('rel2',1);
  pushFeed(`${a.n} · ${k.n} megjelent`,`Streaming ${fmtStream(before)} → ${fmtStream(st.streams)} · +${k.fameAdd} hírnév`,k.ic,'var(--gold)');
  advanceWeeks(Math.max(1,Math.round(k.days/7)));
  save();
@@ -1359,6 +1376,9 @@ function runShow(i){
   L.fanGain[reg]=(L.fanGain[reg]||0)+fanG;
   L.mom=fill>=0.9?Math.min(1.4,L.mom+0.06):(fill<0.45?Math.max(0.75,L.mom-0.05):L.mom);
   A.played[st.city]=S.week;            // a varos kozonsege elhasznalodott, hetek alatt epul vissza
+  bumpRec('maxFill',fill);bumpRec('bestNight',profit);bumpRec('bestAtt',att);
+  if(v.cap>=20000){bumpRec('arenaFill',fill);if(fill>=0.9&&!(S.recs&&S.recs.firstArenaWeek))(S.recs=S.recs||{}).firstArenaWeek=S.week;}
+  if(fill>=0.98&&v.id==='club'&&city.r==='SA')chalAdd('sa3',1);
  }
  L.attMul=1;                            // az eseményhatás egy koncertre szól
  S.money+=rev+merch-cost-pay;           // azonnal a kasszába (a HUD élőben követi)
@@ -1384,6 +1404,12 @@ function endTour(){
   net,rep:L.rep,tAtt:L.tAtt,setQ:Math.round(setlistQ(a,L.setlist)),promoSpent:L.promoSpent,tEvent:L.tEvent,days:L.days,log:L.log,
   tMerch:L.tMerch,fanRows,decay,streams:A.streams};
  pushFeed(`Turné vége · ${a.n}`,`${L.rows.length} állomás · ${k(L.tAtt)} néző · ${money(net)}`,'trophy',net>=0?'var(--cash)':'var(--hot)');
+ const conts={};L.stops.forEach(function(x){conts[CM[x.city].r]=1;});
+ bumpRec('cont',Object.keys(conts).length);bumpRec('bestTour',net);bumpRec('bestMerch',L.tMerch);
+ if(L.stops.length>=4)chalAdd('tour4',1);
+ chalSet('mrc',Math.round(L.tMerch));
+ S.hall=(S.hall||[]).concat([{artist:a.n,photo:artistPhoto(a,220,240),stops:L.rows.length,att:L.tAtt,net:net,week:S.week}])
+   .sort(function(x,y){return y.net-x.net;}).slice(0,5);
  rollScout();
  S.live=null;S.resultPending=true;      // ha közben bezárták a játékot, újranyitáskor is lássa
  stopTicker();save();teardownMap();showResult();
@@ -2090,10 +2116,191 @@ function renderNav(){const tabs=[['iroda','house','Iroda'],['terkep','globe','T�
  navEl.innerHTML=tabs.map(([id,ic,l])=>`<a class="${S.tab===id?'on':''}" data-tab="${id}">${icon(ic)}${l}</a>`).join('');
  navEl.querySelectorAll('[data-tab]').forEach(a=>a.onclick=()=>{if(S.tab!==a.dataset.tab){S.detail=null;if(a.dataset.tab!=='terkep')teardownMap();S.tab=a.dataset.tab;save();render();}});}
 
+/* ============================ KARRIER-RENDSZER ============================
+   Retenció ÉLVEZETBŐL, nem várakozásból: nincs energia, élet vagy napi timer.
+   Minden itt teljesítéssel halad — mérföldkövek, rekordok, kihívások, előadó-ívek. */
+
+/* ---- rekordok: részben tárolt (esemény-alapú), részben élőben számolt ---- */
+function recs(){
+ const r=S.recs||{};
+ let streams=0,topFame=0,topFans=0;
+ S.roster.forEach(function(id){const a=AM[id],A=artState(id);
+  streams=Math.max(streams,A.streams);topFame=Math.max(topFame,af(a));
+  Object.keys(REGIONS).forEach(function(g){topFans=Math.max(topFans,A.fans[g]||0);});});
+ return{maxFill:r.maxFill||0,arenaFill:r.arenaFill||0,bestNight:r.bestNight||0,bestAtt:r.bestAtt||0,
+   bestTour:r.bestTour||0,cont:r.cont||0,bestMerch:r.bestMerch||0,firstArenaWeek:r.firstArenaWeek||0,
+   streams:streams,topFame:Math.round(topFame),topFans:Math.round(topFans),lvl:level()};
+}
+function bumpRec(k,v){S.recs=S.recs||{};if((S.recs[k]||0)<v){S.recs[k]=v;return true;}return false;}
+
+/* ---- 1) KARRIER-LÉTRA ---- */
+const MILES=[
+ {id:'sign1',n:'Első leigazolás',d:'Szerződtess le egy előadót.',ic:'mic',rw:{money:10000},
+  p:function(){return clamp(S.roster.length,0,1);},t:function(){return Math.min(1,S.roster.length)+'/1';}},
+ {id:'sold',n:'Első telt ház',d:'Játssz egy 98%-ban megtelt koncertet.',ic:'people',rw:{cred:5},
+  p:function(){return clamp(recs().maxFill/0.98,0,1);},t:function(){return Math.round(recs().maxFill*100)+'% / 98%';}},
+ {id:'world',n:'Világturné',d:'Vigyél egy turnét legalább 2 kontinensre.',ic:'globe',rw:{money:40000},
+  p:function(){return clamp(recs().cont/2,0,1);},t:function(){return recs().cont+'/2 kontinens';}},
+ {id:'str1',n:'Streaming-áttörés',d:'1 millió havi hallgató egy előadódnál.',ic:'headphones',rw:{cred:10},
+  p:function(){return clamp(recs().streams/1e6,0,1);},t:function(){return fmtStream(recs().streams)+' / 1,00M';}},
+ {id:'arena',n:'Aréna megtöltve',d:'Tölts meg egy arénát 90%-ra.',ic:'star',rw:{money:120000},
+  p:function(){return clamp(recs().arenaFill/0.9,0,1);},t:function(){return Math.round(recs().arenaFill*100)+'% / 90%';}},
+ {id:'star',n:'Szupersztár felfedezve',d:'Legyen 85+ hírnevű előadód.',ic:'crown',rw:{cred:25},
+  p:function(){return clamp(recs().topFame/85,0,1);},t:function(){return recs().topFame+' / 85';}},
+ {id:'global',n:'Globális ügynökség',d:'Érd el a Lv.7 irodát.',ic:'trophy',rw:{cred:50,theme:'ice'},
+  p:function(){return clamp(level()/7,0,1);},t:function(){return 'Lv.'+level()+' / Lv.7';}},
+];
+function mileDone(id){return !!(S.mile&&S.mile[id]);}
+function nextMile(){for(let i=0;i<MILES.length;i++)if(!mileDone(MILES[i].id))return MILES[i];return null;}
+function grantReward(rw,label){
+ let bits=[];
+ if(rw.money){S.money+=rw.money;bits.push(money(rw.money));}
+ if(rw.cred){S.credits=credits()+rw.cred;bits.push(rw.cred+' kredit');}
+ if(rw.theme&&(S.themes||[]).indexOf(rw.theme)<0){S.themes.push(rw.theme);
+   const th=THEMES.find(function(x){return x.id===rw.theme;});bits.push((th?th.n:'új')+' téma');}
+ return bits.join(' · ');
+}
+function checkMiles(){
+ if(!S.mile)S.mile={};
+ MILES.forEach(function(m){
+  if(mileDone(m.id))return;
+  if(m.p()<1)return;
+  S.mile[m.id]=S.week;
+  const got=grantReward(m.rw);
+  pushFeed('Mérföldkő: '+m.n,(got?got+' · ':'')+m.d,m.ic,'var(--gold)');
+  toast('Mérföldkő teljesítve: '+m.n+(got?' · '+got:''));
+ });
+}
+
+/* ---- 5) FORGÓ KIHÍVÁSOK (teljesítéssel váltanak, NEM időzítővel) ---- */
+const CHALS=[
+ {id:'sa3',n:'Dél-amerikai roham',d:'Játssz 3 telt házas klubkoncertet Dél-Amerikában.',g:3,rw:{cred:12}},
+ {id:'rel2',n:'Stúdiómaraton',d:'Adj ki 2 zenét (single, EP vagy album).',g:2,rw:{money:60000}},
+ {id:'fan60',n:'Helyi hősök',d:'Érj el 60 rajongót egy régióban.',g:60,rw:{cred:10}},
+ {id:'tour4',n:'Nagy körút',d:'Vigyél végig egy 4+ állomásos turnét.',g:1,rw:{money:50000}},
+ {id:'mrc',n:'Pólóbiznisz',d:'Keress €50 000 merchet egy turnén.',g:50000,rw:{cred:12}},
+ {id:'ai',n:'Ázsiai áttörés',d:'Érj el 45 rajongót Ázsiában.',g:45,rw:{cred:12}},
+];
+function rollChal(){
+ const pool=CHALS.filter(function(c){return !S.chal||c.id!==S.chal.id;});
+ const c=pool[Math.floor(Math.random()*pool.length)]||CHALS[0];
+ S.chal={id:c.id,p:0};return S.chal;
+}
+function curChal(){if(!S.chal)rollChal();const d=CHALS.find(function(c){return c.id===S.chal.id;});return d?{d:d,st:S.chal}:null;}
+function chalSet(id,val){const c=curChal();if(!c||c.d.id!==id)return;if(val>c.st.p)c.st.p=val;chalCheck();}
+function chalAdd(id,n){const c=curChal();if(!c||c.d.id!==id)return;c.st.p+=n;chalCheck();}
+function chalCheck(){
+ const c=curChal();if(!c)return;
+ if(c.st.p>=c.d.g){
+  const got=grantReward(c.d.rw);
+  pushFeed('Kihívás teljesítve: '+c.d.n,(got?got+' · ':'')+c.d.d,'trophy','var(--cash)');
+  toast('Kihívás kész: '+c.d.n+(got?' · '+got:''));
+  S.chalDone=(S.chalDone||0)+1;rollChal();
+ }
+}
+/* élőben mért kihívások frissítése */
+function chalLive(){
+ const c=curChal();if(!c)return;
+ if(c.d.id==='fan60'||c.d.id==='ai'){
+  const rg=c.d.id==='ai'?'AS':null;let best=0;
+  S.roster.forEach(function(id){const A=artState(id);
+   Object.keys(REGIONS).forEach(function(g){if(rg&&g!==rg)return;best=Math.max(best,A.fans[g]||0);});});
+  chalSet(c.d.id,Math.round(best));
+ }
+}
+
+/* ---- 4) ELŐADÓ-ÍVEK ---- */
+const ARCS=[{n:'Feltörekvő',f:0},{n:'Áttörés',f:45},{n:'Sztár',f:65},{n:'Legenda',f:85}];
+function artArc(a){const f=af(a);let t=ARCS[0];ARCS.forEach(function(x){if(f>=x.f)t=x;});return t;}
+function artNext(a){const f=af(a);for(let i=0;i<ARCS.length;i++)if(f<ARCS[i].f)return ARCS[i];return null;}
+function checkArcs(){
+ if(!S.artArc)S.artArc={};
+ S.roster.forEach(function(id){const a=AM[id],cur=artArc(a).n;
+  if(S.artArc[id]!==cur){
+   if(S.artArc[id]){const got=grantReward({cred:6});
+     pushFeed(a.n+': '+cur,'Új szakasz az előadó ívében'+(got?' · '+got:''),a.ic,'var(--neon)');}
+   S.artArc[id]=cur;}});
+}
+
+/* ---- 2) KÖVETKEZŐ CÉL + 3) DICSŐSÉGFAL: képernyő ---- */
+function careerScreen(){
+ const r=recs(), nm=nextMile(), c=curChal();
+ let h='<div class="hud-space"></div><div class="pad">'+
+  '<div class="shead"><div class="eyebrow">Karrier</div><h1>Út a csúcsra</h1></div>'+
+  '<button class="btn dark sm" id="careerBack" style="margin-bottom:12px">‹ Vissza az irodába</button>';
+
+ /* következő cél */
+ if(nm){const pr=nm.p();
+  h+='<div class="goalcard"><div class="g1">'+icon(nm.ic,'20px')+'</div><div class="g2">'+
+    '<div class="gh">'+esc(nm.n)+'</div><div class="gs">'+esc(nm.d)+'</div>'+
+    '<div class="gbar"><i style="width:'+(pr*100).toFixed(0)+'%"></i></div>'+
+    '<div class="gm"><span>'+esc(nm.t())+'</span><span>'+rewardText(nm.rw)+'</span></div>'+
+   '</div></div>';
+ }else h+='<div class="goalcard"><div class="g1">'+icon('trophy','20px')+'</div><div class="g2">'+
+   '<div class="gh">Minden mérföldkő megvan</div><div class="gs">Az irodád a csúcson van — most a rekordjaidat döntheted meg.</div></div></div>';
+
+ /* kihívás */
+ if(c){const pr=clamp(c.st.p/c.d.g,0,1);
+  h+='<div class="sec"><h2>Aktuális kihívás</h2><span class="r act">'+(S.chalDone||0)+' kész</span></div>'+
+   '<div class="goalcard alt"><div class="g1">'+icon('star','20px')+'</div><div class="g2">'+
+     '<div class="gh">'+esc(c.d.n)+'</div><div class="gs">'+esc(c.d.d)+'</div>'+
+     '<div class="gbar"><i style="width:'+(pr*100).toFixed(0)+'%;background:var(--gold)"></i></div>'+
+     '<div class="gm"><span>'+Math.min(c.st.p,c.d.g)+' / '+c.d.g+'</span><span>'+rewardText(c.d.rw)+'</span></div>'+
+   '</div></div>';}
+
+ /* mérföldkövek */
+ h+='<div class="sec"><h2>Mérföldkövek</h2><span class="r">'+Object.keys(S.mile||{}).length+'/'+MILES.length+'</span></div><div class="tl">';
+ MILES.forEach(function(m){const done=mileDone(m.id),pr=m.p();
+  h+='<div class="tlr '+(done?'done':(nm&&nm.id===m.id?'now':'dead'))+'">'+
+    '<div class="h"><span class="c">'+esc(m.n)+'</span><span class="p" style="color:'+(done?'var(--cash)':'var(--muted)')+'">'+
+      (done?'kész':Math.round(pr*100)+'%')+'</span></div>'+
+    '<div class="m"><span>'+esc(m.d)+'</span></div>'+
+    '<div class="d">'+(done?'Jutalom megkapva: ':'Jutalom: ')+rewardText(m.rw)+'</div></div>';});
+ h+='</div>';
+
+ /* rekordok */
+ h+='<div class="sec"><h2>Rekordok</h2></div><div class="tiles">'+
+   '<div class="tile c1">'+icon('banknote','20px')+'<div class="v">'+money(r.bestNight)+'</div><div class="k">Legjobb este</div></div>'+
+   '<div class="tile c2">'+icon('people','20px')+'<div class="v">'+k(r.bestAtt)+'</div><div class="k">Legtöbb néző</div></div>'+
+   '<div class="tile c3">'+icon('star','20px')+'<div class="v">'+r.topFans+'</div><div class="k">Csúcs rajongó</div></div></div>'+
+  '<div class="tiles" style="margin-top:9px">'+
+   '<div class="tile c1">'+icon('trophy','20px')+'<div class="v">'+money(r.bestTour)+'</div><div class="k">Legjobb turné</div></div>'+
+   '<div class="tile c3">'+icon('headphones','20px')+'<div class="v">'+fmtStream(r.streams)+'</div><div class="k">Csúcs streaming</div></div>'+
+   '<div class="tile c2">'+icon('ticket','20px')+'<div class="v">'+money(r.bestMerch)+'</div><div class="k">Legjobb merch</div></div></div>';
+ if(r.firstArenaWeek)h+='<div class="hint"><span class="i">'+icon('clock','13px')+'</span><span>Az első megtöltött arénáig <b>'+r.firstArenaWeek+' hét</b> kellett.</span></div>';
+
+ /* dicsőségfal */
+ h+='<div class="sec"><h2>Dicsőségfal</h2><span class="r">'+((S.hall||[]).length)+'</span></div>';
+ if(!(S.hall||[]).length)h+='<div class="empty">Még nincs bejegyzés. A legjobb turnéid ide kerülnek.</div>';
+ (S.hall||[]).forEach(function(x,i){
+  h+='<div class="lcard" style="margin-bottom:9px"><div class="ph" style="flex:0 0 74px;width:74px"><img src="'+x.photo+'" '+imgFB()+'></div>'+
+   '<div class="bd"><div class="nm" style="font-size:16px">'+(i+1)+'. '+esc(x.artist)+'</div>'+
+   '<div class="chips"><span class="chip">'+x.stops+' állomás</span><span class="chip">'+k(x.att)+' néző</span><span class="chip">'+x.week+'. hét</span></div>'+
+   '<div class="btm"><span class="num" style="font-size:17px;color:var(--cash)">'+money(x.net)+'</span></div></div></div>';});
+
+ /* presztízs (belépési feltétel) */
+ const canPr=level()>=8&&(S.toursDone||0)>=15;
+ h+='<div class="sec"><h2>Visszavonulás</h2></div>'+
+  '<div class="goalcard '+(canPr?'':'alt')+'"><div class="g1">'+icon('crown','20px')+'</div><div class="g2">'+
+   '<div class="gh">Presztízs — új kezdés</div>'+
+   '<div class="gs">Ha felépítetted a birodalmat, visszavonulhatsz: új játék indul, de a hírneved egy részét maradandó bónuszként viszed tovább, és új régiók nyílnak.</div>'+
+   '<div class="gm"><span>Feltétel: Lv.8 iroda + 15 turné</span><span style="color:'+(canPr?'var(--cash)':'var(--faint)')+'">Lv.'+level()+' · '+(S.toursDone||0)+' turné</span></div>'+
+   '<div class="gs" style="margin-top:7px;color:var(--faint)">Hamarosan elérhető.</div>'+
+  '</div></div>';
+ h+='<div style="height:10px"></div></div>';
+ view.innerHTML=h;
+ $('#careerBack')&&($('#careerBack').onclick=function(){S.career=false;save();render();});
+}
+function rewardText(rw){
+ const b=[];if(rw.money)b.push(money(rw.money));if(rw.cred)b.push(rw.cred+' kredit');
+ if(rw.theme)b.push('téma');return b.join(' + ')||'—';
+}
+
 /* ============================ RENDER ============================ */
-function render(){applyTheme();checkUnlocks();renderHUD();renderNav();stickyHost.innerHTML='';
+function render(){applyTheme();checkUnlocks();chalLive();checkArcs();checkMiles();renderHUD();renderNav();stickyHost.innerHTML='';
  if(S.tab!=='terkep')teardownMap();
- ({iroda:tabIroda,terkep:tabTerkep,eloadok:tabEloadok,studio:tabStudio,fejlesztes:tabFejlesztes}[S.tab]||tabIroda)();
+ if(S.tab==='iroda'&&S.career)careerScreen();
+ else ({iroda:tabIroda,terkep:tabTerkep,eloadok:tabEloadok,studio:tabStudio,fejlesztes:tabFejlesztes}[S.tab]||tabIroda)();
  view.scrollTop=0;
  if(S.live||S.rel)startTicker();else stopTicker();
  /* félbehagyott döntés visszaállítása újratöltés után */
@@ -2128,6 +2335,15 @@ function tabIroda(){
          <span><b>${S.rep}</b> / ${lp.hi}</span></div>
      </div>
    </div></div>`;
+ // KÖVETKEZŐ CÉL — mindig legyen látható, hova tartasz
+ const nm=nextMile();
+ if(nm){const pr=nm.p();
+  h+=`<div class="goalcard" id="goalGo" style="margin-top:12px"><div class="g1">${icon(nm.ic,'20px')}</div><div class="g2">
+    <div class="gh">${esc(nm.n)}</div><div class="gs">${esc(nm.d)}</div>
+    <div class="gbar"><i style="width:${(pr*100).toFixed(0)}%"></i></div>
+    <div class="gm"><span>${esc(nm.t())}</span><span>${rewardText(nm.rw)} ›</span></div></div></div>`;
+ }else h+=`<div class="goalcard" id="goalGo" style="margin-top:12px"><div class="g1">${icon('trophy','20px')}</div>
+   <div class="g2"><div class="gh">Minden mérföldkő megvan</div><div class="gs">Nézd meg a rekordjaidat és a dicsőségfalat ›</div></div></div>`;
  // coach
  h+=`<div class="coach" data-go="${coach.go}"><div class="n">${coach.n}</div>
    <div class="t"><div class="h">${coach.h}</div><div class="s">${coach.s}</div></div><div class="go">›</div></div>`;
@@ -2212,6 +2428,7 @@ function tabIroda(){
  view.innerHTML=h;
  bind('[data-go]',b=>{S.tab=b.dataset.go;save();render();});
  bind('[data-artist]',b=>openDetail(b.dataset.artist));
+ const gg=$('#goalGo');if(gg)gg.onclick=()=>{S.career=true;save();render();};
  /* élő elemek: pörgő számlálók + a szint-sáv felfutása */
  animateNum($('#ioStreams'),totStreams,v=>fmtStream(v));
  animateNum($('#ioTours'),S.toursDone,v=>String(Math.round(v)));
@@ -2278,6 +2495,13 @@ function detailScreen(){const a=AM[S.detail],mine=S.roster.includes(a.id),canPay
  h+=`<div class="tiles"><div class="tile c2">${icon('star','20px')}<div class="v">${af(a)}</div><div class="k">Hírnév</div></div>
      <div class="tile c1">${icon('banknote','20px')}<div class="v">${Math.round(a.cut*100)}%</div><div class="k">Részesedés</div></div>
      <div class="tile c3">${icon('headphones','20px')}<div class="v">${fmtStream(A.streams)}</div><div class="k">Havi hallgató</div></div></div>`;
+ const arc=artArc(a),nx=artNext(a);
+ h+=`<div class="sec"><h2>Karrier-ív</h2><span class="r act">${arc.n}</span></div>
+   <div class="goalcard"><div class="g1">${icon('crown','20px')}</div><div class="g2">
+     <div class="gh">${arc.n}</div>
+     <div class="gs">${nx?`A következő szakasz: <b>${nx.n}</b> — ${nx.f} hírnévtől.`:'Elérte a legmagasabb szakaszt.'}</div>
+     ${nx?`<div class="gbar"><i style="width:${(clamp(af(a)/nx.f,0,1)*100).toFixed(0)}%"></i></div>
+     <div class="gm"><span>${af(a)} / ${nx.f} hírnév</span><span>6 kredit</span></div>`:''}</div></div>`;
  h+=`<div class="sec"><h2>Rajongótábor</h2><span class="r ${avgFans(A)>=40?'act':''}">átlag ${Math.round(avgFans(A))} · ${fanLabel(avgFans(A))}</span></div>
    <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px">${fanBars(A)}</div>`;
  if(mine)h+=`<div class="hint"><span class="i">${icon('notes','13px')}</span><span>A Stúdióban adhatsz ki vele single-t vagy albumot — attól nő a streaming, és vele minden régióban a rajongótábor.</span></div>`;
@@ -2922,7 +3146,20 @@ function showResult(){const r=S.lastResult,win=r.net>=0,col=win?'var(--cash)':'v
  if(r.log&&r.log.length){h+=`<div class="sec"><h2>Váratlan események</h2></div>`;
   r.log.forEach(x=>h+=`<div class="logr"><div class="i">${icon(x.ic||'star','15px')}</div>
     <div class="tx"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></div></div>`);}
- h+=`<button class="btn lime" id="resHome" style="margin-top:8px">${icon('house','18px')} Vissza az irodába</button></div>`;
+ const nmr=nextMile();
+ if(nmr){const pr=nmr.p();
+  h+=`<div class="sec"><h2>Következő cél</h2></div>
+   <div class="goalcard"><div class="g1">${icon(nmr.ic,'20px')}</div><div class="g2">
+     <div class="gh">${esc(nmr.n)}</div><div class="gs">${esc(nmr.d)}</div>
+     <div class="gbar"><i style="width:${(pr*100).toFixed(0)}%"></i></div>
+     <div class="gm"><span>${esc(nmr.t())}</span><span>${rewardText(nmr.rw)}</span></div></div></div>`;}
+ const cc=curChal();
+ if(cc){const pr2=clamp(cc.st.p/cc.d.g,0,1);
+  h+=`<div class="goalcard alt" style="margin-top:10px"><div class="g1">${icon('star','20px')}</div><div class="g2">
+    <div class="gh">${esc(cc.d.n)}</div><div class="gs">${esc(cc.d.d)}</div>
+    <div class="gbar"><i style="width:${(pr2*100).toFixed(0)}%;background:var(--gold)"></i></div>
+    <div class="gm"><span>${Math.min(cc.st.p,cc.d.g)} / ${cc.d.g}</span><span>${rewardText(cc.d.rw)}</span></div></div></div>`;}
+ h+=`<button class="btn lime" id="resHome" style="margin-top:12px">${icon('house','18px')} Vissza az irodába</button></div>`;
  resultEl.innerHTML=h;resultEl.style.display='block';resultEl.scrollTop=0;
  const rn=$('#resNet');rn.dataset.v=0;animateNum(rn,r.net,v=>money(v));
  $('#resHome').onclick=()=>{resultEl.style.display='none';resultEl.innerHTML='';S.tab='iroda';S.resultPending=false;save();render();};
