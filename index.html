@@ -1516,6 +1516,7 @@ const PACKS=[
 const COST_AUTOSET=18;      // setlist auto-rendezés
 const COST_SKIP=12;         // turné-szakasz azonnali átugrása (a reklám fizetős párja)
 const COST_REROLL=12;       // scouting-felhozatal újragenerálása
+const COST_DEAL=8;          // a 3. (utolsó) alku-próba ára
 const COST_REL={single:10,ep:20,album:30};   // kiadás azonnali befejezése
 const THEMES=[
  {id:'lime', n:'Elektromos lime', c:'#C6FF3A', d:'#9bd211', dd:'#6f9400', g:'rgba(198,255,58,.55)', cost:0},
@@ -2343,9 +2344,9 @@ function renderDeal(){
        '<button class="step" data-dn="1">+</button></div></div>'+
    '<div class="band"><span>Sikeresély</span><span><b id="dCh" style="color:'+(ch>=0.6?'var(--cash)':ch>=0.3?'var(--gold)':'var(--hot)')+'">'+Math.round(ch*100)+'%</b></span></div>'+
    '<div class="band"><span>Az előadó ennyit visz</span><span><b id="dCut">'+Math.round(cut*100)+'%</b> a bevételből</span></div>'+
-   '<div class="hint"><span class="i">'+icon('alert','13px')+'</span><span>Ha mind a 3 kör bebukik, az <b>alap '+base+'%</b>-on szerződtök — nem veszítesz semmit, csak a jobb üzletet.</span></div>'+
+   '<div class="hint"><span class="i">'+icon('alert','13px')+'</span><span>Max 3 próba: az <b>1. ingyen</b>, a 2. egy <b>reklámvideó</b>, a 3. <b>'+COST_DEAL+' arany lemez</b>. Bármikor elfogadhatod az <b>alap '+base+'%</b>-ot — nem veszítesz semmit, csak a jobb üzletet.</span></div>'+
    '<div class="evch" style="margin-top:13px">'+
-     '<button class="evb good" data-go="1"><div class="l">'+icon('star','15px')+' Alkudjunk · '+D.ask+'%</div><div class="s">3 kör, mozgó jelölő megállítása</div></button>'+
+     '<button class="evb good" data-go="1"><div class="l">'+icon('star','15px')+' Alkudjunk · '+D.ask+'%</div><div class="s">1. próba ingyen · utána reklám, majd arany lemez</div></button>'+
      '<button class="evb" data-base="1"><div class="l">Elfogadom az alapot · '+base+'%</div><div class="s">Azonnali szerződés, alku nélkül</div></button>'+
      '<button class="evb" data-cancel="1"><div class="l">Mégse</div></button>'+
    '</div></div></div>';
@@ -2370,7 +2371,7 @@ function dealRound(){
  D.zw=clamp(ch,0.06,0.9);                        // a zóna SZÉLESSÉGE = a sikeresély
  D.pos=0;D.dir=1;D.locked=false;
  const h='<div class="ev"><div class="bd">'+
-  '<h3>Alku · '+D.round+'/3 kör</h3>'+
+  '<h3>Alku · '+D.round+'/3 próba</h3>'+
   '<p>Állítsd meg a jelölőt a <b style="color:var(--neon)">zöld sávban</b>. '+
     'A sáv szélessége a sikeresélyed: <b>'+Math.round(ch*100)+'%</b>.</p>'+
   '<div class="dealbar" id="dBar"><span class="dz2" id="dZone"></span><i class="dm" id="dMark"></i></div>'+
@@ -2396,12 +2397,41 @@ function dealStop(){
   if(msg)msg.innerHTML='<b style="color:var(--cash)">MEGVAN! '+D.ask+'% az ügynökségé.</b>';
   setTimeout(function(){closeDeal(true);},700);
  }else{blip(140,0.14,'square',0.13);
-  if(msg)msg.innerHTML='<b style="color:var(--hot)">Nem ment.</b> '+(D.round<3?'Maradt '+(3-D.round)+' kör.':'Elfogyott a 3 kör.');
+  if(msg)msg.innerHTML='<b style="color:var(--hot)">Nem ment.</b>';
   setTimeout(function(){
-    if(D.round<3)dealRound();
+    if(!D)return;
+    if(D.round<3)dealOffer();                       // fizetős újrapróbálkozás vagy alap
     else{D.ask=dealBase(D.a);closeDeal(false);}
-  },900);
+  },800);
  }
+}
+/* Sikertelen próba után: a játékos VÁLASZT — fizet a következőért, vagy elfogadja az alapot.
+   A 2. próba egy reklámvideó, a 3. arany lemez (kredit). */
+function dealOffer(){
+ if(!D)return;
+ const a=D.a,base=dealBase(a),nxt=D.round+1,byAd=(nxt===2);
+ const cost=byAd?'egy reklámvideó':(COST_DEAL+' arany lemez');
+ const h='<div class="ev"><div class="bd">'+
+  '<h3>'+D.round+'. próba nem sikerült</h3>'+
+  '<p>Még megpróbálhatod <b>'+D.ask+'%</b>-kal — a '+nxt+'. próba ára: <b>'+cost+'</b>.<br>'+
+    'Vagy lezárhatod az alkut az <b>alap '+base+'%</b>-on.</p>'+
+  '<div class="evch" style="margin-top:14px">'+
+   '<button class="evb '+(byAd?'good':'pay')+'" data-retry="1"><div class="l">'+
+     (byAd?icon('play','15px')+' Reklám megnézése · '+nxt+'. próba'
+          :icon('vinyl','15px')+' '+COST_DEAL+' arany lemez · '+nxt+'. próba')+'</div>'+
+     '<div class="s">'+(byAd?'Ingyenes, csak egy rövid videó'
+                            :'Egyenleged: '+credits()+' arany lemez')+'</div></button>'+
+   '<button class="evb" data-base="1"><div class="l">Elfogadom az alapot · '+base+'%</div>'+
+     '<div class="s">Azonnali szerződés, több próba nélkül</div></button>'+
+  '</div></div></div>';
+ const m=$('#modal');m.innerHTML=h;m.className='on';
+ m.querySelector('[data-base]').onclick=function(){D.ask=base;closeDeal(false);};
+ m.querySelector('[data-retry]').onclick=function(){
+  if(byAd){ Ads.show(function(){ if(D)dealRound(); }, function(){ toast('A videó megszakadt.'); if(D)dealOffer(); }); }
+  else{
+   if(!spendCredits(COST_DEAL)){openShop('A 3. alku-próba '+COST_DEAL+' arany lemez. Az alap '+base+'%-ot bármikor elfogadhatod ingyen!');return;}
+   dealRound();
+  }};
 }
 function closeDeal(won){
  const a=D.a,ask=D.ask;
