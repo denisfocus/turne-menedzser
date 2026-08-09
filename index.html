@@ -2641,12 +2641,14 @@ function obRewindTo(id){
  if(i>=0&&S.ob>i){S.ob=i;obLast=-1;save();}
 }
 function obNext(){if(!obActive())return;S.ob++;obLast=-1;if(S.ob>=OB.length){obFinish();return;}save();render();}
-function obHide(){obShown=false;$('#ob').className='';$('#ob').innerHTML='';}
+function obHide(){obShown=false;const e=$('#ob');e.className='';e.innerHTML='';e.dataset.sig='';}
 /* MODÁLIS: amíg a bemutató látszik, a háttérben semmi nem kattintható —
    csak a kiemelt cél-elem és maga a buborék. A görgetés viszont szabad marad. */
 document.addEventListener('click',function(e){
  if(!obActive()||!obShown)return;
  if(e.target.closest&&e.target.closest('.obbub'))return;
+ /* beviteli mezőt sosem blokkolunk — különben a mobil billentyűzet nem nyílna meg */
+ if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName||''))return;
  /* a kilépés/visszalépés sosem blokkolódik */
  if(e.target.closest&&e.target.closest('#cancel,#obSkip,#resHome,.adx'))return;
  const st=OB[S.ob], tgt=st.sel?document.querySelector(st.sel):null;
@@ -2678,34 +2680,69 @@ function obPaint(){
  const sb=stickyHost.querySelector('.sticky');
  const safeTop=onRes?8:(hud.offsetHeight||0)+6;
  const safeBot=app.height-(onRes?8:((navEl.offsetHeight||0)+(sb?sb.offsetHeight:0)+6));
- let ring='',bub='';
- if(tgt){const r=tgt.getBoundingClientRect(),pad=7;
-  let t=r.top-app.top-pad, bm=r.bottom-app.top+pad;
-  t=clamp(t,safeTop,safeBot-24); bm=clamp(bm,safeTop+24,safeBot);
-  ring='<div class="obring" style="top:'+t+'px;left:'+(r.left-app.left-pad)+'px;'+
-    'width:'+(r.width+pad*2)+'px;height:'+Math.max(24,bm-t)+'px"></div>';
-  /* a buborék oda kerül, ahol több hely van, és sosem lóg ki a biztonságos sávból */
-  const roomBelow=safeBot-bm, roomAbove=t-safeTop;
-  if(roomBelow>=190)bub='style="top:'+(bm+12)+'px;max-height:'+(roomBelow-18)+'px;overflow:auto"';
-  else if(roomAbove>=190)bub='style="bottom:'+(app.height-t+12)+'px;max-height:'+(roomAbove-18)+'px;overflow:auto"';
-  else bub='style="bottom:'+(app.height-safeBot+10)+'px;max-height:'+(safeBot-safeTop-16)+'px;overflow:auto"';
- }else{ring='<div class="obdim"></div>';
-  bub='style="top:'+safeTop+'px;bottom:'+(app.height-safeBot)+'px;max-height:none;display:flex;flex-direction:column;justify-content:center;overflow:auto"';}
- el.innerHTML=ring+'<div class="obbub" '+bub+'>'+
-   '<div class="k">'+st.k+' · '+(S.ob+1)+'/'+OB.length+'</div>'+
-   '<h4>'+st.t+'</h4>'+(st.p?'<p>'+st.p+'</p>':'')+
-   (st.id==='welcome'?'<input class="obinput" id="obName" maxlength="24" placeholder="Az ügynökséged neve" value="'+esc(S.agency||'')+'">':'')+
-   ((st.tap&&(!st.ready||!st.ready()))?'<div class="tap"><span class="d"></span>'+st.tap+'</div>':'')+
-   '<div class="row">'+((st.btn&&(!st.ready||st.ready()))?'<button class="btn lime sm" id="obGo">'+st.btn+'</button>':'')+
-     '<button class="skip" id="obSkip">Kihagyom</button></div>'+
-  '</div>';
+ /* ---- A RÉTEG NEM ÉPÜL ÚJRA MINDEN TICKNÉL ----
+    Korábban az innerHTML minden 450 ms-os tickre (és minden koppintás után) újraépült,
+    ami a beviteli mezőt megsemmisítette: elveszett a fókusz, a mobil billentyűzet
+    becsukódott. Mostantól a doboz VÁZA egyszer készül el lépésenként, utána már csak
+    a pozíciót írjuk át; a tartalom csak akkor cserélődik, ha tényleg változott — és
+    sosem, amíg a mezőben van a fókusz. */
+ const readyNow=st.ready?(st.ready()?1:0):1;
+ const sig=st.id+'|'+readyNow+'|'+(tgt?1:0)+'|'+(onRes?1:0);
+ if(el.dataset.sig!==sig){
+  /* A fókusz-védelem CSAK a lépésen belüli frissítésre vonatkozik. Ha maga a lépés
+     változott, mindig újraépítünk (előtte elengedjük a fókuszt), különben a bemutató
+     vizuálisan beragadna az előző lépésnél. */
+  const sameStep=(el.dataset.sig||'').split('|')[0]===st.id;
+  const focused=sameStep&&el.contains(document.activeElement)&&/INPUT|TEXTAREA/.test((document.activeElement||{}).tagName||'');
+  if(!sameStep&&el.contains(document.activeElement)&&document.activeElement.blur)document.activeElement.blur();
+  if(!focused){
+   el.dataset.sig=sig;
+   el.innerHTML=(tgt?'<div class="obring"></div>':'<div class="obdim"></div>')+
+    '<div class="obbub">'+
+      '<div class="k">'+st.k+' · '+(S.ob+1)+'/'+OB.length+'</div>'+
+      '<h4>'+st.t+'</h4>'+(st.p?'<p>'+st.p+'</p>':'')+
+      (st.id==='welcome'?'<input class="obinput" id="obName" type="text" maxlength="24" autocomplete="off" '+
+         'autocapitalize="words" enterkeyhint="done" placeholder="Az ügynökséged neve" value="'+esc(S.agency||'')+'">':'')+
+      ((st.tap&&!readyNow)?'<div class="tap"><span class="d"></span>'+st.tap+'</div>':'')+
+      '<div class="row">'+((st.btn&&readyNow)?'<button class="btn lime sm" id="obGo">'+st.btn+'</button>':'')+
+        '<button class="skip" id="obSkip">Kihagyom</button></div>'+
+    '</div>';
+   obBind();
+  }
+ }
+ /* pozicionálás — ez minden ticken frissülhet, mert nem érinti a DOM-fát */
+ const ringEl=el.querySelector('.obring'), bubEl=el.querySelector('.obbub');
+ if(bubEl){
+  if(tgt){const r=tgt.getBoundingClientRect(),pad=7;
+   let t=r.top-app.top-pad, bm=r.bottom-app.top+pad;
+   t=clamp(t,safeTop,safeBot-24); bm=clamp(bm,safeTop+24,safeBot);
+   if(ringEl){ringEl.style.cssText='top:'+t+'px;left:'+(r.left-app.left-pad)+'px;'+
+     'width:'+(r.width+pad*2)+'px;height:'+Math.max(24,bm-t)+'px';}
+   const roomBelow=safeBot-bm, roomAbove=t-safeTop;
+   if(roomBelow>=190)bubEl.style.cssText='top:'+(bm+12)+'px;max-height:'+(roomBelow-18)+'px;overflow:auto';
+   else if(roomAbove>=190)bubEl.style.cssText='bottom:'+(app.height-t+12)+'px;max-height:'+(roomAbove-18)+'px;overflow:auto';
+   else bubEl.style.cssText='bottom:'+(app.height-safeBot+10)+'px;max-height:'+(safeBot-safeTop-16)+'px;overflow:auto';
+  }else{
+   bubEl.style.cssText='top:'+safeTop+'px;bottom:'+(app.height-safeBot)+'px;'+
+     'display:flex;flex-direction:column;justify-content:center;overflow:auto';
+  }
+ }
  el.className='on'+(st.onModal?' overmodal':'');obShown=true;
+}
+/* a buborék belső gombjainak bekötése — csak akkor fut, ha a tartalom tényleg újraépült */
+function obBind(){
  const nmi=$('#obName');
- if(nmi)nmi.oninput=function(){S.agency=nmi.value.slice(0,24);};
+ if(nmi){
+  nmi.oninput=function(){S.agency=nmi.value.slice(0,24);};
+  nmi.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();nmi.blur();const g=$('#obGo');if(g)g.click();}};
+  /* a fókusz sosem eshet ki alóla egy háttérben futó újrarajzolás miatt */
+  nmi.onblur=function(){S.agency=(nmi.value||'').trim().slice(0,24);save();renderHUD();};
+ }
  const g=$('#obGo');if(g)g.onclick=function(){
-   if(nmi){S.agency=(nmi.value||'').trim().slice(0,24);save();renderHUD();}
+   const inp=$('#obName');
+   if(inp){S.agency=(inp.value||'').trim().slice(0,24);save();renderHUD();}
    obNext();};
- $('#obSkip').onclick=obFinish;
+ const sk=$('#obSkip');if(sk)sk.onclick=obFinish;
 }
 
 /* ============================ NAV ============================ */
