@@ -890,7 +890,7 @@ const RELEASES=[
   d:'A nagy dobás: jelentős streaming-, rajongótábor- és hírnév-ugrás. Drága és sokáig tart.'},
 ];
 const RM=Object.fromEntries(RELEASES.map(r=>[r.id,r]));
-function relCost(a,k){return Math.round((4000+af(a)*260)*k.mul/500)*500;}
+function relCost(a,k){return Math.round((4000+af(a)*260)*k.mul*(1-facLv('studio')*0.15)/500)*500;}
 
 /* ---------- MERCH ---------- */
 /* Fejenkénti költés: az alap × rajongói szint × a merch-pult fejlesztése.
@@ -915,7 +915,7 @@ function msFromMin(min){return Math.round(min*TIME.hourMs/60);}
 function showMin(v){return v.cap>=20000?90:v.cap>=9000?75:60;}
 /* utazás: távolság-arányos, de TÖMÖRÍTVE — a hosszú járatok nem tartanak reális 12 órát.
    Rövid ugrás ~40 perc, tengerentúli ~1 ó 45 p, a leghosszabb út is max ~2 ó 50 p. */
-function travelMin(km){return Math.round((0.4+2.4*Math.pow(clamp(km/16000,0,1),0.55))*60);}
+function travelMin(km){return Math.round((0.4+2.4*Math.pow(clamp(km/16000,0,1),0.55))*60*(1-facLv('bus')*0.08));}
 function travelDays(km){return Math.max(1,Math.round(km/1400));}
 /* játékbeli perc -> olvasható magyar időtartam */
 function dur(min){const h=Math.floor(min/60),m=Math.round(min%60);
@@ -1013,7 +1013,7 @@ let S=migrate(load()||newGame());
 function newGame(){return{money:60000,rep:0,week:1,roster:[],upg:{marketing:0,staff:0,merch:0},tab:'iroda',tour:null,live:null,
  art:{},rel:null,relLog:[],streamIncome:0,lastResult:null,toursDone:0,detail:null,studio:null,
  feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false,credits:CRED_WELCOME,themes:['lime'],theme:'lime',scout:null,
- mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false,deal:{}};}
+ mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false,deal:{},fac:{},staff:{},artUp:{}};}
 /* régi mentések kiegészítése az új mezőkkel */
 function migrate(s){if(!s)return newGame();
  if(s.live===undefined)s.live=null;
@@ -1033,6 +1033,7 @@ function migrate(s){if(!s)return newGame();
  if(!s.theme)s.theme='lime';
  if(!s.scout)s.scout=null;
  if(!s.deal)s.deal={};
+ if(!s.fac)s.fac={};if(!s.staff)s.staff={};if(!s.artUp)s.artUp={};
  if(!s.mile)s.mile={};if(!s.recs)s.recs={};if(!s.hall)s.hall=[];
  if(s.chal===undefined)s.chal=null;if(!s.chalDone)s.chalDone=0;if(!s.artArc)s.artArc={};s.career=false;
  if(s.autoShow===undefined)s.autoShow=false;
@@ -1102,7 +1103,7 @@ function estimate(a,city,v,price,setQ,mom,promo){
    rAff=fanMul(fans),                       // ← dinamikus rajongótábor a régi fix a.reg helyett
    buzz=1+st.hype*0.25,                     // ← friss kiadás azonnali kereslet-lökése
    mkt=1+S.upg.marketing*0.10,
-   pro=PROMO[promo||0].dem,
+   pro=1+(PROMO[promo||0].dem-1)*(hasStaff('pr')?1.10:1),
    setF=setQ>0?(0.45+setQ/100*0.75):0.30, draw=Math.pow(af(a)/100,FAME_POWER), fp=fairPrice(a,v), r=price/fp, pf=clamp(1.25-0.60*r,0.03,1.25);
  let pool=draw*DEMAND_BASE*reachScale*gAff*rAff*buzz*setF*mkt*pro*taste*fresh*(mom||1);
  /* raw = nyers kereslet (férőhely nélkül). A szórás ezen dolgozik, és csak UTÁNA vágjuk
@@ -1116,8 +1117,8 @@ function estimate(a,city,v,price,setQ,mom,promo){
     var  = fejenkénti költség (biztonság, személyzet, jegykezelés), a jegyárral is nő.
            Ez fogja vissza a telt házas koncert margóját, anélkül hogy a megtelést nehezítené. */
  /* a hosszabb turné megosztja az overheadet -> allomasonkent olcsobb fix koltseg */
- const fix=Math.round(v.cap*v.fix*(0.7+af(a)/200)*(1-S.upg.staff*0.08)*tourScale(nStops));
- const varRate=5+price*0.25;
+ const fix=Math.round(v.cap*v.fix*(0.7+af(a)/200)*(1-S.upg.staff*0.08)*tourScale(nStops)*(1-facLv('rig')*0.06));
+ const varRate=(5+price*0.25)*(hasStaff('mgr')?0.9:1);
  const base=fix+Math.round(att*varRate);
  const merch=merchRev(att,fans);            // ← a merch a nézőszámból és a rajongói szintből jön
  /* hány nézőnél fordul nyereségbe — ez a helyszínválasztás valódi tétje */
@@ -1172,7 +1173,7 @@ function crowdSim(a,list){
   if(run>=3){fatigue++;}                                   // 3+ nagy szám egymás után fáraszt
   const drain=s.e>=78?15:(s.e<=52?-20:-3);                 // pörgős fáraszt, lassú pihentet
   stam=clamp(stam-drain,0,100);
-  let gain=(s.q/100*0.35+fit*1.0)*26-17;   // az ívhez illés dominál a puszta minőség felett
+  let gain=(songQ(a,s)/100*0.35+fit*1.0)*26-17;   // az ívhez illés dominál a puszta minőség felett
   gain*=(0.45+stam/100*0.75);                              // fáradt közönség kevésbé reagál
   if(run>=3)gain-=8;
   if(i===songs.length-1&&songs.length>2)gain*=1.8;   // a ráadás nagyobbat üt — jóban-rosszban
@@ -1209,7 +1210,7 @@ function freshness(A,cityId){
    A hosszabb turné megosztja az overheadet: állomásonként olcsóbb a fix költség. */
 function tourScale(n){return clamp(1-(Math.max(1,n)-1)*0.045,0.80,1);}
 function promoCost(stops,lvl){const seats=stops.reduce((s,x)=>s+VM[x.venue].cap,0);return Math.round(seats*PROMO[lvl||0].seat/1000)*1000;}
-function legCost(prev,city,v){return Math.round(haversine(prev,city)*KM_RATE*v.tmul);}
+function legCost(prev,city,v){return Math.round(haversine(prev,city)*KM_RATE*v.tmul*(1-facLv('bus')*0.12));}
 function routeKm(){const s=S.tour.stops;let d=0;for(let i=1;i<s.length;i++)d+=haversine(CM[s[i-1].city],CM[s[i].city]);return Math.round(d);}
 /* ============================ AKTIVITÁS-FOLYAM ============================
    Az iroda „hírfolyama": mérföldkövek, turnék, megjelenések. Ettől él a kezdőlap. */
@@ -1266,11 +1267,12 @@ function startRelease(artistId,kindId){
 function finishRelease(){
  const R=S.rel;if(!R)return;
  const a=AM[R.artist],k=RM[R.kind],st=artState(R.artist);
- st.hype+=k.hype;
+ const relBoost=1+facLv('studio')*0.12+(hasStaff('prod')?0.25:0);
+ st.hype+=k.hype*relBoost;
  st.fameAdd=Math.min(60,st.fameAdd+k.fameAdd);
  st.rels=(st.rels||0)+1;
  Object.keys(REGIONS).forEach(r=>{                    // ahol már ismerik, ott üt nagyobbat
-  st.fans[r]=clamp(st.fans[r]+k.fansAdd*(0.5+st.fans[r]/100),0,100);});
+  st.fans[r]=clamp(st.fans[r]+k.fansAdd*relBoost*(0.5+st.fans[r]/100),0,100);});
  const before=st.streams;
  st.streams=Math.round(st.streams*(1+k.hype*0.5));
  S.rel=null;
@@ -1452,7 +1454,8 @@ function rollEvent(){
  if(p.k==='travel'&&L.i>1)slots.push('post');          // az előző koncert utóélete
  if(!slots.length)return null;
  if(Math.random()>EV_CHANCE)return null;
- const pool=EVENTS.filter(e=>e.when.some(w=>slots.includes(w))&&L.evUsed.indexOf(e.id)<0);
+ let pool=EVENTS.filter(e=>e.when.some(w=>slots.includes(w))&&L.evUsed.indexOf(e.id)<0);
+ if(hasStaff('road'))pool=pool.filter(e=>['sound','gear','bus','visa'].indexOf(e.id)<0||Math.random()<0.5);
  if(!pool.length)return null;
  let tot=pool.reduce((s,e)=>s+e.w,0),r=Math.random()*tot;
  for(const e of pool){r-=e.w;if(r<=0)return e;}
@@ -1479,13 +1482,17 @@ function renderEvent(ev){
 function chooseEvent(ev,idx){
  const L=S.live,ch=ev.ch[idx],e=ch.e||{};
  let extra=0;
- if(e.money){S.money+=e.money;L.tEvent+=e.money;}
- if(e.rep){S.rep=Math.max(0,S.rep+e.rep);L.rep+=e.rep;}
+ let em=e.money||0, er=e.rep||0;
+ const tech=['sound','gear','bus','visa','strike'].indexOf(ev.id)>=0;
+ if(tech&&hasStaff('road')&&em<0)em=Math.round(em*0.75);      // road crew: olcsóbb technikai malőr
+ if(hasStaff('pr')&&er<0)er=Math.round(er/2);                 // PR: fele hírnév-veszteség
+ if(em){S.money+=em;L.tEvent+=em;}
+ if(er){S.rep=Math.max(0,S.rep+er);L.rep+=er;}
  if(e.att)L.attMul=clamp(L.attMul*(1+e.att),0.15,2.4);
  if(e.days)L.days+=e.days;
  if(e.skip)L.skipNext=true;
  if(e.wait)extra=e.wait;
- L.log.push({t:ev.t,s:ch.l+(e.money?` · ${money(e.money)}`:'')+(e.rep?` · ${e.rep>0?'+':''}${e.rep} hírnév`:'')+
+ L.log.push({t:ev.t,s:ch.l+(em?` · ${money(em)}`:'')+(er?` · ${er>0?'+':''}${er} hírnév`:'')+
    (e.att?` · ${e.att>0?'+':''}${Math.round(e.att*100)}% nézőszám`:'')+(e.days?` · +${e.days} nap`:''),ic:ev.ic});
  L.ends=Date.now()+(L.pausedLeft||0)+extra;L.pausedLeft=null;L.pendingEv=null;
  $('#modal').className='';$('#modal').innerHTML='';
@@ -2312,7 +2319,7 @@ function rewardText(rw){
 function dealBase(a){const f=af(a);return f>=85?18:f>=65?22:f>=45?28:35;}
 function dealChance(a,ask){
  const base=dealBase(a), steep=0.9+af(a)/50;      // sztárnál meredekebb a romlás
- return clamp(0.92-Math.max(0,ask-base)*0.022*steep,0.05,0.95);
+ return clamp(0.92+(hasStaff('mgr')?0.08:0)-Math.max(0,ask-base)*0.022*steep,0.05,0.95);
 }
 function dealShare(a){const d=S.deal&&S.deal[a.id];return d===undefined?dealBase(a):d;}
 /* az alku a KIFIZETÉST mozgatja: az alapszázaléknál a mai gazdaság változatlan */
@@ -2440,6 +2447,99 @@ function closeDeal(won){
  S.deal=S.deal||{};S.deal[a.id]=ask;
  doSign(a.id);
  toast(won?('Megállapodtatok: '+ask+'% az ügynökségé.'):('Alap feltételekkel: '+ask+'% az ügynökségé.'));
+}
+
+/* ============================ BERUHÁZÁSOK (€ sinkek) ============================
+   A pénz célja: earn -> reinvest -> earn more. Minden itt EURÓBÓL megy, nem kreditből. */
+const FAC=[
+ {id:'studio',n:'Saját stúdió',ic:'notes',max:3,cost:[0,180000,420000,900000],
+  d:'Olcsóbb és ütősebb kiadások: nem kell bérelni a stúdiót.',
+  eff:function(l){return '−'+(l*15)+'% kiadási költség · +'+(l*12)+'% streaming-lökés';}},
+ {id:'rig',n:'Saját fény- és hangrig',ic:'bolt',max:3,cost:[0,250000,600000,1300000],
+  d:'A technikát nem béreled, hanem viszed — csökken a koncert fix költsége.',
+  eff:function(l){return '−'+(l*6)+'% fix helyszínköltség';}},
+ {id:'office',n:'Nagyobb iroda',ic:'house',max:3,cost:[0,150000,400000,900000],
+  d:'Több előadót tudsz egyszerre kezelni.',
+  eff:function(l){return (3+l*2)+' előadó fér be';}},
+ {id:'bus',n:'Turnébusz és magángép',ic:'plane',max:3,cost:[0,200000,500000,1100000],
+  d:'Saját járművek: olcsóbb és gyorsabb utazás az állomások között.',
+  eff:function(l){return '−'+(l*12)+'% utazási költség · −'+(l*8)+'% úthossz';}},
+];
+const STAFF=[
+ {id:'road',n:'Road crew',ic:'people',cost:180000,
+  d:'Tapasztalt technikusok: ritkább és olcsóbb technikai malőr.',eff:'−50% technikai esemény · −25% annak költsége'},
+ {id:'pr',n:'PR-csapat',ic:'megaphone',cost:220000,
+  d:'Profi sajtókezelés: jobban üt a promóció, a botrány kevésbé fáj.',eff:'+10% promóció-hatás · fele hírnév-veszteség'},
+ {id:'prod',n:'Producer',ic:'headphones',cost:260000,
+  d:'Stúdiós kéz a kiadásokon: nagyobb streaming- és rajongó-lökés.',eff:'+25% kiadás-hatás'},
+ {id:'mgr',n:'Menedzser',ic:'crown',cost:320000,
+  d:'Kemény tárgyaló és feszes működés.',eff:'+8 pont alku-esély · −10% fejenkénti költség'},
+];
+function facLv(id){return (S.fac&&S.fac[id])||0;}
+function hasStaff(id){return !!(S.staff&&S.staff[id]);}
+function rosterCap(){return 3+facLv('office')*2;}
+/* ---- előadó-fejlesztés ---- */
+function artUp(id){if(!S.artUp)S.artUp={};if(!S.artUp[id])S.artUp[id]={q:0,f:0};return S.artUp[id];}
+function songQ(a,s){return clamp(s.q+artUp(a.id).q,0,100);}
+function trainCost(a){return Math.round((30000+af(a)*1400)*(1+artUp(a.id).q*0.22)/1000)*1000;}
+function imageCost(a){return Math.round((45000+af(a)*2200)*(1+artUp(a.id).f/3*0.3)/1000)*1000;}
+
+function buyFac(id){
+ const f=FAC.find(function(x){return x.id===id;});const l=facLv(id);
+ if(l>=f.max){toast('Már maximumon van.');return;}
+ const c=f.cost[l+1];
+ if(S.money<c){toast('Nincs elég pénz — '+money(c)+' kell.');return;}
+ S.money-=c;S.fac=S.fac||{};S.fac[id]=l+1;
+ pushFeed(f.n+' · '+(l+1)+'. szint',f.eff(l+1),f.ic,'var(--cash)');
+ save();toast(f.n+' fejlesztve!');render();
+}
+function hireStaff(id){
+ const st=STAFF.find(function(x){return x.id===id;});
+ if(hasStaff(id)){toast('Már nálad dolgozik.');return;}
+ if(S.money<st.cost){toast('Nincs elég pénz — '+money(st.cost)+' kell.');return;}
+ S.money-=st.cost;S.staff=S.staff||{};S.staff[id]=1;
+ pushFeed(st.n+' felvéve',st.eff,st.ic,'var(--cash)');
+ save();toast(st.n+' csatlakozott!');render();
+}
+function trainArtist(id,kind){
+ const a=AM[id],u=artUp(id);
+ if(kind==='q'){
+  if(u.q>=12){toast('A képzés a maximumon van.');return;}
+  const c=trainCost(a);if(S.money<c){toast('Nincs elég pénz — '+money(c)+' kell.');return;}
+  S.money-=c;u.q+=2;pushFeed(a.n+': képzés','Minden dal minősége +2 (összesen +'+u.q+')',a.ic,'var(--neon)');
+ }else{
+  if(u.f>=15){toast('Az imázs a maximumon van.');return;}
+  const c=imageCost(a);if(S.money<c){toast('Nincs elég pénz — '+money(c)+' kell.');return;}
+  S.money-=c;u.f+=3;const A=artState(id);A.fameAdd=Math.min(60,A.fameAdd+3);
+  pushFeed(a.n+': imázs-kampány','+3 hírnév (összesen +'+u.f+')',a.ic,'var(--neon)');
+ }
+ save();render();
+}
+/* ---- kártya-renderek ---- */
+function facCard(f){
+ const l=facLv(f.id),maxed=l>=f.max,c=maxed?0:f.cost[l+1],can=!maxed&&S.money>=c;
+ return '<div class="lcard" style="margin-top:12px"><div class="ph" style="flex:0 0 84px;width:84px;background:linear-gradient(145deg,#1a1f10,#0d0f08);display:flex;align-items:center;justify-content:center;color:var(--neon);font-size:30px">'+icon(f.ic)+'</div>'+
+  '<div class="bd"><div class="nm" style="font-size:17px">'+f.n+'</div>'+
+   '<div class="chips"><span class="chip lime">Szint '+l+'/'+f.max+'</span>'+
+     '<span class="chip mint">'+(maxed?f.eff(l):f.eff(l)+' → <b style="color:var(--neon)">'+f.eff(l+1)+'</b>')+'</span></div>'+
+   '<div style="font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.4">'+f.d+'</div>'+
+   '<div class="btm">'+(maxed
+     ?'<span class="lock" style="color:var(--cash);border-color:rgba(47,227,155,.4)">✓ Maximális szint</span>'
+     :'<button class="btn '+(can?'lime':'dark')+' sm" data-fac="'+f.id+'" '+(can?'':'disabled')+'>'+
+       (can?'Fejlesztés · '+money(c):'Nincs elég pénz · '+money(c))+'</button>')+'</div>'+
+  '</div></div>';
+}
+function staffCard(st){
+ const own=hasStaff(st.id),can=!own&&S.money>=st.cost;
+ return '<div class="lcard" style="margin-top:12px"><div class="ph" style="flex:0 0 84px;width:84px;background:linear-gradient(145deg,#131a20,#0a0d10);display:flex;align-items:center;justify-content:center;color:'+(own?'var(--cash)':'var(--muted)')+';font-size:28px">'+icon(st.ic)+'</div>'+
+  '<div class="bd"><div class="nm" style="font-size:17px">'+st.n+'</div>'+
+   '<div class="chips"><span class="chip '+(own?'mint':'')+'">'+(own?'A csapatban':'Nincs felvéve')+'</span><span class="chip lime">'+st.eff+'</span></div>'+
+   '<div style="font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.4">'+st.d+'</div>'+
+   '<div class="btm">'+(own
+     ?'<span class="lock" style="color:var(--cash);border-color:rgba(47,227,155,.4)">✓ Nálad dolgozik</span>'
+     :'<button class="btn '+(can?'lime':'dark')+' sm" data-staff="'+st.id+'" '+(can?'':'disabled')+'>'+
+       (can?'Felvétel · '+money(st.cost):'Nincs elég pénz · '+money(st.cost))+'</button>')+'</div>'+
+  '</div></div>';
 }
 
 /* ============================ RENDER ============================ */
@@ -2600,7 +2700,7 @@ function tabEloadok(){
  const mine=signed(), pool=scoutList(), locked=ARTISTS.filter(a=>a.minRep>S.rep);
  let h=`<div class="hud-space"></div><div class="pad">
    <div class="shead"><div class="eyebrow">Roster</div><h1>Előadók</h1><p>A leigazolt előadóiddal tervezhetsz turnét. Nagyobb nevek magasabb hírnévnél szerződnek.</p></div>`;
- h+=`<div class="sec"><h2>A csapatod</h2><span class="r ${mine.length?'act':''}">${mine.length}</span></div>`;
+ h+=`<div class="sec"><h2>A csapatod</h2><span class="r ${mine.length<rosterCap()?'act':''}">${mine.length}/${rosterCap()} hely</span></div>`;
  if(!mine.length)h+=`<div class="empty">Még nincs előadód.<br>Válassz lentről egy feltörekvő tehetséget – ingyen!</div>`;
  mine.forEach(a=>h+=lcardArtist(a,'mine'));
  h+=`<div class="sec"><h2>Felhozatal</h2><span class="r act">${pool.length} név</span></div>`;
@@ -2628,7 +2728,9 @@ function lcardArtist(a,mode){const canPay=S.money>=a.sign, top=Object.entries(a.
         ? `<button class="btn lime sm" data-artist="${a.id}">${icon('globe','15px')} Megnyitás</button>`
         : `<button class="btn ${canPay?'lime':'dark'} sm" data-sign="${a.id}" ${canPay?'':'disabled'}>${a.sign?(canPay?'Leigazolás · '+money(a.sign):'Nincs elég pénz'):'Leigazolás · ingyen'}</button>`}
      </div></div></div>`;}
-function doSign(id){const a=AM[id];if(S.money<a.sign){toast('Nincs elég pénz.');return;}S.money-=a.sign;S.roster.push(id);
+function doSign(id){const a=AM[id];
+ if(S.roster.length>=rosterCap()){toast('Tele az iroda ('+rosterCap()+' előadó) — fejleszd a Nagyobb irodát!');return;}
+ if(S.money<a.sign){toast('Nincs elég pénz.');return;}S.money-=a.sign;S.roster.push(id);
  pushFeed(`${a.n} leigazolva`,`${a.genre} · hírnév ${af(a)} · ${fmtStream(artState(id).streams)} havi hallgató`,a.ic,'var(--neon)');save();toast(`${a.n} leigazolva!`);render();}
 function openDetail(id){S.detail=id;S.tab='eloadok';save();render();}
 
@@ -2650,6 +2752,20 @@ function detailScreen(){const a=AM[S.detail],mine=S.roster.includes(a.id),canPay
      <div class="gm"><span>${af(a)} / ${nx.f} hírnév</span><span>6 kredit</span></div>`:''}</div></div>`;
  h+=`<div class="sec"><h2>Rajongótábor</h2><span class="r ${avgFans(A)>=40?'act':''}">átlag ${Math.round(avgFans(A))} · ${fanLabel(avgFans(A))}</span></div>
    <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px">${fanBars(A)}</div>`;
+ if(mine){const u=artUp(a.id),tc=trainCost(a),ic2=imageCost(a);
+  h+=`<div class="sec"><h2>Fejlesztés</h2><span class="r">${money(S.money)}</span></div>
+   <div class="lcard"><div class="ph" style="flex:0 0 74px;width:74px;background:linear-gradient(145deg,#1a1f10,#0d0f08);display:flex;align-items:center;justify-content:center;color:var(--neon);font-size:26px">${icon('mic')}</div>
+    <div class="bd"><div class="nm" style="font-size:16px">Vokál- és színpadi képzés</div>
+      <div class="chips"><span class="chip lime">+${u.q}/12 dalminőség</span><span class="chip mint">+2 minden dalra</span></div>
+      <div class="btm">${u.q>=12?`<span class="lock" style="color:var(--cash);border-color:rgba(47,227,155,.4)">✓ Kiképezve</span>`
+        :`<button class="btn ${S.money>=tc?'lime':'dark'} sm" data-train="q" ${S.money>=tc?'':'disabled'}>Képzés · ${money(tc)}</button>`}</div>
+    </div></div>
+   <div class="lcard"><div class="ph" style="flex:0 0 74px;width:74px;background:linear-gradient(145deg,#201a10,#100d08);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:26px">${icon('megaphone')}</div>
+    <div class="bd"><div class="nm" style="font-size:16px">Imázs-kampány</div>
+      <div class="chips"><span class="chip gold">+${u.f}/15 hírnév</span><span class="chip mint">+3 hírnév</span></div>
+      <div class="btm">${u.f>=15?`<span class="lock" style="color:var(--cash);border-color:rgba(47,227,155,.4)">✓ Maximumon</span>`
+        :`<button class="btn ${S.money>=ic2?'lime':'dark'} sm" data-train="f" ${S.money>=ic2?'':'disabled'}>Kampány · ${money(ic2)}</button>`}</div>
+    </div></div>`;}
  if(mine)h+=`<div class="hint"><span class="i">${icon('notes','13px')}</span><span>A Stúdióban adhatsz ki vele single-t vagy albumot — attól nő a streaming, és vele minden régióban a rajongótábor.</span></div>`;
  h+=`<div class="sec"><h2>Repertoár</h2></div>`;
  a.songs.forEach(s=>{const col=s.q>=85?'var(--cash)':s.q>=70?'var(--gold)':'var(--muted)';
@@ -2662,6 +2778,7 @@ function detailScreen(){const a=AM[S.detail],mine=S.roster.includes(a.id),canPay
  $('.back').onclick=()=>{S.detail=null;save();render();};
  const sb=view.querySelector('[data-sign]');if(sb)sb.onclick=()=>{openDeal(a.id);};
  const tb=view.querySelector('[data-tour]');if(tb)tb.onclick=()=>{startTour(a.id);};
+ view.querySelectorAll('[data-train]').forEach(b=>b.onclick=()=>trainArtist(a.id,b.dataset.train));
 }
 
 /* ---------- TÉRKÉP / TURNÉ ---------- */
@@ -3215,6 +3332,13 @@ function tabFejlesztes(){
  let h=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">Iroda</div><h1>Fejlesztés</h1><p>Fektesd vissza a bevételt: a marketing több nézőt hoz, az erős stáb csökkenti a költséget.</p></div>`;
  h+=upgCard('marketing')+upgCard('staff')+upgCard('merch');
  h+=`<div class="hint"><span class="i">✦</span><span>Tipp: az erős stáb főleg nagy helyszíneknél (aréna, stadion) fizetődik ki, ahol a produkció drága.</span></div>`;
+
+ /* ---- BERUHÁZÁSOK: a pénz célja ---- */
+ h+=`<div class="sec"><h2>Létesítmények</h2><span class="r act">${money(S.money)}</span></div>`;
+ FAC.forEach(f=>h+=facCard(f));
+ h+=`<div class="sec"><h2>Stáb felvétele</h2><span class="r">${Object.keys(S.staff||{}).length}/${STAFF.length}</span></div>`;
+ STAFF.forEach(st=>h+=staffCard(st));
+ h+=`<div class="hint"><span class="i">${icon('banknote','13px')}</span><span>Ezek mind <b>euróból</b> mennek, és <b>tartósan</b> hatnak: minden turnéd olcsóbb vagy erősebb lesz tőlük. Az előadóidat a saját lapjukon képezheted.</span></div>`;
  /* KOZMETIKA — kizárólag kinézet, a balanszt nem érinti */
  h+=`<div class="sec"><h2>Kinézet</h2><span class="r">${icon('vinyl','11px')} ${credits()}</span></div>
    <div class="cchips">`;
@@ -3229,6 +3353,8 @@ function tabFejlesztes(){
      if(!spendCredits(t.cost)){openShop(`A(z) „${t.n}" téma ${t.cost} kredit. Tisztán kozmetika — a játékmenetre nincs hatása.`);return;}
      S.themes.push(t.id);toast(`${t.n} téma feloldva!`);}
    S.theme=t.id;save();applyTheme();render();});
+ bind('[data-fac]',b=>buyFac(b.dataset.fac));
+ bind('[data-staff]',b=>hireStaff(b.dataset.staff));
  bind('[data-up]',b=>{const key=b.dataset.up,cost=UPG[key].cost[S.upg[key]+1];
   if(cost===undefined){toast('Ez már maximumon van.');return;}
   if(S.money<cost){toast('Nincs elég pénz.');return;}
