@@ -14,3 +14,8 @@ Object.assign(window.ICONS,{
 Object.assign(window.ICONS,{
 "lock":"M112 224h288v256H112z M256 32c-61.8 0-112 50.2-112 112v80h48v-80c0-35.3 28.7-64 64-64s64 28.7 64 64v80h48v-80c0-61.8-50.2-112-112-112z"
 });
+
+/* --- arany bakelitlemez (premium kredit) --- */
+Object.assign(window.ICONS,{
+"vinyl":"M32 256A224 224 0 1 1 480 256A224 224 0 1 1 32 256Z M86 256A170 170 0 1 0 426 256A170 170 0 1 0 86 256Z M98 256A158 158 0 1 1 414 256A158 158 0 1 1 98 256Z M216 256A40 40 0 1 0 296 256A40 40 0 1 0 216 256Z"
+});
