@@ -796,10 +796,10 @@ const VENUES=[
     előadó-feloldásoknál (a.minRep), ezért a két létra párba áll: színház a kezdő szakasz
     végén, aréna a középkategóriás előadókkal (minRep 120–150), stadion a világsztárokkal (400+).
     Egyben megvédi a kezdőt a stadion-csapdától is. */
- {id:'club',   n:'Klub',    cap:2500,  fix:22,  pmul:0.85,tmul:0.7,rep:4, minRep:0,  ic:'headphones'},
+ {id:'club',   n:'Klub',    cap:2500,  fix:22,  pmul:0.92,tmul:0.7,rep:4, minRep:0,  ic:'headphones'},
  {id:'theatre',n:'Színház', cap:9000,  fix:28, pmul:1.0, tmul:1.0,rep:9, minRep:40, ic:'notes'},
- {id:'arena',  n:'Aréna',   cap:20000, fix:33, pmul:1.15,tmul:1.7,rep:18,minRep:150,ic:'star'},
- {id:'stadium',n:'Stadion', cap:55000, fix:38, pmul:1.35,tmul:2.6,rep:34,minRep:400,ic:'trophy'},
+ {id:'arena',  n:'Aréna',   cap:20000, fix:38, pmul:1.08,tmul:1.7,rep:18,minRep:150,ic:'star'},
+ {id:'stadium',n:'Stadion', cap:55000, fix:46, pmul:1.15,tmul:2.6,rep:34,minRep:400,ic:'trophy'},
 ];
 const VM=Object.fromEntries(VENUES.map(v=>[v.id,v]));
 /* q = minoseg, e = ENERGIA (0-100). Az energia adja a setlist ivet: a jo show nem
@@ -1091,7 +1091,10 @@ const MK_COST=[0,25000,60000,120000,220000], ST_COST=[0,20000,50000,100000,19000
 function haversine(a,b){const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lon-a.lon)*Math.PI/180,la1=a.lat*Math.PI/180,la2=b.lat*Math.PI/180;
  const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
 const KM_RATE=6.5;
-function fairPrice(a,v){return (26+af(a)*1.45)*v.pmul;}   // realisztikusabb jegyárszint
+/* A „reális" jegyár a HÍRNÉVVEL skálázódik, méghozzá gyorsulva (négyzetes tag):
+   egy szupersztárért fejenként is sokkal többet elkérhetsz, nem csak többen jönnek.
+   Hírnév 26 → €58 · 56 → €120 · 88 → €211 alapár (a helyszín pmul-ja jön rá). */
+function fairPrice(a,v){const f=af(a);return (22+f*1.05+f*f*0.0125)*v.pmul;}
 const DEMAND_BASE=75000, FAME_POWER=2.2;
 function estimate(a,city,v,price,setQ,mom,promo){
  const st=artState(a.id), fans=st.fans[city.r]||0;
@@ -1118,7 +1121,7 @@ function estimate(a,city,v,price,setQ,mom,promo){
     var  = fejenkénti költség (biztonság, személyzet, jegykezelés), a jegyárral is nő.
            Ez fogja vissza a telt házas koncert margóját, anélkül hogy a megtelést nehezítené. */
  /* a hosszabb turné megosztja az overheadet -> allomasonkent olcsobb fix koltseg */
- const fix=Math.round(v.cap*v.fix*(0.7+af(a)/200)*(1-S.upg.staff*0.08)*tourScale(nStops)*(1-facLv('rig')*0.06));
+ const fix=Math.round(v.cap*v.fix*(0.55+af(a)/110)*(1-S.upg.staff*0.08)*tourScale(nStops)*(1-facLv('rig')*0.06));
  const varRate=(3+price*0.12)*(hasStaff('mgr')?0.9:1);
  const base=fix+Math.round(att*varRate);
  const merch=merchRev(att,fans);            // ← a merch a nézőszámból és a rajongói szintből jön
@@ -3110,7 +3113,7 @@ function renderStops(){const a=AM[S.tour.artist],stops=S.tour.stops,setQ=setlist
 
       <div class="grp2"><div class="gl gl2"><span>2 · Jegyár</span><span class="bigprice" id="pp${i}">€${st.price}</span></div>
         <div class="prow"><button class="step" data-nudge="${i}:-1">−</button>
-          <input type="range" min="5" max="250" step="1" value="${st.price}" data-price="${i}" aria-label="Jegyár">
+          <input type="range" min="5" max="400" step="1" value="${st.price}" data-price="${i}" aria-label="Jegyár">
           <button class="step" data-nudge="${i}:1">+</button></div>
         <div class="presets" id="pps${i}">${pres}</div></div>
 
