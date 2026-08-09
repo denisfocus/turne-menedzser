@@ -471,19 +471,25 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 @keyframes jpop{0%{opacity:0;transform:scale(.7)}25%{opacity:1;transform:scale(1.12)}100%{opacity:0;transform:scale(1)}}
 .mcombo{font-family:var(--disp);font-weight:700;font-size:15px;color:var(--muted);letter-spacing:.04em;height:20px}
 .mcount{font-family:var(--disp);font-weight:700;font-size:64px;color:var(--neon);text-shadow:0 0 26px var(--neonglow)}
-.pads{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 14px calc(16px + env(safe-area-inset-bottom));flex:0 0 auto}
-.pad2{position:relative;height:min(21vh,140px);min-height:98px;border-radius:22px;border:2px solid var(--line2);
-  background:linear-gradient(180deg,var(--panel2),var(--panel));display:flex;align-items:center;justify-content:center;
-  overflow:hidden;touch-action:manipulation;transition:transform .06s,background .1s}
-.pad2 .lbl2{font-family:var(--disp);font-weight:700;font-size:13px;color:var(--faint);letter-spacing:.08em;
-  text-transform:uppercase;position:relative;z-index:2;transition:color .1s}
-.pad2 .ring2{position:absolute;left:50%;top:50%;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;
-  border:4px solid currentColor;opacity:0;pointer-events:none}
-.pad2 .core{position:absolute;left:50%;top:50%;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;
-  background:currentColor;opacity:0;pointer-events:none;filter:blur(2px)}
-.pad2.armed{border-color:currentColor}
-.pad2.hitfx{transform:scale(.965)}
-.pad2.flash{background:linear-gradient(180deg,rgba(255,255,255,.22),transparent)}
+/* valódi dobfelszerelés a dobos szemszögéből — a hit-zónák a fotón látható hangszerekre esnek */
+.kit{position:relative;flex:1;margin:8px 12px 0;border-radius:20px;overflow:hidden;min-height:280px;
+  border:1px solid var(--line2);touch-action:manipulation;
+  background:#05060a url('assets/drumkit.jpg') center/100% 100% no-repeat}
+.kit .vig{position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 78% at 50% 42%,transparent 42%,rgba(4,5,8,.55) 100%)}
+.dz{position:absolute;transform:translate(-50%,-50%);border-radius:50%;display:flex;align-items:center;
+  justify-content:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.dz .dzr{position:absolute;inset:0;border-radius:50%;border:4px solid currentColor;opacity:0;pointer-events:none;
+  box-shadow:0 0 20px currentColor,inset 0 0 22px currentColor}
+.dz .dzf{position:absolute;inset:-6%;border-radius:50%;pointer-events:none;opacity:0;
+  background:radial-gradient(circle,rgba(255,255,255,.85),currentColor 45%,transparent 72%)}
+.dz .dzn{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);font-family:var(--disp);font-weight:700;
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:currentColor;opacity:0;white-space:nowrap;
+  text-shadow:0 1px 6px #000;pointer-events:none}
+.dz.armed .dzn{opacity:.9}
+.dz.flash .dzf{animation:dzf .26s ease-out}
+@keyframes dzf{0%{opacity:.9;transform:scale(.86)}100%{opacity:0;transform:scale(1.15)}}
+.dz.hitfx{transform:translate(-50%,-50%) scale(.94)}
 .mfoot{padding:0 14px 12px;display:flex;gap:9px;flex:0 0 auto}
 .mfoot .btn{flex:1}
 .mready{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
@@ -1433,8 +1439,16 @@ function confirmBox(title,text,okLabel,fn){
    show-értékeléshez), a gyenge játék pedig csak enyhén (max −8) húz le.
    A pontszám a KÉSZ setlist-ív rendszeren keresztül hat: a show-pontszámhoz adódik,
    onnan megy tovább a nézőszámba, merchbe és a rajongótáborba. */
-const PADS=[{n:'Lábdob',c:'#C6FF3A'},{n:'Pergő',c:'#2FE39B'},{n:'Tam',c:'#FFC24B'},{n:'Cintányér',c:'#FF3D84'}];
-const RG={lead:750,perfect:80,good:160,late:200,bpm:120,bars:12000};
+/* A hit-zónák a háttérfotón látható VALÓDI hangszerekre esnek (x/y/w/h = a képdoboz %-a) */
+const KIT=[
+ {n:'Hi-hat', c:'#FFC24B', x:13, y:50, w:26, h:12},
+ {n:'Tom 1',  c:'#C6FF3A', x:34, y:46, w:24, h:14},
+ {n:'Tom 2',  c:'#2FE39B', x:70, y:46, w:24, h:14},
+ {n:'Crash',  c:'#FF3D84', x:86, y:33, w:26, h:12},
+ {n:'Lábdob', c:'#7CC7FF', x:48, y:69, w:44, h:20},
+];
+/* KÖNNYÍTETT ritmus: lassabb tempó, ritkább minta, jóval nagyvonalúbb időablakok */
+const RG={lead:1100,perfect:130,good:240,late:300,bpm:84,bars:12000};
 let M=null;
 
 /* apró WebAudio visszajelzés — a találat legyen kielégítő */
@@ -1450,14 +1464,12 @@ function blip(freq,dur,type,vol){
  }catch(e){}
 }
 function buildPattern(){
+ /* csak főütemekre, dupla ütés nélkül, minden 4. ütem kihagyva -> nyugodt, követhető minta */
  const beat=60000/RG.bpm, notes=[]; let pad=-1;
- for(let b=2;b*beat<RG.bars-400;b++){
-  if(b%8===7)continue;                        // levegő a mintában
-  let p;do{p=Math.floor(Math.random()*4);}while(p===pad);
+ for(let b=2;b*beat<RG.bars-500;b++){
+  if(b%4===1)continue;                        // levegő a mintában
+  let p;do{p=Math.floor(Math.random()*KIT.length);}while(p===pad);
   pad=p;notes.push({t:b*beat,pad:p,done:false});
-  if(b%4===2&&Math.random()<0.45){            // páros nyolcad: pörgős dupla
-   let p2;do{p2=Math.floor(Math.random()*4);}while(p2===p);
-   notes.push({t:b*beat+beat/2,pad:p2,done:false});pad=p2;}
  }
  return notes.sort((x,y)=>x.t-y.t);
 }
@@ -1477,15 +1489,17 @@ function openMini(stopIdx){
       <button class="x" id="mSound" style="color:${S.sound===false?'var(--faint)':'var(--neon)'}">HANG</button></div>
     <div class="mbar"><i id="mCrowd" style="width:46%"></i><b>KÖZÖNSÉG</b></div>
   </div>
-  <div class="mmid"><div class="mjudge" id="mJudge"></div><div class="mcombo" id="mCombo"></div></div>
-  <div class="pads" id="mPads">${PADS.map((p,i)=>`
-    <div class="pad2" data-pad="${i}" style="color:${p.c}">
-      <div class="core"></div><div class="ring2"></div><div class="lbl2">${p.n}</div></div>`).join('')}</div>
+  <div class="kit" id="mPads">
+    ${KIT.map((p,i)=>`<div class="dz" data-pad="${i}" style="color:${p.c};left:${p.x}%;top:${p.y}%;width:${p.w}%;height:${p.h}%">
+      <div class="dzf"></div><div class="dzr"></div><div class="dzn">${p.n}</div></div>`).join('')}
+    <div class="vig"></div>
+  </div>
+  <div class="mmid" style="flex:0 0 auto;min-height:52px"><div class="mjudge" id="mJudge"></div><div class="mcombo" id="mCombo"></div></div>
   <div class="mfoot"><button class="btn dark sm" id="mQuit">Kihagyom — menjen automatán</button></div>
   <div class="mready" id="mReady">
     <div class="mcount" id="mCount">3</div>
     <h3>Állj a dobok mögé</h3>
-    <p>Koppints a padre, amikor a gyűrű összeér a közepén. Pontos ütés = felpörög a közönség.</p>
+    <p>Koppints a dobra vagy cintányérra, amikor a gyűrű összezárul rajta. Pontos ütés = felpörög a közönség.</p>
   </div>`;
  el.className='on';
  $('#mSound').onclick=()=>{S.sound=(S.sound===false);save();$('#mSound').style.color=S.sound===false?'var(--faint)':'var(--neon)';};
@@ -1515,8 +1529,8 @@ function judge(kind,padEl){
   const col=kind==='perfect'?'var(--neon)':kind==='good'?'var(--cash)':'var(--hot)';
   j.textContent=txt;j.style.color=col;j.classList.remove('go');void j.offsetWidth;j.classList.add('go');}
  if(cb)cb.textContent=M.combo>=3?`${M.combo}× SOROZAT`:'';
- if(padEl&&kind!=='miss'){padEl.classList.add('flash','hitfx');
-  setTimeout(()=>padEl.classList.remove('flash','hitfx'),110);}
+ if(padEl&&kind!=='miss'){padEl.classList.remove('flash');void padEl.offsetWidth;
+  padEl.classList.add('flash','hitfx');setTimeout(()=>padEl.classList.remove('hitfx'),120);}
  const cr=$('#mCrowd');if(cr)cr.style.width=M.crowd.toFixed(1)+'%';
 }
 function tapPad(pi,padEl){
@@ -1539,19 +1553,18 @@ function miniTick(){
 function miniDraw(){
  if(!M||M.ended)return;
  const now=performance.now()-M.t0, pads=$('#mPads');
- if(pads)for(let i=0;i<4;i++){
-  const el=pads.children[i];if(!el)continue;
-  const ring=el.querySelector('.ring2'),core=el.querySelector('.core');
-  let nx=null,nd=1e9;
-  M.notes.forEach(n=>{if(n.done||n.pad!==i)return;const d=n.t-now;if(d>=-RG.late&&d<nd){nd=d;nx=n;}});
-  if(nx&&nd<=RG.lead){
-   const p=clamp(1-nd/RG.lead,0,1.3);
-   ring.style.opacity=(0.25+p*0.75).toFixed(2);
-   ring.style.transform='scale('+(2.4-p*1.4).toFixed(3)+')';
-   core.style.opacity=(p>0.85?(p-0.85)*2.2:0).toFixed(2);
-   el.classList.add('armed');
-  }else{ring.style.opacity=0;core.style.opacity=0;el.classList.remove('armed');}
- }
+ if(pads){const zs=pads.querySelectorAll('.dz');
+  for(let i=0;i<zs.length;i++){
+   const el=zs[i],ring=el.querySelector('.dzr');
+   let nd=1e9,has=false;
+   M.notes.forEach(n=>{if(n.done||n.pad!==i)return;const d=n.t-now;if(d>=-RG.late&&d<nd){nd=d;has=true;}});
+   if(has&&nd<=RG.lead){
+    const p=clamp(1-nd/RG.lead,0,1.25);
+    ring.style.opacity=(0.3+p*0.7).toFixed(2);
+    ring.style.transform='scale('+(2.0-p*1.0).toFixed(3)+')';
+    el.classList.add('armed');
+   }else{ring.style.opacity=0;el.classList.remove('armed');}
+  }}
  M.raf=requestAnimationFrame(miniDraw);
 }
 /* pontszám → a show-értékeléshez adott pont (a setlist-ív rendszeren keresztül) */
