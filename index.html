@@ -1747,33 +1747,22 @@ function skipAll(){
  if(S.live&&S.live.pendingEv)toast('Egy döntés vár rád.');
 }
 /* ---------- OPCIONÁLIS REKLÁM-BÓNUSZOK (soha nem gátolják az ingyenes skipet) ---------- */
-/* Hype Boost: a show felpörgetése. A hatás 10–20% között sorsolódik (átlag ~15%),
-   így a kiírt tartomány őszinte. */
-const AD_BOOST_MIN=0.10, AD_BOOST_MAX=0.20;
-function adBoost(){
- const L=S.live;if(!L||L.pendingEv)return;
- const p=curPhase();if(!p||p.k!=='show')return;
- if(L.boost&&L.boost[p.i]){toast('Erre az estére már megvan a lökés.');return;}
- L.pausedLeft=remainMs();
- Ads.show(function(){
-   const gain=AD_BOOST_MIN+Math.random()*(AD_BOOST_MAX-AD_BOOST_MIN);
-   L.boost=L.boost||{};L.boost[p.i]=Math.round(gain*100);
-   L.attMul=clamp(L.attMul*(1+gain),0.15,2.4);
-   L.ends=Date.now()+L.pausedLeft;L.pausedLeft=null;save();
-   toast('Hype Boost! +'+Math.round(gain*100)+'% néző ma este');liveScreen();
- },function(){
-   L.ends=Date.now()+L.pausedLeft;L.pausedLeft=null;save();
-   toast('A videó megszakadt — nincs lökés.');
- });
-}
-/* Iroda: időnkénti ingyen ajándék videóért. */
+/* ---------- REKLÁM-STRATÉGIA ----------
+   Szándékosan KEVÉS, de NAGY ÉRTÉKŰ hely. Nem akarunk minden döntésnél villogó
+   reklámgombot: összesen három pont van a játékban.
+     1) FŐ: a turné végén a jutalék MEGDUPLÁZÁSA — turnénként egyszer.
+     2) KONTEXTUÁLIS: az alku 2. próbája, csak bukás után.
+     3) RITKA: menedzser-bónusz az Irodában, néhány hetente.
+   A koncertenkénti nézőszám-lökés és a mini-játékonkénti duplázás KIKERÜLT. */
+/* Iroda: ritka menedzser-bónusz videóért. */
 const GIFTS=[
  {n:'Arany lemez',ic:'vinyl',d:'2 arany lemez',f:function(){S.credits=credits()+2;return '2 arany lemez';}},
  {n:'Támogatás',ic:'banknote',d:'készpénz',f:function(){const m=25000*level();S.money+=m;return money(m);}},
  {n:'Friss felhozatal',ic:'globe',d:'új nevek a scoutingban',f:function(){rollScout();return 'új nevek a scoutingban';}},
 ];
 function giftIdx(){return (S.giftN||0)%GIFTS.length;}
-function giftReady(){return (S.week-(S.giftWk===undefined?-99:S.giftWk))>=3;}
+const GIFT_WEEKS=8;      // ritka, hogy ne legyen „reklámnéző szimulátor"
+function giftReady(){return (S.week-(S.giftWk===undefined?-99:S.giftWk))>=GIFT_WEEKS;}
 function claimGift(){
  if(!giftReady())return;
  const g=GIFTS[giftIdx()];
@@ -2135,13 +2124,7 @@ function miniResult(kind,acc,detail){
    <div class="mcount" style="color:${pts>=0?'var(--neon)':'var(--hot)'}">${grade}</div>
    <h3>${Math.round(acc*100)}% ${kind==='drum'?'pontosság':'fényteljesítmény'}</h3>
    <p>${detail}<br><b style="color:${pts>=0?'var(--cash)':'var(--hot)'}">${pts>=0?'+':''}${pts} pont</b> a ma esti show-ra.</p>
-   ${pts>0?`<button class="btn gold" id="mX2" style="max-width:280px;margin-bottom:9px">${icon('bolt','16px')} Dupla bónusz · +${pts} pont a show-ra</button>`:''}
    <button class="btn lime" id="mDone" style="max-width:280px">Vissza a koncertre</button></div>`;
- const x2=$('#mX2');
- if(x2)x2.onclick=function(){Ads.show(function(){
-   const m=S.live.mini[M.stop];m.pts=pts*2;save();
-   toast('Dupla bónusz: +'+m.pts+' pont!');closeMini(true);
- },function(){toast('A videó megszakadt — marad az eredeti bónusz.');});};
  $('#mDone').onclick=()=>closeMini(true);
 }
 function endMini(){
@@ -2539,16 +2522,15 @@ const OB=[
  {id:'liveSkip',tab:'terkep',sel:'#view #lvSkip',k:'Gyorsítás',t:'Nem kell várnod',
   p:'Ugrás a végére: az aktuális szakasz azonnal lefut. Mind: az egész hátralévő turné lepörög. Mindkettő INGYEN, egy koppintás.',
   btn:'Tovább',soft:1,allow:['terkep']},
- {id:'liveBoost',tab:'terkep',sel:'#view #lvBoost',k:'Bónusz',t:'Reklám — csak ha akarod',
-  p:'Egy rövid videóért +15% néző a ma esti koncertre. Sosem kötelező, és sosem gátolja az ingyenes gyorsítást.',
-  btn:'Tovább',soft:1,allow:['terkep']},
-
  {id:'resBreak',tab:'iroda',sel:'#resBreak',k:'Eredmény',t:'Így jön ki a pénz',
   p:'Jegybevétel + merch a bevétel. Ebből jön le a helyszín, technika, stáb, utazás és promóció — ami marad, az a turné nyeresége. Azon osztoztok: az előadóé a nagyobb rész, a tiéd a jutalék. A kasszádba a jutalék kerül.',
   btn:'Tovább',onRes:1,allow:ALLTABS,wait:function(){return !!S.resultPending;}},
  {id:'resStops',tab:'iroda',sel:'#resStops',k:'Állomások',t:'Mi történt esténként',
   p:'Állomásonként látod a nézőszámot a férőhelyhez képest, hogy a vártnál többen vagy kevesebben jöttek, a merch-bevételt és az új rajongókat.',
   btn:'Tovább',onRes:1,allow:ALLTABS},
+ {id:'resX2',tab:'iroda',sel:'#resX2',k:'Bónusz',t:'Duplázás — csak ha akarod',
+  p:'A turné végén egy rövid videóért megduplázhatod a jutalékodat. Ez az egyetlen ilyen ajánlat a játékban, turnénként egyszer — semmi más nincs reklámhoz kötve.',
+  btn:'Tovább',onRes:1,soft:1,allow:ALLTABS},
 
  {id:'goStudio',tab:'iroda',sel:'#nav a[data-tab="studio"]',k:'Stúdió',t:'Zene két turné között',
   p:'Nyisd meg a Stúdiót.',tap:'Koppints a Stúdió fülre',
@@ -3242,7 +3224,7 @@ function tabIroda(){
  // opcionális ajándék — reklámért, néhány hetente
  if(giftReady()){const g=GIFTS[giftIdx()];
   h+=`<div class="giftcard" id="giftGo"><div class="g1">${icon(g.ic,'20px')}</div>
-    <div class="g2"><div class="gh">Ingyen ajándék: ${g.n}</div><div class="gs">Vidd el a ${g.d} bónuszt — egy rövid videó.</div></div>
+    <div class="g2"><div class="gh">Menedzser-bónusz: ${g.n}</div><div class="gs">${g.d} — egy rövid videó, néhány hetente egyszer.</div></div>
     <div class="go">${icon('play','17px')}</div></div>`;}
 
  // folyamatban lévő turné, vagy gyorsindítás
@@ -3533,29 +3515,7 @@ function liveScreen(){
  h+=`<div class="btnrow" style="margin-top:12px">
    <button class="btn lime sm" id="lvSkip">${icon('ff','16px')} Ugrás a végére</button>
    <button class="btn dark sm keep" id="lvSkipAll">${icon('play','15px')} Mind</button></div>`;
- if(p.k==='show'){
-  const st0=L.stops[p.i], v0=VM[st0.venue],
-        e0=estimate(a,CM[st0.city],v0,st0.price,setlistQ(a,L.setlist),L.mom,L.promo),
-        exp0=Math.round(e0.att*L.attMul);
-  if(L.boost&&L.boost[p.i]){
-   h+=`<div class="hype done"><div class="hi">${icon('bolt','19px')}</div>
-     <div class="ht"><div class="h1">Hype Boost aktív</div>
-       <div class="h2"><b>${k(Math.min(exp0,v0.cap))}</b> / ${k(v0.cap)} várható néző</div>
-       <div class="h3">+${L.boost[p.i]}% pörgés a ma esti show-ra</div></div></div>`;
-  }else if(exp0>=v0.cap*0.995){
-   /* telt ház esetén a Boost nem hozna többet — ne kínáljunk üres reklámot */
-   h+=`<div class="hype full"><div class="hi">${icon('people','19px')}</div>
-     <div class="ht"><div class="h1">Telt ház várható</div>
-       <div class="h2"><b>${k(v0.cap)}</b> / ${k(v0.cap)} néző</div>
-       <div class="h3">A Hype Boost ma este már nem hozna többet.</div></div></div>`;
-  }else{
-   h+=`<div class="hype" id="lvBoost"><div class="hi">${icon('bolt','19px')}</div>
-     <div class="ht"><div class="h1">Hype Boost</div>
-       <div class="h2">Most <b>${k(Math.min(exp0,v0.cap))}</b> / ${k(v0.cap)} várható néző</div>
-       <div class="h3">Pörgesd fel a ma estét: <b>+10–20% néző</b> · egy rövid videó</div></div>
-     <div class="hg">${icon('play','17px')}</div></div>`;
-  }
- }
+ /* koncertenkénti reklám-lökés szándékosan nincs — a nagy pillanat a turné vége */
 
  /* térkép a haladással */
  if(HAS_MAP){h+=`<div class="sec"><h2>Az útvonal</h2><span class="r act">${icon('plane','11px')} élő</span></div>
@@ -3590,7 +3550,6 @@ function liveScreen(){
  if(HAS_MAP){initMap();}
  $('#lvSkip').onclick=skipPhase;
  $('#lvSkipAll').onclick=skipAll;
- const bo=$('#lvBoost');if(bo)bo.onclick=adBoost;
  const dbtn=$('#lvDrum');if(dbtn)dbtn.onclick=()=>{const i2=curPhase().i;
    miniKindFor(i2)==='drum'?openMini(i2):openLights(i2);};
  const dno=$('#lvDrumNo');if(dno)dno.onclick=()=>{L.miniSkip=L.miniSkip||{};L.miniSkip[curPhase().i]=true;save();liveScreen();};
@@ -4116,17 +4075,26 @@ function showResult(){const r=S.lastResult,win=r.net>=0,col=win?'var(--cash)':'v
     <div class="gh">${esc(cc.d.n)}</div><div class="gs">${esc(cc.d.d)}</div>
     <div class="gbar"><i style="width:${(pr2*100).toFixed(0)}%;background:var(--gold)"></i></div>
     <div class="gm"><span>${Math.min(cc.st.p,cc.d.g)} / ${cc.d.g}</span><span>${rewardText(cc.d.rw)}</span></div></div></div>`;}
- const mBonus=Math.round((r.tMerch||0)*((r.comm||0)/100));
- if(mBonus>0&&!r.merchX2)h+=`<button class="btn gold" id="resX2" style="margin-top:12px">${icon('bolt','18px')} Dupla merch · +${money(mBonus)} a jutalékodra</button>`;
- h+=`<button class="btn lime" id="resHome" style="margin-top:${mBonus>0&&!r.merchX2?'9':'12'}px">${icon('house','18px')} Vissza az irodába</button></div>`;
+ /* A játék EGYETLEN erős, ismétlődő reklám-pillanata: a turné jutalékának duplázása.
+    Turnénként egyszer, konkrét összeggel kiírva. */
+ const dbl=Math.max(0,r.net||0);
+ if(dbl>0&&!r.netX2)h+=`<div class="hype" id="resX2" style="margin-top:14px"><div class="hi">${icon('bolt','20px')}</div>
+   <div class="ht"><div class="h1">Duplázd meg a turné jutalékát</div>
+     <div class="h2">${money(dbl)} → <b style="color:var(--cash)">${money(dbl*2)}</b></div>
+     <div class="h3">+${money(dbl)} a kasszádba · egy rövid videó · turnénként egyszer</div></div>
+   <div class="hg">${icon('play','18px')}</div></div>`;
+ else if(r.netX2)h+=`<div class="hype done" style="margin-top:14px"><div class="hi">${icon('bolt','20px')}</div>
+   <div class="ht"><div class="h1">Jutalék megduplázva</div>
+     <div class="h2"><b style="color:var(--cash)">${money(r.net)}</b> a kasszádban</div></div></div>`;
+ h+=`<button class="btn lime" id="resHome" style="margin-top:${dbl>0||r.netX2?'10':'12'}px">${icon('house','18px')} Vissza az irodába</button></div>`;
  resultEl.innerHTML=h;resultEl.style.display='block';resultEl.scrollTop=0;
  if(obActive())setTimeout(obPaint,120);
  const rn=$('#resNet');rn.dataset.v=0;animateNum(rn,r.net,v=>money(v));
  const rx=$('#resX2');
  if(rx)rx.onclick=function(){Ads.show(function(){
-   S.money+=mBonus;r.merchX2=true;r.net+=mBonus;save();
-   toast('Dupla merch: +'+money(mBonus));showResult();
- },function(){toast('A videó megszakadt — nincs bónusz.');});};
+   S.money+=dbl;r.netX2=true;r.net+=dbl;S.earned=(S.earned||0)+dbl;save();
+   toast('Duplázva! +'+money(dbl));showResult();
+ },function(){toast('A videó megszakadt — marad az eredeti jutalék.');});};
  $('#resHome').onclick=()=>{resultEl.style.display='none';resultEl.innerHTML='';S.tab='iroda';S.resultPending=false;save();render();};
  if(obActive())setTimeout(obPaint,80);
  renderHUD();
