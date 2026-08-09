@@ -505,6 +505,46 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
   border-radius:14px;padding:11px 13px;margin-top:11px}
 .drumres .v3{font-family:var(--disp);font-weight:700;font-size:20px;font-feature-settings:"tnum" 1}
 
+/* ---------- FÉNYSHOW MINI-JÁTÉK ---------- */
+.stage{position:relative;flex:1;margin:10px 14px 0;border-radius:20px;overflow:hidden;touch-action:none;
+  border:1px solid var(--line2);min-height:230px;
+  background:linear-gradient(180deg,#0b0f14 0%,#0a0d12 55%,#070809 100%)}
+.stage .grid{position:absolute;inset:0;opacity:.5;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 34px),
+             repeating-linear-gradient(180deg,rgba(255,255,255,.035) 0 1px,transparent 1px 34px)}
+.stage .crowdband{position:absolute;left:0;right:0;bottom:0;height:38%;
+  background:linear-gradient(180deg,transparent,rgba(198,255,58,.05));
+  border-top:1px dashed rgba(255,255,255,.09)}
+.stage .crowdband::after{content:"KÖZÖNSÉG";position:absolute;left:10px;bottom:7px;font-size:8.5px;letter-spacing:.2em;
+  color:var(--faint);font-weight:700}
+.spot{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(198,255,58,.42) 0%,rgba(198,255,58,.16) 45%,transparent 72%);
+  border:2px solid rgba(198,255,58,.55);box-shadow:0 0 34px rgba(198,255,58,.32);
+  transition:box-shadow .1s;will-change:transform}
+.spot.hit{box-shadow:0 0 58px rgba(198,255,58,.7);border-color:var(--neon)}
+.perf{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 40% 35%,#fff,#ffd76a 55%,#c98f00);
+  box-shadow:0 0 18px rgba(255,214,106,.65);will-change:transform}
+.perf::after{content:"";position:absolute;inset:-9px;border-radius:50%;border:1.5px dashed rgba(255,215,106,.45)}
+.dring{position:absolute;width:180px;height:180px;margin:-90px 0 0 -90px;border-radius:50%;pointer-events:none;
+  border:4px solid var(--hot);opacity:0;will-change:transform}
+.hot{position:absolute;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;pointer-events:none;
+  border:3px solid var(--gold);background:radial-gradient(circle,rgba(255,194,75,.3),transparent 70%);
+  opacity:0;will-change:transform}
+/* FONTOS: a pulzálás NEM transform-ot animál — az felülírná a pozicionáló translate-et */
+.hot.on{opacity:1;animation:hotp 1s ease-in-out infinite}
+@keyframes hotp{0%,100%{box-shadow:0 0 0 0 rgba(255,194,75,.55);border-color:rgba(255,194,75,.7)}
+                50%{box-shadow:0 0 26px 7px rgba(255,194,75,.3);border-color:var(--gold)}}
+.stage .flash2{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.stage .flash2.go{animation:fl .3s ease-out}
+@keyframes fl{0%{opacity:.55}100%{opacity:0}}
+.stage .hint2{position:absolute;left:0;right:0;top:44%;text-align:center;font-family:var(--disp);font-weight:700;
+  font-size:13px;letter-spacing:.16em;color:rgba(255,255,255,.34);pointer-events:none}
+.dropcue{position:absolute;left:0;right:0;top:10px;text-align:center;font-family:var(--disp);font-weight:700;
+  font-size:15px;letter-spacing:.22em;color:var(--hot);opacity:0;pointer-events:none}
+.dropcue.go{opacity:1;animation:dc .7s ease-out}
+@keyframes dc{0%{transform:scale(.8);opacity:0}30%{transform:scale(1.06);opacity:1}100%{transform:scale(1);opacity:.85}}
+
 /* ---------- SETLIST: energia-ív ---------- */
 .curve{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:13px 14px;box-shadow:var(--sh)}
 .curve .top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
@@ -947,7 +987,8 @@ function migrate(s){if(!s)return newGame();
  if(!s.feed)s.feed=[];
  if(s.sound===undefined)s.sound=true;
  if(s.autoShow===undefined)s.autoShow=false;
- if(s.live){if(!s.live.drum)s.live.drum={};if(!s.live.drumSkip)s.live.drumSkip={};
+ if(s.live){if(s.live.drum&&!s.live.mini){s.live.mini=s.live.drum;s.live.miniSkip=s.live.drumSkip||{};}
+  if(!s.live.mini)s.live.mini={};if(!s.live.miniSkip)s.live.miniSkip={};
   /* beragadt szünet feloldása (pl. ha mini-játék közben zárták be) */
   if(s.live.pausedLeft!=null&&!s.live.pendingEv){s.live.ends=Date.now()+s.live.pausedLeft;s.live.pausedLeft=null;}}   /* lastLevel / lastVenues szándékosan maradhat undefined:
                             a checkUnlocks() az első futáskor csendben beállítja, nem spammel. */
@@ -1203,7 +1244,7 @@ function launchTour(){
  S.live={artist:t.artist,setlist:t.setlist.slice(),promo:t.promo||0,promoSpent:cost,risk:!!t.risk,riskDone:false,
   stops:t.stops.map(s=>({...s})),ph:buildPhases(t.stops),i:0,ends:Date.now()+msFromMin(TIME.prepMin),
   pausedLeft:null,pendingEv:null,mom:1,attMul:1,skipNext:false,days:0,
-  rows:[],log:[],evUsed:[],adUsed:{},fanGain:{},drum:{},drumSkip:{},
+  rows:[],log:[],evUsed:[],adUsed:{},fanGain:{},mini:{},miniSkip:{},
   tRev:0,tCost:0,tPay:0,tTrav:0,tAtt:0,tEvent:0,tMerch:0,rep:0};
  S.tour=null;S.tab='terkep';teardownMap();save();render();
 }
@@ -1246,7 +1287,7 @@ function finishPhase(){
 /* egy koncert lefutása — itt dől el a TÉNYLEGES nézőszám (szórással) */
 function runShow(i){
  const L=S.live,a=AM[L.artist],st=L.stops[i],city=CM[st.city],v=VM[st.venue];
- const dr=(L.drum&&L.drum[i])||null;
+ const dr=(L.mini&&L.mini[i])||null;
  /* a dobos mini-játék a KÉSZ setlist-ív rendszeren át hat: a show-pontszámhoz adódik */
  const setQ=clamp(setlistQ(a,L.setlist)+(dr?dr.pts:0),0,100);
  const A=artState(a.id),reg=city.r,fansBefore=A.fans[reg];
@@ -1514,29 +1555,175 @@ function miniDraw(){
  M.raf=requestAnimationFrame(miniDraw);
 }
 /* pontszám → a show-értékeléshez adott pont (a setlist-ív rendszeren keresztül) */
-function drumPoints(acc){return Math.round(clamp((acc-0.55)*30,-8,14));}
-function endMini(){
- if(!M||M.ended)return;M.ended=true;cancelAnimationFrame(M.raf);if(M.iv)clearInterval(M.iv);
- const hit=M.perfect+M.good, tot=Math.max(1,M.perfect+M.good+M.miss);
- const acc=(M.perfect+M.good*0.6)/tot;
- const pts=drumPoints(acc);
- S.live.drum=S.live.drum||{};
- S.live.drum[M.stop]={acc:+acc.toFixed(3),pts,perfect:M.perfect,good:M.good,miss:M.miss,combo:M.best};
+/* mindkét mini-játék ugyanezt a skálát használja: max +14 bónusz, max −8 visszahúzás */
+function miniPoints(acc){return Math.round(clamp((acc-0.55)*30,-8,14));}
+/* közös eredmény-képernyő mindkét mini-játéknak */
+function miniResult(kind,acc,detail){
+ const pts=miniPoints(acc);
+ S.live.mini=S.live.mini||{};
+ S.live.mini[M.stop]={kind,acc:+acc.toFixed(3),pts};
  const grade=acc>=0.9?'A+':acc>=0.78?'A':acc>=0.62?'B':acc>=0.45?'C':'D';
  blip(acc>=0.62?1320:220,0.18,'sine',0.18);
  $('#mini').innerHTML=`<div class="mready" style="position:relative;flex:1">
    <div class="mcount" style="color:${pts>=0?'var(--neon)':'var(--hot)'}">${grade}</div>
-   <h3>${Math.round(acc*100)}% pontosság</h3>
-   <p>${M.perfect} perfect · ${M.good} jó · ${M.miss} melló · leghosszabb sorozat ${M.best}×<br>
-     <b style="color:${pts>=0?'var(--cash)':'var(--hot)'}">${pts>=0?'+':''}${pts} pont</b> a ma esti show-ra.</p>
+   <h3>${Math.round(acc*100)}% ${kind==='drum'?'pontosság':'fényteljesítmény'}</h3>
+   <p>${detail}<br><b style="color:${pts>=0?'var(--cash)':'var(--hot)'}">${pts>=0?'+':''}${pts} pont</b> a ma esti show-ra.</p>
    <button class="btn lime" id="mDone" style="max-width:280px">Vissza a koncertre</button></div>`;
  $('#mDone').onclick=()=>closeMini(true);
 }
+function endMini(){
+ if(!M||M.ended)return;M.ended=true;cancelAnimationFrame(M.raf);if(M.iv)clearInterval(M.iv);
+ const tot=Math.max(1,M.perfect+M.good+M.miss);
+ const acc=(M.perfect+M.good*0.6)/tot;
+ miniResult('drum',acc,`${M.perfect} perfect · ${M.good} jó · ${M.miss} melló · leghosszabb sorozat ${M.best}×`);
+}
+
+/* ============================ FÉNYSHOW MINI-JÁTÉK ============================
+   Szándékosan MÁS skill, mint a dobos: nem diszkrét koppintás-időzítés, hanem
+   FOLYAMATOS KÖVETÉS + TÉRBELI IDŐZÍTÉS. Az ujjaddal viszed a reflektort:
+     · végig az előadón kell tartani (folyamatos pontgyűjtés),
+     · a dropra ott kell lenned a fényben (pozíció + időzítés egyszerre),
+     · közben felvillanó közönség-pontokat lehet elkapni — de közben leveszed
+       a fényt az előadóról, tehát valódi döntés. */
+const LT={dur:12000,spotR:58,perfectR:36,goodR:74,hotR:46,hotWin:2100,lead:1400,
+  drops:[3000,5600,8300,10800],hots:[1700,4400,7100,9600]};
+function perfPos(t,W,H){
+ return{x:clamp(W*(0.5+0.34*Math.sin(t/1450)+0.10*Math.sin(t/620+1.2)),34,W-34),
+        y:clamp(H*(0.30+0.14*Math.sin(t/980+0.6)+0.05*Math.sin(t/430)),28,H*0.56)};
+}
+function countdown(done){
+ let c=3;const cd=$('#mCount');
+ const step=()=>{ if(!M||M.ended)return;
+   if(c>0){if(cd)cd.textContent=c;blip(520+(3-c)*90,0.07,'sine',0.12);c--;setTimeout(step,620);}
+   else{const r=$('#mReady');if(r)r.style.display='none';done();}};
+ step();
+}
+function openLights(stopIdx){
+ const L=S.live;if(!L)return;
+ const a=AM[L.artist],peak=peakSong(a,L.setlist),city=CM[L.stops[stopIdx].city];
+ L.pausedLeft=remainMs();
+ M={kind:'lights',stop:stopIdx,crowd:46,combo:0,best:0,down:false,sx:0,sy:0,px:0,py:0,
+    drops:LT.drops.map(t=>({t,done:false})),
+    hots:LT.hots.map(t=>({t,done:false,caught:false,shown:false,x:0,y:0})),
+    dPerfect:0,dGood:0,dMiss:0,hotCaught:0,trackOn:0,trackAll:0,
+    t0:0,started:false,ended:false,raf:0,iv:0,W:1,H:1};
+ $('#mini').innerHTML=`
+  <div class="mtop">
+    <div class="r1"><div style="min-width:0">
+      <div class="kick2">${esc(city.n)} · tiéd a fénypult</div>
+      <div class="sng">${esc(peak?peak.n:'Fényshow')}</div></div>
+      <button class="x" id="mSound" style="color:${S.sound===false?'var(--faint)':'var(--neon)'}">HANG</button></div>
+    <div class="mbar"><i id="mCrowd" style="width:46%"></i><b>KÖZÖNSÉG</b></div>
+  </div>
+  <div class="stage" id="stg">
+    <div class="grid"></div><div class="crowdband"></div>
+    <div class="hint2" id="stgHint">HÚZD AZ UJJAD — TARTSD RAJTA A FÉNYT</div>
+    <div class="hot" id="hot"></div>
+    <div class="perf" id="perf"></div>
+    <div class="dring" id="dring"></div>
+    <div class="spot" id="spot"></div>
+    <div class="flash2" id="flash"></div>
+    <div class="dropcue" id="dcue">DROP!</div>
+  </div>
+  <div class="mmid" style="flex:0 0 auto;min-height:52px"><div class="mjudge" id="mJudge"></div><div class="mcombo" id="mCombo"></div></div>
+  <div class="mfoot"><button class="btn dark sm" id="mQuit">Kihagyom — menjen automatán</button></div>
+  <div class="mready" id="mReady">
+    <div class="mcount" id="mCount">3</div>
+    <h3>Tiéd a fénypult</h3>
+    <p>Tartsd a reflektort az előadón. A <b style="color:var(--hot)">DROP</b>-ra legyél pontosan rajta,
+       és kapd el a felvillanó <b style="color:var(--gold)">közönség-pontokat</b>.</p>
+  </div>`;
+ $('#mini').className='on';
+ $('#mSound').onclick=()=>{S.sound=(S.sound===false);save();$('#mSound').style.color=S.sound===false?'var(--faint)':'var(--neon)';};
+ $('#mQuit').onclick=()=>closeMini(false);
+ const stg=$('#stg'),sp=$('#spot');
+ const put=e=>{const r=stg.getBoundingClientRect();
+   M.sx=clamp(e.clientX-r.left,0,r.width);M.sy=clamp(e.clientY-r.top,0,r.height);
+   sp.style.transform=`translate(${M.sx}px,${M.sy}px)`;};
+ stg.onpointerdown=e=>{e.preventDefault();M.down=true;try{stg.setPointerCapture(e.pointerId);}catch(x){}
+   const hh=$('#stgHint');if(hh)hh.style.display='none';put(e);};
+ stg.onpointermove=e=>{if(M&&M.down)put(e);};
+ stg.onpointerup=stg.onpointercancel=()=>{if(M)M.down=false;};
+ /* induló pozíció: a színpad közepe */
+ const r0=stg.getBoundingClientRect();M.W=r0.width;M.H=r0.height;
+ M.sx=M.W/2;M.sy=M.H*0.34;sp.style.transform=`translate(${M.sx}px,${M.sy}px)`;
+ countdown(()=>{M.t0=performance.now();M.started=true;
+   M.iv=setInterval(lightTick,25);M.raf=requestAnimationFrame(lightDraw);});
+}
+function judgeL(kind){
+ const j=$('#mJudge'),cb=$('#mCombo');
+ const map={perfect:['TÖKÉLETES','var(--neon)',1180,'sine',0.2],
+            good:['JÓ FÉNY','var(--cash)',760,'sine',0.16],
+            miss:['SÖTÉT','var(--hot)',130,'square',0.13],
+            hot:['ELKAPVA','var(--gold)',980,'sine',0.17]};
+ const m=map[kind];blip(m[2],kind==='miss'?0.11:0.08,m[3],m[4]);
+ if(j){j.textContent=m[0];j.style.color=m[1];j.classList.remove('go');void j.offsetWidth;j.classList.add('go');}
+ if(cb)cb.textContent=M.combo>=3?`${M.combo}× SOROZAT`:'';
+ if(kind==='perfect'){const fl=$('#flash');if(fl){fl.classList.remove('go');void fl.offsetWidth;fl.classList.add('go');}}
+}
+function lightTick(){
+ if(!M||M.ended)return;
+ const now=performance.now()-M.t0,W=M.W,H=M.H;
+ const P=perfPos(now,W,H);M.px=P.x;M.py=P.y;
+ /* folyamatos követés */
+ M.trackAll++;
+ const d=Math.hypot(M.sx-P.x,M.sy-P.y);
+ if(d<=LT.spotR){M.trackOn++;M.crowd=clamp(M.crowd+0.22,0,100);}
+ else M.crowd=clamp(M.crowd-0.17,0,100);
+ /* közönség-pontok */
+ M.hots.forEach(h=>{
+  if(!h.shown&&now>=h.t){h.shown=true;h.x=W*(0.16+Math.random()*0.68);h.y=H*(0.68+Math.random()*0.2);}
+  if(h.shown&&!h.done){
+   if(now>h.t+LT.hotWin)h.done=true;
+   else if(Math.hypot(M.sx-h.x,M.sy-h.y)<=LT.hotR){h.done=true;h.caught=true;M.hotCaught++;
+     M.combo++;M.best=Math.max(M.best,M.combo);M.crowd=clamp(M.crowd+4,0,100);judgeL('hot');}
+  }});
+ /* dropok: a pillanatban a fényben kell lenni */
+ M.drops.forEach(dp=>{ if(dp.done||now<dp.t)return; dp.done=true;
+  if(d<=LT.perfectR){M.dPerfect++;M.combo++;M.crowd=clamp(M.crowd+7,0,100);judgeL('perfect');}
+  else if(d<=LT.goodR){M.dGood++;M.combo++;M.crowd=clamp(M.crowd+3.5,0,100);judgeL('good');}
+  else{M.dMiss++;M.combo=0;M.crowd=clamp(M.crowd-6,0,100);judgeL('miss');}
+  M.best=Math.max(M.best,M.combo);});
+ const cr=$('#mCrowd');if(cr)cr.style.width=M.crowd.toFixed(1)+'%';
+ if(now>=LT.dur)endLights();
+}
+function lightDraw(){
+ if(!M||M.ended)return;
+ const now=performance.now()-M.t0,P=perfPos(now,M.W,M.H);
+ const pf=$('#perf');if(pf)pf.style.transform=`translate(${P.x}px,${P.y}px)`;
+ const dr=$('#dring'),dc=$('#dcue');let inc=false;
+ for(let i=0;i<M.drops.length;i++){const dp=M.drops[i];if(dp.done)continue;
+  const dt=dp.t-now;
+  if(dt<=LT.lead&&dt>=-60){inc=true;const p=clamp(1-dt/LT.lead,0,1);
+   if(dr){dr.style.opacity=(0.28+p*0.72).toFixed(2);
+    dr.style.transform=`translate(${P.x}px,${P.y}px) scale(${(2.2-p*1.55).toFixed(3)})`;}
+   if(dc&&dt<720&&!dp.cued){dp.cued=true;dc.classList.remove('go');void dc.offsetWidth;dc.classList.add('go');}
+   break;}
+ }
+ if(!inc&&dr)dr.style.opacity=0;
+ const ho=$('#hot');let h=null;
+ for(let i=0;i<M.hots.length;i++){if(M.hots[i].shown&&!M.hots[i].done){h=M.hots[i];break;}}
+ if(ho){if(h){ho.className='hot on';ho.style.transform=`translate(${h.x}px,${h.y}px)`;}else ho.className='hot';}
+ const sp=$('#spot');if(sp)sp.classList.toggle('hit',Math.hypot(M.sx-P.x,M.sy-P.y)<=LT.spotR);
+ M.raf=requestAnimationFrame(lightDraw);
+}
+function endLights(){
+ if(!M||M.ended)return;M.ended=true;cancelAnimationFrame(M.raf);if(M.iv)clearInterval(M.iv);
+ const track=M.trackAll?M.trackOn/M.trackAll:0;
+ const dTot=M.dPerfect+M.dGood+M.dMiss||1;
+ const dropSc=(M.dPerfect+M.dGood*0.6)/dTot;
+ const hotSc=M.hots.length?M.hotCaught/M.hots.length:0;
+ const acc=clamp(track*0.40+dropSc*0.45+hotSc*0.15,0,1);
+ miniResult('lights',acc,
+  `${Math.round(track*100)}% követés · ${M.dPerfect} tökéletes drop · ${M.hotCaught}/${M.hots.length} közönség-pont<br>leghosszabb sorozat ${M.best}×`);
+}
+/* Egy show = EGY mini-játék-pillanat, és váltakozik, melyik jön. */
+function miniKindFor(i){return (((S.toursDone||0)+i)%2===0)?'drum':'lights';}
 function closeMini(played){
  const L=S.live;
  if(M){if(M.raf)cancelAnimationFrame(M.raf);if(M.iv)clearInterval(M.iv);}
  if(M&&!M.ended&&!played){                       // kiszállt: legyen tiszta auto, ne fél-eredmény
-  M.ended=true;if(L){L.drumSkip=L.drumSkip||{};L.drumSkip[M.stop]=true;}
+  M.ended=true;if(L){L.miniSkip=L.miniSkip||{};L.miniSkip[M.stop]=true;}
  }
  M=null;$('#mini').className='';$('#mini').innerHTML='';
  if(L&&L.pausedLeft!=null){L.ends=Date.now()+L.pausedLeft;L.pausedLeft=null;}
@@ -1900,25 +2087,30 @@ function liveScreen(){
       <span id="lvNext">${travelling?'Utána: koncert':'Utána: továbbindulás'}</span></div>
    </div></div>`;
 
- /* ---- dobos mini-játék: opcionális felső ráadás, sosem kényszer ---- */
+ /* ---- mini-játék: opcionális felső ráadás, sosem kényszer ----
+    Egy show = EGY pillanat, és váltakozik, hogy dobos vagy fényshow jön. */
  if(!travelling){
-  const si=p.i, dr=(L.drum&&L.drum[si])||null, skipped=!!(L.drumSkip&&L.drumSkip[si]);
+  const si=p.i, dr=(L.mini&&L.mini[si])||null, skipped=!!(L.miniSkip&&L.miniSkip[si]);
+  const kind=miniKindFor(si), isDrum=kind==='drum';
   const big=(v.cap>=9000)||(si===L.stops.length-1);       // nagy este: színház+ vagy a turné zárása
   if(dr){
    const gr=dr.acc>=0.9?'A+':dr.acc>=0.78?'A':dr.acc>=0.62?'B':dr.acc>=0.45?'C':'D';
+   const nm=dr.kind==='lights'?'Fényshow':'Dobszóló', un=dr.kind==='lights'?'fényteljesítmény':'pontosság';
    h+=`<div class="drumres"><span class="v3" style="color:${dr.pts>=0?'var(--neon)':'var(--hot)'}">${gr}</span>
-     <div style="flex:1"><div style="font-weight:700;font-size:13px">Dobszóló · ${Math.round(dr.acc*100)}% pontosság</div>
+     <div style="flex:1"><div style="font-weight:700;font-size:13px">${nm} · ${Math.round(dr.acc*100)}% ${un}</div>
        <div style="font-size:11.5px;color:var(--muted);margin-top:2px">
          <b style="color:${dr.pts>=0?'var(--cash)':'var(--hot)'}">${dr.pts>=0?'+':''}${dr.pts} pont</b> a ma esti show-ra</div></div></div>`;
   }else if(big&&!S.autoShow&&!skipped){
-   h+=`<div class="offer"><div class="ic3">${icon('mic','19px')}</div>
-     <div class="t3"><div class="h3">Nagy este — állj a dobok mögé!</div>
-       <div class="s3">Kb. 12 másodperc. Pontos ütés = felpörög a közönség, jobb show. Ha kihagyod, a koncert magától lemegy.</div></div></div>
-     <div class="btnrow" style="margin-top:9px"><button class="btn lime sm" id="lvDrum">${icon('play','15px')} Beállok</button>
+   h+=`<div class="offer"><div class="ic3">${icon(isDrum?'mic':'bolt','19px')}</div>
+     <div class="t3"><div class="h3">${isDrum?'Nagy este — állj a dobok mögé!':'Nagy este — tiéd a fénypult!'}</div>
+       <div class="s3">${isDrum
+         ?'Kb. 12 másodperc. Pontos ütés = felpörög a közönség, jobb show.'
+         :'Kb. 12 másodperc. Tartsd a reflektort az előadón, és kapd el a dropokat.'} Ha kihagyod, a koncert magától lemegy.</div></div></div>
+     <div class="btnrow" style="margin-top:9px"><button class="btn lime sm" id="lvDrum">${icon('play','15px')} ${isDrum?'Beállok':'Fénypulthoz'}</button>
        <button class="btn dark sm" id="lvDrumNo" style="flex:0 0 auto">Most nem</button></div>
      <div style="text-align:center;margin-top:8px"><button id="lvAuto" style="font-size:11.5px;color:var(--faint);font-weight:700;text-decoration:underline">Ne kérdezd többször — menjen automatán</button></div>`;
   }else{
-   h+=`<button class="btn dark sm" id="lvDrum" style="margin-top:12px">${icon('mic','15px')} Beállok dobolni · bónusz a show-ra</button>`;
+   h+=`<button class="btn dark sm" id="lvDrum" style="margin-top:12px">${icon(isDrum?'mic':'bolt','15px')} ${isDrum?'Beállok dobolni':'Beállok a fénypulthoz'} · bónusz a show-ra</button>`;
   }
  }
 
@@ -1959,8 +2151,9 @@ function liveScreen(){
  view.innerHTML=h;view.scrollTop=sc;
  if(HAS_MAP){initMap();}
  $('#lvAd').onclick=adSkip;
- const dbtn=$('#lvDrum');if(dbtn)dbtn.onclick=()=>openMini(curPhase().i);
- const dno=$('#lvDrumNo');if(dno)dno.onclick=()=>{L.drumSkip=L.drumSkip||{};L.drumSkip[curPhase().i]=true;save();liveScreen();};
+ const dbtn=$('#lvDrum');if(dbtn)dbtn.onclick=()=>{const i2=curPhase().i;
+   miniKindFor(i2)==='drum'?openMini(i2):openLights(i2);};
+ const dno=$('#lvDrumNo');if(dno)dno.onclick=()=>{L.miniSkip=L.miniSkip||{};L.miniSkip[curPhase().i]=true;save();liveScreen();};
  const dau=$('#lvAuto');if(dau)dau.onclick=()=>{S.autoShow=true;save();toast('Rendben — a show-k automatán mennek.');liveScreen();};
  $('#lvStop').onclick=()=>confirmBox('Megszakítod a turnét?',
    'A hátralévő koncertek elmaradnak, és ez hírnévbe kerül. A már megkeresett pénz megmarad.','Igen, megszakítom',abandonTour);
