@@ -1,0 +1,1695 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<title>Turné Menedzser</title>
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f%5B%5D=clash-display@600,700&f%5B%5D=satoshi@500,700,900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{
+  --bg:#070809; --bg2:#0b0d10; --panel:#111318; --panel2:#171a20; --panel3:#1f232b;
+  --line:#242a33; --line2:#333b47;
+  --neon:#C6FF3A; --neon-d:#9bd211; --neon-dd:#6f9400; --neonglow:rgba(198,255,58,.55);
+  --cash:#2FE39B; --gold:#FFC24B; --hot:#FF3D84;
+  --text:#F4F6F1; --muted:#9199a8; --faint:#606877;
+  --disp:'Clash Display',system-ui,sans-serif;
+  --body:'Satoshi',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --sh:0 20px 45px -18px rgba(0,0,0,.75);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:var(--body);color:var(--text);background:var(--bg);overflow:hidden}
+button{font-family:var(--body);cursor:pointer;border:0;background:none;color:inherit}
+img{display:block;max-width:100%}
+.num{font-family:var(--disp);font-weight:700;font-feature-settings:"tnum" 1;letter-spacing:.02em}
+.disp{font-family:var(--disp);font-weight:700;letter-spacing:.005em}
+
+/* ---------- app frame ---------- */
+#app{max-width:480px;height:100dvh;margin:0 auto;position:relative;background:var(--bg);overflow:hidden;
+  box-shadow:0 0 60px rgba(0,0,0,.6)}
+
+/* ambient light */
+#app::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(520px 300px at 50% -6%,rgba(198,255,58,.08),transparent 62%),
+             radial-gradient(600px 340px at 100% 8%,rgba(255,61,132,.08),transparent 60%)}
+
+/* ---------- HUD ---------- */
+#hud{position:absolute;top:0;left:0;right:0;z-index:30;padding:12px 14px 10px;
+  background:linear-gradient(180deg,rgba(7,8,9,.96),rgba(7,8,9,.7) 78%,transparent);backdrop-filter:blur(6px)}
+.hud-top{display:flex;align-items:center;gap:11px}
+.ag-av{width:42px;height:42px;border-radius:13px;flex:0 0 auto;overflow:hidden;position:relative;border:1px solid var(--line2);
+  background:linear-gradient(145deg,#2a2f16,#0e1005);display:flex;align-items:center;justify-content:center;color:var(--neon)}
+.ag-av img{width:100%;height:100%;object-fit:cover}
+.ag-who{flex:1;min-width:0}
+.ag-who .nm{font-family:var(--disp);font-weight:700;font-size:17px;line-height:1;letter-spacing:.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ag-who .lv{display:flex;align-items:center;gap:7px;margin-top:5px;font-size:11px;color:var(--muted);font-weight:600}
+.ag-who .lv b{color:var(--neon);background:rgba(198,255,58,.12);border:1px solid rgba(198,255,58,.32);
+  padding:1px 8px;border-radius:20px;font-family:var(--disp);font-size:11px;letter-spacing:.03em}
+.ag-set{width:36px;height:36px;border-radius:11px;background:var(--panel);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:17px;flex:0 0 auto}
+.res{display:flex;gap:8px;margin-top:11px}
+.pill{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:8px 11px;display:flex;align-items:center;gap:9px}
+.pill .ic{font-size:18px;flex:0 0 auto}
+.pill.cash .ic{color:var(--cash)} .pill.rep .ic{color:var(--gold)} .pill.wk .ic{color:var(--muted)}
+.pill .k{font-size:8.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--faint);font-weight:700}
+.pill .v{font-family:var(--disp);font-weight:700;font-size:16px;font-feature-settings:"tnum" 1;letter-spacing:.02em;line-height:1;margin-top:3px}
+.pill.cash .v{color:var(--cash)}
+
+/* ---------- scroll view ---------- */
+#view{position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;z-index:10;
+  padding-bottom:96px}
+#view::-webkit-scrollbar{display:none}
+.pad{padding:0 14px}
+.hud-space{height:118px}
+
+/* ---------- section head ---------- */
+.sec{display:flex;align-items:center;justify-content:space-between;margin:20px 2px 12px}
+.sec h2{font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:.005em}
+.sec .r{font-size:11px;font-weight:700;color:var(--faint);background:var(--panel);border:1px solid var(--line);
+  padding:4px 9px;border-radius:9px;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:6px}
+.sec .r.act{color:var(--neon);border-color:rgba(198,255,58,.3)}
+
+/* ---------- coach / next step ---------- */
+.coach{display:flex;gap:12px;align-items:center;background:linear-gradient(135deg,rgba(198,255,58,.14),rgba(198,255,58,.04));
+  border:1px solid rgba(198,255,58,.3);border-radius:16px;padding:13px 14px;margin-top:4px}
+.coach .n{width:34px;height:34px;border-radius:11px;background:var(--neon);color:#141a03;font-family:var(--disp);font-weight:700;
+  font-size:17px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;box-shadow:0 4px 0 var(--neon-dd)}
+.coach .t{flex:1}
+.coach .t .h{font-family:var(--disp);font-weight:700;font-size:14px}
+.coach .t .s{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.35}
+.coach .go{color:var(--neon);font-size:22px;flex:0 0 auto}
+
+/* ---------- 3D buttons ---------- */
+.btn{display:flex;align-items:center;justify-content:center;gap:9px;font-family:var(--disp);font-weight:700;font-size:16px;
+  border-radius:15px;padding:15px;letter-spacing:.01em;position:relative;transition:transform .07s,box-shadow .07s;width:100%}
+.btn .ic{font-size:19px}
+.btn:active{transform:translateY(4px)}
+.btn.lime{background:linear-gradient(180deg,#d6ff62,var(--neon));color:#141a03;box-shadow:0 5px 0 var(--neon-d),0 12px 26px -8px var(--neonglow)}
+.btn.lime:active{box-shadow:0 1px 0 var(--neon-d),0 6px 14px -8px var(--neonglow)}
+.btn.dark{background:linear-gradient(180deg,var(--panel3),var(--panel));color:var(--text);border:1px solid var(--line2);box-shadow:0 5px 0 #0b0d10}
+.btn.dark:active{box-shadow:0 1px 0 #0b0d10}
+.btn.hot{background:linear-gradient(180deg,#ff5c9a,var(--hot));color:#2c0714;box-shadow:0 5px 0 #c31e5e,0 12px 26px -8px rgba(255,61,132,.5)}
+.btn.hot:active{box-shadow:0 1px 0 #c31e5e}
+.btn:disabled{opacity:.45;filter:grayscale(.3);box-shadow:none;transform:none;cursor:not-allowed}
+.btn.sm{font-size:13px;padding:11px 14px;border-radius:12px;box-shadow:0 4px 0 rgba(0,0,0,.5)}
+.btnrow{display:flex;gap:10px;margin-top:12px}
+
+/* ---------- hero tile (image forward) ---------- */
+.hero{position:relative;border-radius:22px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--sh);margin-top:4px}
+.hero .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero .g{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,8,9,.15) 0%,rgba(7,8,9,.45) 46%,rgba(7,8,9,.95) 100%)}
+.hero .in{position:relative;min-height:220px;display:flex;flex-direction:column;justify-content:flex-end;padding:18px}
+.hero .kick{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--neon);font-weight:700;margin-bottom:8px;
+  display:flex;align-items:center;gap:7px}
+.hero h1{font-family:var(--disp);font-weight:700;font-size:30px;line-height:1.02;letter-spacing:.005em;text-shadow:0 3px 16px rgba(0,0,0,.5)}
+.hero p{color:#e7e9e0;font-size:13px;margin-top:8px;line-height:1.5;max-width:38ch;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+
+/* equalizer motif */
+.eq{display:inline-flex;gap:2px;align-items:flex-end;height:11px}
+.eq i{width:3px;background:var(--neon);border-radius:2px;animation:eq 900ms ease-in-out infinite}
+.eq i:nth-child(1){height:40%;animation-delay:0ms}
+.eq i:nth-child(2){height:100%;animation-delay:150ms}
+.eq i:nth-child(3){height:60%;animation-delay:300ms}
+.eq i:nth-child(4){height:85%;animation-delay:100ms}
+@keyframes eq{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+
+/* live dot */
+.live{display:inline-flex;align-items:center;gap:6px;background:rgba(0,0,0,.5);border:1px solid var(--line2);
+  padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--neon)}
+.live .d{width:7px;height:7px;border-radius:50%;background:var(--neon);box-shadow:0 0 8px var(--neon);animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+
+/* ---------- artist portrait tiles ---------- */
+.hscroll{display:flex;gap:12px;overflow-x:auto;padding:2px 14px 6px;scroll-snap-type:x mandatory}
+.hscroll::-webkit-scrollbar{display:none}
+.acard{scroll-snap-align:start;flex:0 0 150px;border-radius:18px;overflow:hidden;position:relative;border:1px solid var(--line);
+  background:var(--panel);box-shadow:var(--sh)}
+.acard .ph{position:relative;height:186px}
+.acard .ph img{width:100%;height:100%;object-fit:cover}
+.acard .ph .g{position:absolute;inset:0;background:linear-gradient(180deg,transparent 32%,rgba(9,10,12,.92))}
+.acard .badge{position:absolute;top:9px;left:9px;background:rgba(0,0,0,.55);border:1px solid var(--line2);border-radius:9px;
+  padding:3px 8px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--neon);display:flex;align-items:center;gap:5px}
+.acard .info{position:absolute;left:11px;right:11px;bottom:10px}
+.acard .info .nm{font-family:var(--disp);font-weight:700;font-size:17px;line-height:1.02;letter-spacing:.01em;word-spacing:.04em}
+.acard .info .gen{font-size:10.5px;color:var(--muted);font-weight:600;margin-top:2px}
+.acard .info .fame{display:flex;align-items:center;gap:6px;margin-top:8px}
+.acard .info .fbar{flex:1;height:6px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}
+.acard .info .fbar i{display:block;height:100%;background:var(--neon);box-shadow:0 0 8px var(--neonglow)}
+.acard .info .fn{font-family:var(--disp);font-weight:700;font-size:12px;color:var(--neon);font-feature-settings:"tnum" 1}
+.acard.add{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px;color:var(--muted);
+  border-style:dashed;border-color:var(--line2)}
+.acard.add .plus{width:44px;height:44px;border-radius:14px;background:var(--panel3);display:flex;align-items:center;justify-content:center;
+  font-size:26px;color:var(--neon)}
+.acard.add .l{font-family:var(--disp);font-weight:700;font-size:13px;text-align:center;padding:0 12px}
+
+/* ---------- big list card (image left) ---------- */
+.lcard{display:flex;gap:0;background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:11px;box-shadow:var(--sh)}
+.lcard .ph{width:108px;flex:0 0 108px;position:relative;overflow:hidden}
+.lcard .ph img{width:100%;height:100%;object-fit:cover;min-height:118px}
+.lcard .ph .gi{position:absolute;left:8px;top:8px;font-size:14px;color:#141a03;background:var(--neon);border-radius:8px;padding:3px;line-height:0}
+.lcard .bd{flex:1;min-width:0;padding:12px 13px;display:flex;flex-direction:column;justify-content:center}
+.lcard .nm{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:.01em;word-spacing:.05em;line-height:1.02}
+.lcard .chips{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.chip{font-size:10.5px;font-weight:700;color:var(--muted);background:var(--panel2);border:1px solid var(--line);
+  padding:3px 9px;border-radius:8px;letter-spacing:.02em}
+.chip.mint{color:var(--cash);border-color:rgba(47,227,155,.3)}
+.chip.gold{color:var(--gold);border-color:rgba(255,194,75,.3)}
+.chip.lime{color:var(--neon);border-color:rgba(198,255,58,.3)}
+.lcard .btm{margin-top:10px}
+
+/* pips fame meter */
+.pips{display:flex;gap:3px;align-items:center}
+.pips .p{height:7px;width:9px;border-radius:3px;background:rgba(255,255,255,.1);border:1px solid var(--line)}
+.pips .p.on{background:var(--neon);border-color:var(--neon);box-shadow:0 0 5px var(--neonglow)}
+.pips .fn{font-family:var(--disp);font-weight:700;font-size:12px;color:var(--neon);margin-left:5px;font-feature-settings:"tnum" 1}
+
+/* ---------- next show ---------- */
+.nextshow{border-radius:20px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--sh);position:relative}
+.nextshow .ph{position:relative;height:158px}
+.nextshow .ph img{width:100%;height:100%;object-fit:cover}
+.nextshow .ph .g{position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,10,12,.1),rgba(9,10,12,.55) 45%,var(--panel))}
+.nextshow .top{position:absolute;top:11px;left:11px;right:11px;display:flex;justify-content:space-between;align-items:center}
+.nextshow .bd{padding:0 14px 14px;margin-top:-34px;position:relative}
+.nextshow .city{font-family:var(--disp);font-weight:700;font-size:27px;letter-spacing:.01em;line-height:1}
+.nextshow .sub{color:var(--muted);font-size:12.5px;font-weight:600;margin-top:3px}
+.statrow{display:flex;gap:9px;margin:13px 0}
+.st{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px 10px}
+.st .k{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--faint);font-weight:700}
+.st .v{font-family:var(--disp);font-weight:700;font-size:16px;margin-top:3px;font-feature-settings:"tnum" 1;letter-spacing:.02em}
+.st .v.pos{color:var(--cash)} .st .v.neg{color:var(--hot)}
+
+/* ---------- stat tiles ---------- */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:13px 10px;text-align:center}
+.tile .ic{font-size:20px;margin-bottom:5px}
+.tile.c1 .ic{color:var(--cash)} .tile.c2 .ic{color:var(--gold)} .tile.c3 .ic{color:var(--neon)}
+.tile .v{font-family:var(--disp);font-weight:700;font-size:19px;font-feature-settings:"tnum" 1;letter-spacing:.02em}
+.tile .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:700;margin-top:3px}
+
+/* ---------- head (screen title) ---------- */
+.shead{padding:6px 2px 2px}
+.shead .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.18em;color:var(--neon);font-weight:700}
+.shead h1{font-family:var(--disp);font-weight:700;font-size:26px;margin-top:6px;letter-spacing:.005em}
+.shead p{color:var(--muted);font-size:13px;margin-top:6px;line-height:1.45}
+
+/* ---------- artist detail ---------- */
+.adhero{position:relative;border-radius:0 0 24px 24px;overflow:hidden;margin:0 -0px}
+.adhero img{width:100%;height:330px;object-fit:cover}
+.adhero .g{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,8,9,.45),rgba(7,8,9,.1) 40%,var(--bg))}
+.adhero .back{position:absolute;top:14px;left:14px;width:40px;height:40px;border-radius:12px;background:rgba(0,0,0,.5);
+  border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;z-index:5}
+.adhero .info{position:absolute;left:16px;right:16px;bottom:14px}
+.adhero .info .gen{font-size:11px;text-transform:uppercase;letter-spacing:.15em;color:var(--neon);font-weight:700}
+.adhero .info h1{font-family:var(--disp);font-weight:700;font-size:36px;letter-spacing:.01em;line-height:1;margin-top:6px;word-spacing:.05em}
+
+/* songs */
+.song{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:13px;background:var(--panel);
+  border:1px solid var(--line);margin-bottom:8px;transition:.12s}
+.song.on{border-color:var(--neon);background:rgba(198,255,58,.07)}
+.song .q{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.song .t{font-weight:700;font-size:14px;flex:1;letter-spacing:.01em}
+.song .qn{font-family:var(--disp);font-size:12px;color:var(--muted);font-feature-settings:"tnum" 1}
+.song .ck{width:24px;height:24px;border-radius:8px;border:1.5px solid var(--line2);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:15px;color:transparent}
+.song.on .ck{background:var(--neon);border-color:var(--neon);color:#141a03}
+
+/* ---------- map ---------- */
+#lmap{height:300px;width:100%;background:#0a0f18}
+.leaflet-container{background:#0a0f18;font-family:var(--body)}
+.leaflet-control-zoom a{background:var(--panel3)!important;color:var(--text)!important;border-color:var(--line2)!important}
+.leaflet-bar{border:1px solid var(--line2)!important;box-shadow:none!important}
+.leaflet-control-attribution{background:rgba(7,8,9,.6)!important;color:var(--faint)!important;font-size:9px!important}
+.leaflet-control-attribution a{color:var(--muted)!important}
+.pin{display:flex;align-items:center;justify-content:center}
+.pin .dot{width:12px;height:12px;border-radius:50%;background:#aeb6c4;border:2px solid rgba(0,0,0,.55)}
+.pin.on .dot{width:26px;height:26px;background:radial-gradient(circle at 35% 30%,#eaffb0,var(--neon));border:2px solid #141a03;
+  box-shadow:0 0 0 4px rgba(198,255,58,.22),0 0 15px var(--neonglow);font-family:var(--disp);font-weight:700;font-size:12px;color:#141a03;
+  display:flex;align-items:center;justify-content:center}
+.pin.on.done .dot{background:radial-gradient(circle at 35% 30%,#b5ffe2,var(--cash));box-shadow:0 0 0 4px rgba(47,227,155,.2),0 0 14px rgba(47,227,155,.6)}
+.movpin{width:30px;height:30px;border-radius:50%;background:rgba(7,8,9,.85);border:2px solid var(--neon);color:var(--neon);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 14px var(--neonglow);animation:pulse 1.6s infinite}
+.route-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:11px}
+.route-sum .b{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 6px;text-align:center}
+.route-sum .k{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--faint);font-weight:700}
+.route-sum .v{font-family:var(--disp);font-weight:700;font-size:15px;margin-top:3px;font-feature-settings:"tnum" 1;letter-spacing:.02em}
+
+/* city chips */
+.grp{margin-top:12px}
+.grp .l{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--faint);font-weight:700;margin:0 0 7px}
+.cchips{display:flex;flex-wrap:wrap;gap:7px}
+.cchip{padding:8px 11px;border-radius:11px;background:var(--panel);border:1px solid var(--line2);font-size:13px;font-weight:600;
+  display:flex;align-items:center;gap:7px;transition:.12s}
+.cchip .o{font-family:var(--disp);font-size:11px;font-weight:700;background:var(--neon);color:#141a03;width:18px;height:18px;
+  border-radius:50%;display:none;align-items:center;justify-content:center}
+.cchip.on{background:rgba(198,255,58,.13);border-color:var(--neon);color:#fff}
+.cchip.on .o{display:inline-flex}
+.cchip small{color:var(--faint);font-size:10px}
+
+/* stop cards with city photo */
+.stop{border:1px solid var(--line);border-radius:18px;overflow:hidden;margin-bottom:12px;background:var(--panel);box-shadow:var(--sh)}
+.stop .ph{position:relative;height:120px}
+.stop .ph img{width:100%;height:100%;object-fit:cover}
+.stop .ph .g{position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,10,12,.1),rgba(9,10,12,.35) 50%,var(--panel))}
+.stop .ph .lab{position:absolute;left:12px;right:12px;bottom:9px;display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+.stop .ph .no{font-family:var(--disp);font-weight:700;font-size:11px;color:#141a03;background:var(--neon);border-radius:7px;padding:2px 8px}
+.stop .ph .c{font-family:var(--disp);font-weight:700;font-size:23px;letter-spacing:.01em;text-shadow:0 2px 10px rgba(0,0,0,.7);line-height:1;margin-top:5px}
+.stop .ph .leg{font-size:11px;color:#e6ecd9;background:rgba(0,0,0,.4);padding:3px 9px;border-radius:8px;white-space:nowrap;font-weight:600}
+.stop .bd{padding:13px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.seg button{padding:9px 2px;border-radius:11px;background:var(--panel2);border:1px solid var(--line2);font-size:11.5px;font-weight:700;
+  color:var(--muted);display:flex;flex-direction:column;gap:2px;line-height:1.15}
+.seg button small{font-size:9px;color:var(--faint);font-weight:600}
+.seg button.on{background:rgba(198,255,58,.14);border-color:var(--neon);color:#fff}
+.pr{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+.pr label{font-size:12px;color:var(--muted);min-width:52px;font-weight:600}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:7px;border-radius:7px;
+  background:linear-gradient(90deg,var(--hot),var(--neon));outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;
+  border:3px solid var(--neon);box-shadow:0 3px 8px rgba(0,0,0,.5);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--neon);cursor:pointer}
+.pv-price{font-family:var(--disp);font-weight:700;min-width:52px;text-align:right;color:var(--neon);font-feature-settings:"tnum" 1;letter-spacing:.02em}
+.pv{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.pv .b{background:var(--panel2);border-radius:10px;padding:8px 4px;text-align:center}
+.pv .k{color:var(--faint);font-size:9px;text-transform:uppercase;letter-spacing:.05em;display:block;font-weight:700}
+.pv .v{font-family:var(--disp);font-weight:700;font-size:13.5px;margin-top:2px;font-feature-settings:"tnum" 1;letter-spacing:.02em}
+.good{color:var(--cash)} .bad{color:var(--hot)}
+.fbar2{height:6px;border-radius:6px;background:rgba(255,255,255,.09);overflow:hidden;margin-top:9px}
+.fbar2 i{display:block;height:100%;transition:width .25s}
+
+/* ---------- sticky action ---------- */
+.sticky{position:absolute;left:0;right:0;bottom:74px;z-index:25;padding:12px 14px 8px;
+  background:linear-gradient(180deg,transparent,var(--bg) 40%);pointer-events:none}
+.sticky .in{pointer-events:auto}
+
+/* ---------- bottom nav ---------- */
+#nav{position:absolute;left:0;right:0;bottom:0;height:74px;z-index:40;display:flex;padding:9px 8px calc(9px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,rgba(11,13,16,.86),var(--bg));backdrop-filter:blur(16px);border-top:1px solid var(--line)}
+#nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--faint);font-size:10px;font-weight:700;
+  position:relative;padding-top:7px;transition:color .15s}
+#nav a .ic{font-size:23px}
+#nav a.on{color:var(--neon)}
+#nav a.on .ic{filter:drop-shadow(0 0 7px var(--neonglow))}
+#nav a.on::before{content:"";position:absolute;top:-9px;width:26px;height:3px;border-radius:3px;background:var(--neon);box-shadow:0 0 8px var(--neon)}
+
+/* ---------- result ---------- */
+#result{position:absolute;inset:0;z-index:60;background:var(--bg);overflow-y:auto;padding-bottom:30px;display:none}
+#result::-webkit-scrollbar{display:none}
+.rhero{position:relative;text-align:center;padding:40px 16px 20px;overflow:hidden}
+.rhero .lights{position:absolute;inset:0;pointer-events:none;opacity:.5}
+.rhero .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.2em;font-weight:700}
+.rhero .big{font-family:var(--disp);font-weight:700;font-size:52px;line-height:.95;margin-top:8px;font-feature-settings:"tnum" 1;letter-spacing:.02em}
+.rhero .sub{color:var(--muted);font-size:13px;margin-top:10px}
+.rline{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.rline:last-child{border-bottom:0}
+.rline .num{font-weight:700}
+.tkt{border-radius:15px;overflow:hidden;border:1px solid var(--line);margin-bottom:10px;background:var(--panel)}
+.tkt .ph{position:relative;height:96px}
+.tkt .ph img{width:100%;height:100%;object-fit:cover}
+.tkt .ph .g{position:absolute;inset:0;background:linear-gradient(90deg,rgba(9,10,12,.85),rgba(9,10,12,.2))}
+.tkt .ph .h{position:absolute;inset:0;padding:11px 13px;display:flex;flex-direction:column;justify-content:space-between}
+.tkt .ph .c{font-family:var(--disp);font-weight:700;font-size:19px;text-shadow:0 2px 8px rgba(0,0,0,.7);letter-spacing:.01em}
+.tkt .ph .p{font-family:var(--disp);font-weight:700;font-size:17px;align-self:flex-end;font-feature-settings:"tnum" 1;letter-spacing:.02em}
+
+/* misc */
+.hint{font-size:12px;color:var(--faint);display:flex;gap:8px;align-items:flex-start;line-height:1.45;margin-top:11px;font-weight:500}
+.hint .i{color:var(--neon);flex:0 0 auto}
+.empty{text-align:center;color:var(--muted);padding:26px 16px;font-size:14px;line-height:1.5}
+.lock{font-size:11px;color:var(--faint);border:1px dashed var(--line2);border-radius:9px;padding:6px 10px;display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.divider{height:1px;background:var(--line);margin:16px 0}
+.ico{width:1em;height:1em;fill:currentColor;display:inline-block;vertical-align:-.14em}
+.toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);z-index:80;background:var(--panel3);border:1px solid var(--line2);
+  border-radius:13px;padding:12px 18px;font-size:13px;font-weight:600;box-shadow:var(--sh);max-width:90%;text-align:center;animation:tin .3s}
+@keyframes tin{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ---------- ÉLŐ TURNÉ ---------- */
+.lvc{border-radius:22px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--sh);position:relative;background:var(--panel)}
+.lvc .ph{position:relative;height:172px}
+.lvc .ph img{width:100%;height:100%;object-fit:cover}
+.lvc .ph .g{position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,10,12,.15),rgba(9,10,12,.6) 55%,var(--panel))}
+.lvc .top{position:absolute;top:11px;left:11px;right:11px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.badge2{background:rgba(0,0,0,.55);border:1px solid var(--line2);border-radius:20px;padding:4px 11px;font-size:10px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.lvc .bd{padding:0 15px 15px;margin-top:-40px;position:relative}
+.lvc .kick{font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--neon);font-weight:700;margin-bottom:5px}
+.lvc .ttl{font-family:var(--disp);font-weight:700;font-size:27px;line-height:1.03;letter-spacing:.01em;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.lvc .sub{color:var(--muted);font-size:12.5px;font-weight:600;margin-top:4px}
+.pbar{height:9px;border-radius:9px;background:rgba(255,255,255,.09);overflow:hidden;margin-top:13px;position:relative}
+.pbar i{display:block;height:100%;background:linear-gradient(90deg,var(--neon-d),var(--neon));box-shadow:0 0 12px var(--neonglow);
+  border-radius:9px;transition:width .2s linear}
+.pmeta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:11.5px;color:var(--muted);font-weight:600}
+.pmeta .t{font-family:var(--disp);font-weight:700;font-size:15px;color:var(--text);font-feature-settings:"tnum" 1;letter-spacing:.02em;
+  display:flex;align-items:center;gap:6px}
+.pmeta .t .ico{color:var(--neon)}
+
+/* timeline */
+.tl{position:relative;padding-left:26px;margin-top:4px}
+.tl::before{content:"";position:absolute;left:8px;top:8px;bottom:12px;width:2px;background:var(--line)}
+.tlr{position:relative;margin-bottom:10px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 13px}
+.tlr::before{content:"";position:absolute;left:-24px;top:16px;width:12px;height:12px;border-radius:50%;background:var(--panel3);
+  border:2px solid var(--line2)}
+.tlr.done::before{background:var(--cash);border-color:var(--cash);box-shadow:0 0 8px rgba(47,227,155,.6)}
+.tlr.now{border-color:var(--neon);background:rgba(198,255,58,.07)}
+.tlr.now::before{background:var(--neon);border-color:var(--neon);box-shadow:0 0 10px var(--neonglow);animation:pulse 1.4s infinite}
+.tlr.dead{opacity:.55}
+.tlr .h{display:flex;justify-content:space-between;align-items:baseline;gap:9px}
+.tlr .c{font-family:var(--disp);font-weight:700;font-size:16px;letter-spacing:.01em}
+.tlr .p{font-family:var(--disp);font-weight:700;font-size:14px;font-feature-settings:"tnum" 1;letter-spacing:.02em}
+.tlr .m{font-size:11.5px;color:var(--muted);margin-top:4px;font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.tlr .d{font-size:11px;color:var(--faint);margin-top:3px}
+
+/* esemény napló */
+.logr{display:flex;gap:10px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-radius:13px;
+  padding:10px 12px;margin-bottom:8px}
+.logr .i{width:28px;height:28px;border-radius:9px;background:var(--panel3);display:flex;align-items:center;justify-content:center;
+  font-size:15px;flex:0 0 auto;color:var(--gold)}
+.logr .tx{flex:1;min-width:0;font-size:12.5px;line-height:1.4}
+.logr .tx b{font-family:var(--disp);font-size:13px;letter-spacing:.01em}
+.logr .tx span{color:var(--muted);display:block;margin-top:2px}
+
+/* ---------- esemény modál ---------- */
+#modal{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:16px;
+  background:rgba(4,5,6,.82);backdrop-filter:blur(8px)}
+#modal.on{display:flex;animation:mfade .22s}
+@keyframes mfade{from{opacity:0}to{opacity:1}}
+.ev{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line2);border-radius:22px;overflow:hidden;
+  box-shadow:0 30px 70px -20px #000;animation:mpop .26s cubic-bezier(.2,1.2,.4,1)}
+@keyframes mpop{from{transform:scale(.9) translateY(14px);opacity:0}to{transform:none;opacity:1}}
+.ev .ph{position:relative;height:132px}
+.ev .ph img{width:100%;height:100%;object-fit:cover}
+.ev .ph .g{position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,10,12,.3),rgba(9,10,12,.55) 50%,var(--panel))}
+.ev .ph .ic{position:absolute;left:16px;bottom:12px;width:44px;height:44px;border-radius:14px;display:flex;align-items:center;
+  justify-content:center;font-size:22px;background:var(--panel3);border:1px solid var(--line2)}
+.ev .ph .kick{position:absolute;right:14px;top:13px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;
+  background:rgba(0,0,0,.55);border:1px solid var(--line2);border-radius:20px;padding:4px 11px}
+.ev .bd{padding:15px 16px 16px}
+.ev h3{font-family:var(--disp);font-weight:700;font-size:21px;letter-spacing:.005em;line-height:1.1}
+.ev p{font-size:13px;color:var(--muted);line-height:1.5;margin-top:8px}
+.evch{display:flex;flex-direction:column;gap:9px;margin-top:15px}
+.evb{text-align:left;background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:12px 14px;
+  transition:transform .07s,border-color .12s;box-shadow:0 4px 0 #0b0d10}
+.evb:active{transform:translateY(3px);box-shadow:0 1px 0 #0b0d10}
+.evb .l{font-family:var(--disp);font-weight:700;font-size:15px;letter-spacing:.01em}
+.evb .s{font-size:11.5px;color:var(--muted);margin-top:3px;font-weight:600}
+.evb.good{border-color:rgba(47,227,155,.4)} .evb.good .s{color:var(--cash)}
+.evb.risk{border-color:rgba(255,61,132,.35)} .evb.risk .s{color:var(--hot)}
+.evb.pay .s{color:var(--gold)}
+
+/* ---------- reklám overlay ---------- */
+#adv{position:absolute;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:rgba(3,4,5,.95);padding:18px}
+#adv.on{display:flex}
+.adbox{width:100%;max-width:400px;text-align:center}
+.adscreen{border-radius:20px;border:1px solid var(--line2);background:linear-gradient(160deg,#141821,#090b0e);padding:34px 20px;
+  position:relative;overflow:hidden}
+.adscreen .lbl{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.adscreen .big{font-family:var(--disp);font-weight:700;font-size:23px;margin-top:12px;line-height:1.2}
+.adscreen .cd{font-family:var(--disp);font-weight:700;font-size:46px;color:var(--neon);margin-top:14px;font-feature-settings:"tnum" 1}
+.adscreen .sm{font-size:12px;color:var(--muted);margin-top:10px}
+.adring{width:74px;height:74px;margin:16px auto 0;border-radius:50%;border:4px solid rgba(255,255,255,.1);border-top-color:var(--neon);
+  animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.adx{position:absolute;top:10px;right:12px;color:var(--faint);font-size:20px;font-weight:700;padding:4px 8px}
+
+/* ---------- rajongótábor / streaming ---------- */
+.fanrow{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.fanrow .n{font-size:12px;font-weight:700;width:92px;flex:0 0 auto;color:var(--muted)}
+.fanrow .b{flex:1;height:9px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden}
+.fanrow .b i{display:block;height:100%;border-radius:9px;transition:width .35s}
+.fanrow .v{font-family:var(--disp);font-weight:700;font-size:13px;width:30px;text-align:right;font-feature-settings:"tnum" 1}
+.fanrow .d{font-size:10.5px;font-weight:700;width:38px;text-align:right}
+.bigstat{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:15px 16px;box-shadow:var(--sh)}
+.bigstat .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--faint);font-weight:700}
+.bigstat .v{font-family:var(--disp);font-weight:700;font-size:36px;letter-spacing:.02em;font-feature-settings:"tnum" 1;
+  line-height:1;margin-top:7px;color:var(--neon)}
+.bigstat .s{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4}
+.hypechip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,194,75,.14);border:1px solid rgba(255,194,75,.4);
+  color:var(--gold);border-radius:20px;padding:4px 11px;font-size:10.5px;font-weight:700;letter-spacing:.04em}
+.relbtn{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line2);
+  border-radius:16px;padding:13px 14px;margin-bottom:10px;box-shadow:0 4px 0 #0b0d10;transition:transform .07s}
+.relbtn:active{transform:translateY(3px);box-shadow:0 1px 0 #0b0d10}
+.relbtn:disabled{opacity:.45;box-shadow:none;transform:none}
+.relbtn .ic{width:44px;height:44px;border-radius:14px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  font-size:21px;background:linear-gradient(145deg,#1a1f10,#0d0f08);color:var(--neon)}
+.relbtn .t{flex:1;min-width:0}
+.relbtn .t .h{font-family:var(--disp);font-weight:700;font-size:16px;display:flex;justify-content:space-between;gap:8px}
+.relbtn .t .h span{color:var(--neon)}
+.relbtn .t .s{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+.relbtn .t .m{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+
+/* promó szegmens */
+.pseg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pseg button{padding:10px 3px;border-radius:12px;background:var(--panel2);border:1px solid var(--line2);font-size:11.5px;font-weight:700;
+  color:var(--muted);display:flex;flex-direction:column;gap:3px;line-height:1.15;align-items:center}
+.pseg button small{font-size:9.5px;color:var(--faint);font-weight:700;font-family:var(--disp);letter-spacing:.02em}
+.pseg button.on{background:rgba(198,255,58,.14);border-color:var(--neon);color:#fff}
+.pseg button.on small{color:var(--neon)}
+.band{font-size:11px;color:var(--muted);margin-top:8px;display:flex;justify-content:space-between;gap:8px;font-weight:600}
+.band b{font-family:var(--disp);color:var(--text);font-feature-settings:"tnum" 1;letter-spacing:.02em}
+.rng{height:6px;border-radius:6px;background:rgba(255,255,255,.07);margin-top:6px;position:relative;overflow:hidden}
+.rng i{position:absolute;top:0;bottom:0;background:linear-gradient(90deg,rgba(255,61,132,.55),rgba(198,255,58,.75));border-radius:6px}
+.rng u{position:absolute;top:-2px;width:2px;height:10px;background:#fff;border-radius:2px;box-shadow:0 0 6px rgba(255,255,255,.7)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud"></div>
+  <div id="view"></div>
+  <div id="sticky-host"></div>
+  <div id="nav"></div>
+  <div id="result"></div>
+  <div id="modal"></div>
+  <div id="adv"></div>
+</div>
+
+<svg width="0" height="0" style="position:absolute"><defs id="icondefs"></defs></svg>
+
+<script src="icons.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+"use strict";
+const HAS_MAP = typeof L !== 'undefined';
+const ICONS = window.ICONS||{};
+
+/* build icon sprite */
+(function(){const d=document.getElementById('icondefs');let s='';
+ for(const k in ICONS){s+=`<symbol id="ic-${k}" viewBox="0 0 512 512"><path d="${ICONS[k]}"/></symbol>`;}d.innerHTML=s;})();
+function icon(name,size){return `<svg class="ico"${size?` style="font-size:${size}"`:''}><use href="#ic-${name}"/></svg>`;}
+
+/* ============================ ADATOK ============================ */
+const REGIONS={EU:'Európa',NA:'Észak-Amerika',SA:'Dél-Amerika',AS:'Ázsia',OC:'Óceánia',AF:'Afrika'};
+const CITIES=[
+ {id:'lon',n:'London',r:'EU',lat:51.5,lon:-0.13,reach:120,aff:{Pop:1.1,Rock:1.15,Rap:1.0,Elektro:1.1},photo:'london,skyline',lk:11},
+ {id:'par',n:'Párizs',r:'EU',lat:48.85,lon:2.35,reach:110,aff:{Pop:1.15,Rock:1.0,Rap:1.05,Elektro:1.2},photo:'paris,eiffel',lk:12},
+ {id:'ber',n:'Berlin',r:'EU',lat:52.52,lon:13.4,reach:105,aff:{Pop:1.0,Rock:1.1,Rap:1.05,Elektro:1.35},photo:'berlin,city',lk:13},
+ {id:'bud',n:'Budapest',r:'EU',lat:47.5,lon:19.05,reach:70,aff:{Pop:1.05,Rock:1.1,Rap:1.0,Elektro:1.2},photo:'budapest,parliament',lk:14},
+ {id:'mad',n:'Madrid',r:'EU',lat:40.42,lon:-3.7,reach:95,aff:{Pop:1.2,Rock:0.95,Rap:1.1,Elektro:1.05},photo:'madrid,city',lk:15},
+ {id:'sto',n:'Stockholm',r:'EU',lat:59.33,lon:18.06,reach:65,aff:{Pop:1.25,Rock:1.05,Rap:0.95,Elektro:1.15},photo:'stockholm,city',lk:16},
+ {id:'nyc',n:'New York',r:'NA',lat:40.71,lon:-74.0,reach:150,aff:{Pop:1.15,Rock:1.05,Rap:1.3,Elektro:1.0},photo:'new+york,skyline',lk:21},
+ {id:'la', n:'Los Angeles',r:'NA',lat:34.05,lon:-118.24,reach:140,aff:{Pop:1.2,Rock:1.0,Rap:1.25,Elektro:1.1},photo:'los+angeles,city',lk:22},
+ {id:'chi',n:'Chicago',r:'NA',lat:41.88,lon:-87.63,reach:100,aff:{Pop:1.05,Rock:1.1,Rap:1.2,Elektro:1.0},photo:'chicago,skyline',lk:23},
+ {id:'tor',n:'Toronto',r:'NA',lat:43.65,lon:-79.38,reach:85,aff:{Pop:1.1,Rock:1.05,Rap:1.15,Elektro:1.0},photo:'toronto,city',lk:24},
+ {id:'mex',n:'Mexikóváros',r:'NA',lat:19.43,lon:-99.13,reach:120,aff:{Pop:1.25,Rock:0.95,Rap:1.05,Elektro:1.0},photo:'mexico+city',lk:25},
+ {id:'spo',n:'São Paulo',r:'SA',lat:-23.55,lon:-46.63,reach:130,aff:{Pop:1.2,Rock:1.0,Rap:1.1,Elektro:1.15},photo:'sao+paulo,city',lk:31},
+ {id:'bue',n:'Buenos Aires',r:'SA',lat:-34.6,lon:-58.38,reach:100,aff:{Pop:1.15,Rock:1.1,Rap:1.0,Elektro:1.1},photo:'buenos+aires',lk:32},
+ {id:'tok',n:'Tokió',r:'AS',lat:35.68,lon:139.69,reach:140,aff:{Pop:1.3,Rock:1.0,Rap:0.95,Elektro:1.2},photo:'tokyo,skyline,night',lk:41},
+ {id:'seo',n:'Szöul',r:'AS',lat:37.57,lon:126.98,reach:110,aff:{Pop:1.35,Rock:0.9,Rap:1.05,Elektro:1.15},photo:'seoul,city,night',lk:42},
+ {id:'sha',n:'Sanghaj',r:'AS',lat:31.23,lon:121.47,reach:135,aff:{Pop:1.2,Rock:0.9,Rap:0.95,Elektro:1.1},photo:'shanghai,skyline',lk:43},
+ {id:'mum',n:'Mumbai',r:'AS',lat:19.08,lon:72.88,reach:120,aff:{Pop:1.15,Rock:0.85,Rap:0.95,Elektro:1.0},photo:'mumbai,city',lk:44},
+ {id:'dub',n:'Dubaj',r:'AS',lat:25.2,lon:55.27,reach:80,aff:{Pop:1.1,Rock:0.9,Rap:1.05,Elektro:1.15},photo:'dubai,skyline',lk:45},
+ {id:'syd',n:'Sydney',r:'OC',lat:-33.87,lon:151.21,reach:95,aff:{Pop:1.15,Rock:1.15,Rap:1.0,Elektro:1.1},photo:'sydney,opera',lk:51},
+ {id:'joh',n:'Johannesburg',r:'AF',lat:-26.2,lon:28.04,reach:80,aff:{Pop:1.1,Rock:0.9,Rap:1.15,Elektro:1.05},photo:'johannesburg,city',lk:61},
+ {id:'cai',n:'Kairó',r:'AF',lat:30.04,lon:31.24,reach:85,aff:{Pop:1.1,Rock:0.85,Rap:1.0,Elektro:1.0},photo:'cairo,pyramids',lk:62},
+];
+const CM=Object.fromEntries(CITIES.map(c=>[c.id,c]));
+const VENUES=[
+ /* fix = €/férőhely FIX költség (bérlet + színpad + technika) — a kapacitással skálázódik,
+    ezért a nagy helyszín akkor is sokba kerül, ha nem telik meg. Nagyobb tier = drágább férőhelyenként. */
+ {id:'club',   n:'Klub',    cap:2500,  fix:9.5,  pmul:0.85,tmul:0.7,rep:4,ic:'headphones'},
+ {id:'theatre',n:'Színház', cap:9000,  fix:12.5, pmul:1.0, tmul:1.0,rep:9,ic:'notes'},
+ {id:'arena',  n:'Aréna',   cap:20000, fix:14.5, pmul:1.15,tmul:1.7,rep:18,ic:'star'},
+ {id:'stadium',n:'Stadion', cap:55000, fix:16.5, pmul:1.35,tmul:2.6,rep:34,ic:'trophy'},
+];
+const VM=Object.fromEntries(VENUES.map(v=>[v.id,v]));
+function songs(a){return a.map(s=>({n:s[0],q:s[1]}));}
+const ARTISTS=[
+ {id:'nova',n:'Nova Kex',ic:'mic',genre:'Pop',fame:26,cut:0.12,minRep:0,sign:0,photo:'pop,singer,woman,stage',lk:101,
+  bio:'Feltörekvő popénekesnő, tele TikTok-slágerekkel.',reg:{EU:1.15,NA:0.9,SA:1.0,AS:1.05,OC:0.95,AF:0.9},
+  songs:songs([['Neon Heart',72],['Sugar Static',65],['Midnight Text',80],['Paper Crown',58],['Glow',70],['Loud',54],['Ctrl U',61]])},
+ {id:'dlush',n:'D-Lush',ic:'headphones',genre:'Rap',fame:22,cut:0.14,minRep:0,sign:0,photo:'rapper,microphone,stage',lk:102,
+  bio:'Underground rapper, brutális szövegekkel és hűséges bázissal.',reg:{EU:0.95,NA:1.2,SA:0.95,AS:0.85,OC:0.9,AF:1.1},
+  songs:songs([['Block Heat',68],['No Cosign',74],['Verse 44',60],['Cold Chain',77],['Trapdoor',55],['Loyalty Tax',63]])},
+ {id:'papert',n:'The Paper Tigers',ic:'guitar',genre:'Rock',fame:31,cut:0.16,minRep:0,sign:0,photo:'rock,band,concert',lk:103,
+  bio:'Indie rock banda, akiket a fesztiválközönség imád.',reg:{EU:1.2,NA:1.05,SA:1.0,AS:0.9,OC:1.15,AF:0.85},
+  songs:songs([['Static Ghost',75],['Riverbend',82],['Amp Fire',66],['Slow Collapse',70],['Hometown',60],['Wired',64],['Last Encore',85]])},
+ {id:'marina',n:'Marina Vale',ic:'crown',genre:'Pop',fame:56,cut:0.18,minRep:120,sign:15000,photo:'pop,singer,concert,glamour',lk:104,
+  bio:'Elismert popsztár, három platinalemezzel.',reg:{EU:1.2,NA:1.1,SA:1.05,AS:1.1,OC:1.0,AF:0.95},
+  songs:songs([['Diamond Rain',88],['Vertigo',80],['Chandelier',84],['Echo',72],['Afterglow',86],['Porcelain',77],['Wildfire',82],['Blue Hour',79]])},
+ {id:'kaiser',n:'Kaiser Bolt',ic:'guitar',genre:'Rock',fame:62,cut:0.2,minRep:150,sign:22000,photo:'rockstar,guitar,stadium',lk:105,
+  bio:'Stadionrock-ikon, aki évek óta úton van.',reg:{EU:1.15,NA:1.2,SA:1.1,AS:0.95,OC:1.2,AF:0.9},
+  songs:songs([['Thunder Vote',90],['Iron Lung',83],['Highway Saint',87],['Detonate',78],['Kingdom Dust',81],['Roar',85],['Final Voltage',92]])},
+ {id:'zephyr',n:'Zephyr',ic:'headphones',genre:'Elektro',fame:58,cut:0.17,minRep:130,sign:18000,photo:'dj,festival,lights',lk:106,
+  bio:'Elektronikus producer-DJ, akinek szettjei legendásak.',reg:{EU:1.3,NA:1.05,SA:1.1,AS:1.2,OC:1.05,AF:1.0},
+  songs:songs([['Pulse',85],['Aurora Drop',88],['Voltage',79],['Deep End',82],['Solstice',90],['Machine Dream',76],['Liftoff',84]])},
+ {id:'lola',n:'Lola Sunn',ic:'crown',genre:'Pop',fame:88,cut:0.24,minRep:400,sign:80000,photo:'popstar,concert,stage,lights',lk:107,
+  bio:'Globális popkirálynő. Ha bejelenti a turnét, leáll az internet.',reg:{EU:1.25,NA:1.3,SA:1.25,AS:1.3,OC:1.2,AF:1.1},
+  songs:songs([['Supernova',96],['Golden Hour',92],['Heartquake',94],['Crown Me',90],['Infinity',93],['Riot',95],['Eclipse',97],['Forever',91]])},
+ {id:'jaxon',n:'Jaxon Vibe',ic:'mic',genre:'Rap',fame:91,cut:0.26,minRep:450,sign:95000,photo:'rapper,concert,crowd',lk:108,
+  bio:'A generáció hangja. Minden dala streaming-rekordot dönt.',reg:{EU:1.2,NA:1.35,SA:1.15,AS:1.1,OC:1.1,AF:1.25},
+  songs:songs([['Skyline',95],['No Ceiling',97],['Diamonds',92],['Legacy',94],['Overtime',90],['Throne',96],['Last Laugh',93],['Vibe Check',98]])},
+];
+const AM=Object.fromEntries(ARTISTS.map(a=>[a.id,a]));
+const LEVELS=[0,60,140,260,420,620,860,1150,1500];
+
+/* ---------- PROMÓCIÓ (turnénkénti marketingköltés) ----------
+   dem = várható nézőszám szorzó · sig = szórás szorzó (kisebb = kiszámíthatóbb)
+   seat = € férőhelyenként (a turné teljes kapacitására vetítve) */
+const PROMO=[
+ {n:'Nincs',  seat:0,   dem:1.00, sig:1.00, d:'Csak plakát a helyszínen. Olcsó, de kiszámíthatatlan.'},
+ {n:'Alap',   seat:0.9, dem:1.10, sig:0.84, d:'Helyi rádió és online hirdetés a városokban.'},
+ {n:'Erős',   seat:2.0, dem:1.22, sig:0.70, d:'Közösségi kampány, influenszerek, sajtómegjelenés.'},
+ {n:'Teljes', seat:3.8, dem:1.35, sig:0.58, d:'Országos kampány: tévé, óriásplakát, streaming-hirdetés.'},
+];
+
+/* ================= RAJONGÓTÁBOR · STREAMING · KIADÁS · MERCH =================
+   A rendszer közepe a RÉGIÓNKÉNTI RAJONGÓTÁBOR (0–100). Minden más ezt táplálja,
+   és minden más ebből él:
+     kiadás → streaming ↑ → rajongótábor ↑ → koncertkereslet ↑ → pénz + merch ↑ → új kiadás
+   Ezért a régi statikus `a.reg` szorzó helyére a dinamikus rajongótábor lépett. */
+const FAN_MIN=0.6, FAN_SPAN=1.4;                       // kereslet-szorzó: 0 rajongó=0,6× · 100=2,0×
+function fanMul(f){return FAN_MIN+clamp(f,0,100)/100*FAN_SPAN;}
+function baseFans(reg){return clamp(Math.round((reg-FAN_MIN)/FAN_SPAN*100),5,70);}
+/* előadónkénti, mentett állapot (a statikus ARTISTS adat érintetlen marad) */
+function artState(id){
+ if(!S.art)S.art={};
+ if(!S.art[id]){const a=AM[id],f={};let s=0,n=0;
+  Object.keys(REGIONS).forEach(r=>{f[r]=baseFans(a.reg[r]||1);s+=f[r];n++;});
+  S.art[id]={fans:f,streams:Math.round(Math.pow(a.fame,2.4)*60*(0.55+(s/n)/100*0.9)),hype:0,fameAdd:0,rels:0};}
+ return S.art[id];
+}
+function af(a){return clamp(a.fame+(S.art&&S.art[a.id]?S.art[a.id].fameAdd:0),0,100);}
+function avgFans(st){const v=Object.values(st.fans);return v.reduce((x,y)=>x+y,0)/v.length;}
+function topRegion(st){return Object.entries(st.fans).sort((x,y)=>y[1]-x[1])[0];}
+function fanLabel(f){return f>=80?'Fanatikus':f>=60?'Erős':f>=40?'Ismerik':f>=20?'Kezdődik':'Ismeretlen';}
+function dec1(n){return (Math.round(n*10)/10).toString().replace('.',',');}
+function fanCol(f){return f>=70?'var(--cash)':f>=40?'var(--neon)':f>=20?'var(--gold)':'var(--hot)';}
+/* havi hallgató „természetes" szintje — ide húz a streaming hétről hétre */
+function streamTarget(a){const st=artState(a.id);
+ return Math.round(Math.pow(af(a),2.4)*60*(0.55+avgFans(st)/100*0.9)*(1+st.hype*0.6));}
+function fmtStream(n){return n>=1e6?(n/1e6).toFixed(2).replace('.',',')+'M':Math.round(n/1000)+'e';}
+
+/* ---------- KIADÁSOK (a két turné közti tartalom) ---------- */
+const RELEASES=[
+ {id:'single',n:'Single',ic:'notes', min:90, days:5, mul:1,   hype:0.55,fansAdd:2,fameAdd:1,
+  d:'Egy dal, gyors lökés. Pár nap a stúdióban, azonnal érezhető streaming-ugrás.'},
+ {id:'ep',    n:'EP',    ic:'headphones',min:180,days:10,mul:2,hype:1.05,fansAdd:4,fameAdd:2,
+  d:'Négy-öt dal. Erősebb és tartósabb hatás, közepes költséggel.'},
+ {id:'album', n:'Album', ic:'crown', min:360,days:18,mul:3.6,hype:1.9, fansAdd:8,fameAdd:3,
+  d:'A nagy dobás: jelentős streaming-, rajongótábor- és hírnév-ugrás. Drága és sokáig tart.'},
+];
+const RM=Object.fromEntries(RELEASES.map(r=>[r.id,r]));
+function relCost(a,k){return Math.round((4000+af(a)*260)*k.mul/500)*500;}
+
+/* ---------- MERCH ---------- */
+/* Fejenkénti költés: az alap × rajongói szint × a merch-pult fejlesztése.
+   A hűséges rajongó sokkal többet költ — ezért a merch a rajongótábor „kamata". */
+const MERCH_COST=[0,18000,45000,95000,175000];
+/* a helyszín mérete szorozza a rajongótábor-építést: nagy hely = nagyobb nyomot hagy */
+const VFAN={club:1,theatre:1.5,arena:2.2,stadium:3};
+function merchMul(){return 1+S.upg.merch*0.35;}
+function merchPerHead(fans){return 2.6*(0.6+clamp(fans,0,100)/100)*merchMul();}
+function merchRev(att,fans){return Math.round(att*merchPerHead(fans));}
+
+/* ---------- IDŐ ---------- */
+/* A játék JÁTÉKBELI percekben gondolkodik, és egyetlen aránnyal váltja valós időre.
+   Így a tempó egyetlen szám (hourMs) átírásával hangolható. */
+const TIME={
+ hourMs:300000,   // 1 játékbeli óra = 5 valós perc  → egy 60 perces klubkoncert 5 valós perc
+ prepMin:45,      // indulás előtti felkészülés (játékbeli perc)
+ tick:200
+};
+function msFromMin(min){return Math.round(min*TIME.hourMs/60);}
+/* koncert hossza: kisebb hely rövidebb műsor, aréna/stadion nagyprodukció */
+function showMin(v){return v.cap>=20000?90:v.cap>=9000?75:60;}
+/* utazás: távolság-arányos, de TÖMÖRÍTVE — a hosszú járatok nem tartanak reális 12 órát.
+   Rövid ugrás ~40 perc, tengerentúli ~1 ó 45 p, a leghosszabb út is max ~2 ó 50 p. */
+function travelMin(km){return Math.round((0.4+2.4*Math.pow(clamp(km/16000,0,1),0.55))*60);}
+function travelDays(km){return Math.max(1,Math.round(km/1400));}
+/* játékbeli perc -> olvasható magyar időtartam */
+function dur(min){const h=Math.floor(min/60),m=Math.round(min%60);
+ return h?(m?`${h} ó ${m} p`:`${h} óra`):`${m} perc`;}
+
+/* ---------- VÁRATLAN ESEMÉNYEK ----------
+   when: 'pre'  = a következő koncert előtt · 'road' = utazás közben · 'post' = koncert után
+   e (hatás): money=€ azonnal · rep=hírnév · att=a következő koncert nézőszám-szorzója (+0.2 = +20%)
+              wait=valós késleltetés ms · days=játékbeli napok · skip=elmarad a következő koncert */
+const EVENTS=[
+ {id:'flu',w:10,when:['pre'],ic:'cross',t:'Berekedt az előadó',
+  d:'{A} a hajnali gépről szállt le, és alig jön ki hang a torkán. Ma este telt házas koncert vár rá.',
+  ch:[{l:'Orvos és pihenőnap',s:'−€9 000 · csúszik a fellépés',c:'pay',e:{money:-9000,wait:6000,days:1}},
+      {l:'Színpadra lép így is',s:'Gyengébb este, csalódott közönség',c:'risk',e:{att:-0.22,rep:-4}}]},
+
+ {id:'sound',w:10,when:['pre'],ic:'bolt',t:'Meghibásodott a hangrendszer',
+  d:'A helyszíni hangfal fele néma. Négy óra van a kapunyitásig.',
+  ch:[{l:'Sürgősségi bérlés',s:'−€14 000 · a show tökéletes lesz',c:'pay',e:{money:-14000}},
+      {l:'Csökkentett szettel megyünk',s:'Kisebb produkció, rosszabb élmény',c:'risk',e:{att:-0.16,rep:-5}}]},
+
+ {id:'flight',w:9,when:['road'],ic:'plane',t:'Törölték a járatot',
+  d:'A légitársaság az utolsó pillanatban törölte a gépet. A stáb és a felszerelés a reptéren ragadt.',
+  ch:[{l:'Charterjáratot bérelünk',s:'−€18 000 · időben odaérünk',c:'pay',e:{money:-18000}},
+      {l:'Megvárjuk a következőt',s:'Több nap csúszás',c:'risk',e:{wait:8000,days:2}}]},
+
+ {id:'bus',w:8,when:['road'],ic:'alert',t:'Lerobbant a turnébusz',
+  d:'Az autópálya közepén állt meg a busz. A szerviz szerint órák kérdése — vagy napoké.',
+  ch:[{l:'Szervizt várunk',s:'Ingyen, de csúszunk',c:'risk',e:{wait:7000,days:1}},
+      {l:'Másik buszt bérelünk',s:'−€11 000 · megyünk tovább',c:'pay',e:{money:-11000}}]},
+
+ {id:'gear',w:8,when:['road'],ic:'alert',t:'Elveszett a felszerelés',
+  d:'A reptéren rossz gépre rakták a hangszereket. Holnapig biztosan nem kerülnek elő.',
+  ch:[{l:'Helyben bérelünk mindent',s:'−€15 000',c:'pay',e:{money:-15000}},
+      {l:'Improvizálunk azzal, ami van',s:'Kevesebb néző, csalódás',c:'risk',e:{att:-0.12,rep:-4}}]},
+
+ {id:'scandal',w:9,when:['pre'],ic:'megaphone',t:'Kiszivárgott egy régi interjú',
+  d:'Egy évekkel ezelőtti mondat kering a neten {A}-ról. A sajtó nyilatkozatot vár.',
+  ch:[{l:'PR-csapat kezeli',s:'−€12 000 · elsimul az ügy',c:'pay',e:{money:-12000,rep:-1}},
+      {l:'Hagyjuk, hadd beszéljenek',s:'Rossz hírnév, de nagy figyelem',c:'risk',e:{rep:-9,att:0.16}}]},
+
+ {id:'strike',w:7,when:['pre'],ic:'people',t:'Sztrájkol a helyszíni stáb',
+  d:'A csarnok technikusai túlórapénzt követelnek, különben nem építik fel a színpadot.',
+  ch:[{l:'Kifizetjük a túlórát',s:'−€10 000',c:'pay',e:{money:-10000}},
+      {l:'Saját stábbal oldjuk meg',s:'Szerényebb színpadkép',c:'risk',e:{att:-0.11,rep:-3}}]},
+
+ {id:'storm',w:7,when:['pre'],ic:'alert',t:'Vihar közeleg',
+  d:'A meteorológia szerint estére komoly zivatar érkezik a városba.',
+  ch:[{l:'Fedett tartalék helyszín',s:'−€11 000 · kicsit kevesebb hely',c:'pay',e:{money:-11000,att:-0.05}},
+      {l:'Vállaljuk a kockázatot',s:'Sokan otthon maradhatnak',c:'risk',e:{att:-0.3}}]},
+
+ {id:'sponsor',w:8,when:['pre'],ic:'banknote',t:'Helyi szponzor jelentkezett',
+  d:'Egy energiaital-márka a színpadi háttérre kerülne, cserébe azonnal fizet.',
+  ch:[{l:'Elfogadjuk az ajánlatot',s:'+€9 000 · kicsit kiárusítós',c:'good',e:{money:9000,rep:-2}},
+      {l:'Köszönjük, nem',s:'Tiszta márka, jó sajtó',c:'good',e:{rep:2}}]},
+
+ {id:'guest',w:7,when:['pre'],ic:'crown',t:'Vendégfellépő ajánlkozik',
+  d:'A város legnépszerűbb előadója beugrana két dalra a ma esti koncertre.',
+  ch:[{l:'Beengedjük (gázsi)',s:'−€8 000 · sokkal több néző',c:'pay',e:{money:-8000,att:0.22,rep:4}},
+      {l:'Maradunk a saját műsornál',s:'Nincs változás',c:'',e:{}}]},
+
+ {id:'radio',w:8,when:['road'],ic:'megaphone',t:'Rádiós interjú-lehetőség',
+  d:'Az ország legnagyobb reggeli műsora élőben hívná {A}-t — de hajnalban kell bemenni.',
+  ch:[{l:'Beugrunk az interjúra',s:'Kis csúszás · több néző, jobb hírnév',c:'good',e:{wait:4000,days:1,att:0.15,rep:3}},
+      {l:'Kihagyjuk, alszunk',s:'Nincs változás',c:'',e:{}}]},
+
+ {id:'viral',w:9,when:['post'],ic:'star',t:'Vírusvideó lett a koncertből',
+  d:'Egy rajongó felvétele milliós nézettséget ért el egyetlen éjszaka alatt.',
+  ch:[{l:'Rátolunk egy kampányt',s:'−€6 000 · óriási lökés',c:'pay',e:{money:-6000,att:0.34,rep:8}},
+      {l:'Hagyjuk terjedni magától',s:'Szép lökés, ingyen',c:'good',e:{att:0.16,rep:5}}]},
+
+ {id:'critic',w:8,when:['post'],ic:'notes',t:'Lehúzó kritika a sajtóban',
+  d:'A legnagyobb zenei magazin szerint a show „fáradt és rutinszerű" volt.',
+  ch:[{l:'Okos válasz, exkluzív interjú',s:'−€4 000 · elsimítjuk',c:'pay',e:{money:-4000,rep:1}},
+      {l:'Nem reagálunk',s:'Beleég a hírnévbe',c:'risk',e:{rep:-5}}]},
+
+ {id:'fanmeet',w:8,when:['post'],ic:'people',t:'Rajongók várnak a hátsó kapunál',
+  d:'Több százan kitartottak a koncert után. {A} kimehetne fotózkodni és aláírni.',
+  ch:[{l:'Kimegyünk hozzájuk',s:'Kis csúszás · hűséges rajongótábor',c:'good',e:{wait:5000,days:1,rep:6,att:0.1}},
+      {l:'Buszra és tovább',s:'Nincs változás',c:'',e:{}}]},
+
+ {id:'visa',w:6,when:['road'],ic:'alert',t:'Vízumgond a határon',
+  d:'A stáb két tagját feltartóztatták a beléptetésnél. Papírmunka, ügyvéd, idő.',
+  ch:[{l:'Ügyvédet fizetünk',s:'−€10 000 · gyorsan megoldódik',c:'pay',e:{money:-10000}},
+      {l:'Kivárjuk a hivatalt',s:'Napokba telhet',c:'risk',e:{wait:7000,days:2}}]},
+
+ {id:'cancel',w:4,when:['pre'],ic:'alert',t:'A helyszín visszalépett',
+  d:'A csarnok kettős foglalást talált: a mai estére másnak is eladták a termet.',
+  ch:[{l:'Alternatív helyszínt szervezünk',s:'−€16 000 · a koncert megmarad',c:'pay',e:{money:-16000,att:-0.1}},
+      {l:'Lemondjuk ezt az állomást',s:'Elmarad a koncert, marad a bérleti díj',c:'risk',e:{skip:1,rep:-6}}]},
+];
+
+/* ============================ ÁLLAPOT ============================ */
+const KEY='turne_menedzser_v3';
+let S=migrate(load()||newGame());
+function newGame(){return{money:60000,rep:0,week:1,roster:[],upg:{marketing:0,staff:0,merch:0},tab:'iroda',tour:null,live:null,
+ art:{},rel:null,relLog:[],streamIncome:0,lastResult:null,toursDone:0,detail:null,studio:null};}
+/* régi mentések kiegészítése az új mezőkkel */
+function migrate(s){if(!s)return newGame();
+ if(s.live===undefined)s.live=null;
+ if(s.tour&&s.tour.promo===undefined)s.tour.promo=0;
+ if(!s.upg)s.upg={marketing:0,staff:0,merch:0};
+ if(s.upg.merch===undefined)s.upg.merch=0;
+ if(!s.art)s.art={};
+ if(s.rel===undefined)s.rel=null;
+ if(!s.relLog)s.relLog=[];
+ if(s.streamIncome===undefined)s.streamIncome=0;
+ if(s.studio===undefined)s.studio=null;
+ return s;}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function load(){try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
+
+/* ============================ SEGÉD ============================ */
+const $=s=>document.querySelector(s), hud=$('#hud'), view=$('#view'), stickyHost=$('#sticky-host'), navEl=$('#nav'), resultEl=$('#result');
+function money(n){const s=Math.round(Math.abs(n)).toLocaleString('hu-HU');return (n<0?'−€':'€')+s;}
+function k(n){n=Math.round(n);return n>=1000?(n/1000).toFixed(n>=10000?0:1).replace('.',',')+'e':''+n;}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function signed(){return S.roster.map(id=>AM[id]);}
+function avail(){return ARTISTS.filter(a=>a.minRep<=S.rep);}
+function level(){let l=1;for(let i=0;i<LEVELS.length;i++)if(S.rep>=LEVELS[i])l=i+1;return l;}
+function levelProg(){const l=level();const lo=LEVELS[l-1],hi=LEVELS[l]||LEVELS[LEVELS.length-1]+400;return{l,lo,hi,pct:clamp((S.rep-lo)/(hi-lo),0,1),need:Math.max(0,hi-S.rep)};}
+function cityPhoto(c,w,h){return `https://loremflickr.com/${w}/${h}/${c.photo}?lock=${c.lk}`;}
+function artistPhoto(a,w,h){return `https://loremflickr.com/${w}/${h}/${a.photo}?lock=${a.lk}`;}
+const CROWD='https://loremflickr.com/900/560/concert,crowd,stage,lights?lock=7';
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#app').appendChild(t);setTimeout(()=>t.remove(),2000);}
+function imgFB(){return `onerror="this.style.opacity=0"`;}
+const MK_COST=[0,25000,60000,120000,220000], ST_COST=[0,20000,50000,100000,190000];
+
+/* ============================ GAZDASÁG ============================ */
+function haversine(a,b){const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lon-a.lon)*Math.PI/180,la1=a.lat*Math.PI/180,la2=b.lat*Math.PI/180;
+ const h=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
+const KM_RATE=6.5;
+function fairPrice(a,v){return (14+af(a)*0.75)*v.pmul;}
+const DEMAND_BASE=75000, FAME_POWER=2.2;
+function estimate(a,city,v,price,setQ,mom,promo){
+ const st=artState(a.id), fans=st.fans[city.r]||0;
+ const reachScale=city.reach/100, gAff=city.aff[a.genre]||1,
+   rAff=fanMul(fans),                       // ← dinamikus rajongótábor a régi fix a.reg helyett
+   buzz=1+st.hype*0.25,                     // ← friss kiadás azonnali kereslet-lökése
+   mkt=1+S.upg.marketing*0.10,
+   pro=PROMO[promo||0].dem,
+   setF=setQ>0?(0.6+setQ/100*0.55):0.30, draw=Math.pow(af(a)/100,FAME_POWER), fp=fairPrice(a,v), r=price/fp, pf=clamp(1.25-0.60*r,0.03,1.25);
+ let pool=draw*DEMAND_BASE*reachScale*gAff*rAff*buzz*setF*mkt*pro*(mom||1);
+ /* raw = nyers kereslet (férőhely nélkül). A szórás ezen dolgozik, és csak UTÁNA vágjuk
+    a kapacitásra — így a jóval túlkeresett koncert biztosan telt ház lesz, a félig telt viszont
+    tényleg ingadozik. */
+ const raw=Math.max(0,Math.round(pool*pf));
+ let att=clamp(raw,0,v.cap), fill=att/v.cap, rev=att*price, pay=rev*a.cut;
+ /* KÖLTSÉGMODELL — két rész:
+    fix  = kapacitás × €/férőhely × produkció-méret (a sztár nagyobb show-t hoz), a stáb-fejlesztés csökkenti.
+           Ez akkor is jár, ha üres a ház → ettől kockázatos a túl nagy helyszín.
+    var  = fejenkénti költség (biztonság, személyzet, jegykezelés), a jegyárral is nő.
+           Ez fogja vissza a telt házas koncert margóját, anélkül hogy a megtelést nehezítené. */
+ const fix=Math.round(v.cap*v.fix*(0.7+af(a)/200)*(1-S.upg.staff*0.08));
+ const varRate=5+price*0.25;
+ const base=fix+Math.round(att*varRate);
+ const merch=merchRev(att,fans);            // ← a merch a nézőszámból és a rajongói szintből jön
+ /* hány nézőnél fordul nyereségbe — ez a helyszínválasztás valódi tétje */
+ const contrib=price*(1-a.cut)+merchPerHead(fans)-varRate;
+ const beAtt=contrib>0?Math.ceil(fix/contrib):Infinity;
+ return{att,raw,fill,rev,base,pay,fp,fans,merch,fix,varRate,beAtt,beFill:beAtt/v.cap};
+}
+/* mennyire illik a helyszín mérete a várható kereslethez — a venue-választás így valódi döntés */
+function venueFit(fill){
+ return fill>=0.98?{t:'Telt ház várható',c:'var(--cash)'}
+      :fill>=0.75?{t:'Jó választás',c:'var(--cash)'}
+      :fill>=0.45?{t:'Lesznek üres helyek',c:'var(--gold)'}
+      :fill>=0.25?{t:'Nagyrészt üres lesz',c:'var(--hot)'}
+      :{t:'Túl nagy hely ide',c:'var(--hot)'};
+}
+
+/* ---------- BIZONYTALANSÁG ----------
+   A becslés csak VÁRHATÓ érték. A tényleges nézőszám szór körülötte:
+   kevésbé ismert előadó + gyenge promóció = nagyobb szórás (lehet több, de kevesebb is). */
+function sigmaFor(a,promo){
+ let s=0.30;                                   // alap szórás
+ s*=1-clamp(af(a)/100,0,1)*0.40;               // ismert előadó = kiszámíthatóbb
+ s*=PROMO[promo||0].sig;                       // turné-promóció
+ s*=1-S.upg.marketing*0.05;                    // iroda marketing-fejlesztés
+ return clamp(s,0.06,0.42);
+}
+/* átlag 1, szórás = sigma (3 egyenletes összege ~ normális) */
+function rollFactor(sigma){const u=(Math.random()+Math.random()+Math.random())/3;return Math.max(0.05,1+(u-0.5)*(sigma/0.16667));}
+/* ~80%-os sáv a nyers kereslet körül, a végén a férőhelyre vágva */
+function band(raw,sigma,cap){return{lo:clamp(Math.round(raw*(1-1.28*sigma)),0,cap),hi:clamp(Math.round(raw*(1+1.28*sigma)),0,cap)};}
+
+function setlistQ(a,list){const c=(list||(S.tour&&S.tour.setlist)||[]).map(i=>a.songs[i]).filter(Boolean);return c.length?c.reduce((s,x)=>s+x.q,0)/c.length:0;}
+function promoCost(stops,lvl){const seats=stops.reduce((s,x)=>s+VM[x.venue].cap,0);return Math.round(seats*PROMO[lvl||0].seat/1000)*1000;}
+function legCost(prev,city,v){return Math.round(haversine(prev,city)*KM_RATE*v.tmul);}
+function routeKm(){const s=S.tour.stops;let d=0;for(let i=1;i<s.length;i++)d+=haversine(CM[s[i-1].city],CM[s[i].city]);return Math.round(d);}
+/* ============================ HETI ÜTEM (a flywheel motorja) ============================
+   Minden eltelt hét: a streaming a „természetes" szintje felé húz, a hype lecseng,
+   a streaming lassan építi a rajongótábort, és csorog egy kis passzív bevétel. */
+function advanceWeeks(n){
+ n=Math.max(0,Math.round(n));if(!n)return 0;
+ S.week+=n;let income=0;
+ for(let w=0;w<n;w++){
+  S.roster.forEach(id=>{
+   const a=AM[id],st=artState(id),tgt=streamTarget(a);
+   st.streams=Math.max(0,Math.round(st.streams+(tgt-st.streams)*0.18));
+   st.hype=st.hype>0.02?st.hype*0.78:0;
+   const m=st.streams/1e6*0.5;                       // 1M havi hallgató ≈ +0,5 alap
+   Object.keys(REGIONS).forEach(r=>{                 // ott nő gyorsabban, ahol már van alap
+    st.fans[r]=clamp(st.fans[r]+m*(0.4+st.fans[r]/100*0.9),0,100);});
+   income+=st.streams*0.0015;                        // 1M havi hallgató ≈ €1 500/hét
+  });
+ }
+ income=Math.round(income);
+ if(income>0){S.money+=income;S.streamIncome=(S.streamIncome||0)+income;}
+ return income;
+}
+
+/* ============================ KIADÁSOK (stúdió) ============================
+   Egyszerre egy kiadás készül (a stúdió foglalt). Ugyanaz az ütemezett-időbélyeg
+   logika, mint a turnénál, ezért a játék bezárása alatt is elkészül. */
+function startRelease(artistId,kindId){
+ if(S.rel){toast('A stúdió most foglalt.');return;}
+ const a=AM[artistId],k=RM[kindId],cost=relCost(a,k);
+ if(S.money<cost){toast('Nincs elég pénz erre a kiadásra.');return;}
+ S.money-=cost;
+ S.rel={artist:artistId,kind:kindId,cost,ms:msFromMin(k.min),ends:Date.now()+msFromMin(k.min),days:k.days};
+ save();render();startTicker();
+ toast(`${a.n} · ${k.n} felvétele elkezdődött.`);
+}
+function finishRelease(){
+ const R=S.rel;if(!R)return;
+ const a=AM[R.artist],k=RM[R.kind],st=artState(R.artist);
+ st.hype+=k.hype;
+ st.fameAdd=Math.min(60,st.fameAdd+k.fameAdd);
+ st.rels=(st.rels||0)+1;
+ Object.keys(REGIONS).forEach(r=>{                    // ahol már ismerik, ott üt nagyobbat
+  st.fans[r]=clamp(st.fans[r]+k.fansAdd*(0.5+st.fans[r]/100),0,100);});
+ const before=st.streams;
+ st.streams=Math.round(st.streams*(1+k.hype*0.5));
+ S.rel=null;
+ S.relLog.unshift({artist:a.n,kind:k.n,ic:k.ic,week:S.week,
+   gain:st.streams-before,fame:k.fameAdd,fans:k.fansAdd});
+ S.relLog=S.relLog.slice(0,8);
+ advanceWeeks(Math.max(1,Math.round(k.days/7)));
+ save();
+ toast(`${a.n} · ${k.n} megjelent! Streaming ${fmtStream(before)} → ${fmtStream(st.streams)}`);
+}
+function relRemain(){return S.rel?Math.max(0,S.rel.ends-Date.now()):0;}
+
+/* ============================ ÉLŐ TURNÉ (IDŐMOTOR) ============================
+   A turné nem azonnali: minden állomás és minden utazás valós időt vesz igénybe.
+   A fázisok ütemezett időbélyegre végződnek (L.ends), ezért a játék bezárása/újratöltése
+   után is helyesen halad tovább — a kihagyott fázisok betöltéskor bepótlódnak. */
+function buildPhases(stops){
+ const ph=[];
+ for(let i=0;i<stops.length;i++){
+  const km=i>0?haversine(CM[stops[i-1].city],CM[stops[i].city]):0;
+  const tmin=i>0?travelMin(km):TIME.prepMin, smin=showMin(VM[stops[i].venue]);
+  ph.push({k:'travel',i,km:Math.round(km),min:tmin,ms:msFromMin(tmin),days:i>0?travelDays(km):1});
+  ph.push({k:'show',i,min:smin,ms:msFromMin(smin),days:1});
+ }
+ return ph;
+}
+/* a teljes turné valós hossza (a tervezőben előre kiírjuk) */
+function tourRealMs(stops){return buildPhases(stops).reduce((s,p)=>s+p.ms,0);}
+function launchTour(){
+ const t=S.tour,a=AM[t.artist],cost=promoCost(t.stops,t.promo||0);
+ if(cost>S.money){toast('Nincs elég pénz erre a promócióra.');return;}
+ S.money-=cost;
+ S.live={artist:t.artist,setlist:t.setlist.slice(),promo:t.promo||0,promoSpent:cost,
+  stops:t.stops.map(s=>({...s})),ph:buildPhases(t.stops),i:0,ends:Date.now()+msFromMin(TIME.prepMin),
+  pausedLeft:null,pendingEv:null,mom:1,attMul:1,skipNext:false,days:0,
+  rows:[],log:[],evUsed:[],adUsed:{},fanGain:{},
+  tRev:0,tCost:0,tPay:0,tTrav:0,tAtt:0,tEvent:0,tMerch:0,rep:0};
+ S.tour=null;S.tab='terkep';teardownMap();save();render();
+}
+function curPhase(){return S.live?S.live.ph[S.live.i]:null;}
+function remainMs(){const L=S.live;if(!L)return 0;return L.pausedLeft!=null?L.pausedLeft:Math.max(0,L.ends-Date.now());}
+function phaseCity(){const L=S.live,p=curPhase();if(!p)return null;return CM[L.stops[p.i].city];}
+
+let TK=null;
+function startTicker(){stopTicker();if(S.live||S.rel)TK=setInterval(tick,TIME.tick);}
+function stopTicker(){if(TK){clearInterval(TK);TK=null;}}
+function tick(){
+ if(!S.live&&!S.rel){stopTicker();return;}
+ /* stúdió: elkészült-e a kiadás (a turnétól függetlenül, párhuzamosan fut) */
+ if(S.rel&&Date.now()>=S.rel.ends){finishRelease();if(S.tab==='studio')tabStudio();renderHUD();}
+ else if(S.rel&&S.tab==='studio')paintRel();
+ const L=S.live;if(!L){if(!S.rel)stopTicker();return;}
+ if(L.pausedLeft!=null||L.pendingEv)return;
+ const before=L.i;let guard=0;
+ while(S.live&&S.live.pausedLeft==null&&!S.live.pendingEv&&Date.now()>=S.live.ends&&guard++<80)finishPhase();
+ if(!S.live)return;                                  // turné véget ért
+ if(S.live.pausedLeft!=null||S.live.pendingEv)return; // esemény modál nyílt
+ if(S.live.i!==before){save();if(S.tab==='terkep')liveScreen();renderHUD();}
+ else paintLive();
+}
+/* egy fázis lezárása: utazás kifizetése vagy koncert lejátszása */
+function finishPhase(){
+ const L=S.live,p=L.ph[L.i],a=AM[L.artist];
+ if(p.k==='travel'){
+  if(p.i>0){const c=legCost(CM[L.stops[p.i-1].city],CM[L.stops[p.i].city],VM[L.stops[p.i].venue]);
+   S.money-=c;L.tTrav+=c;L.tCost+=c;}
+  if(p.km>5000)advanceWeeks(1);
+ }else{ runShow(p.i); advanceWeeks(1); }
+ L.days+=p.days;
+ L.i++;
+ if(L.i>=L.ph.length){endTour();return;}
+ L.ends+=L.ph[L.i].ms;
+ if(L.ends<Date.now()-3600000)L.ends=Date.now()+L.ph[L.i].ms;  // nagyon régi mentés: ne pörögjön el
+ const ev=rollEvent();if(ev)openEvent(ev);
+}
+/* egy koncert lefutása — itt dől el a TÉNYLEGES nézőszám (szórással) */
+function runShow(i){
+ const L=S.live,a=AM[L.artist],st=L.stops[i],city=CM[st.city],v=VM[st.venue],setQ=setlistQ(a,L.setlist);
+ const A=artState(a.id),reg=city.r,fansBefore=A.fans[reg];
+ const e=estimate(a,city,v,st.price,setQ,L.mom,L.promo), sig=sigmaFor(a,L.promo);
+ let att,fill,rev,pay,cost,profit,repD,merch=0,fanG=0,cancelled=false;
+ if(L.skipNext){                       // elmaradt koncert: bérleti díj bukó, nincs bevétel
+  cancelled=true;L.skipNext=false;att=0;fill=0;rev=0;pay=0;cost=e.fix;profit=-cost;repD=-Math.round(v.rep/2);
+ }else{
+  const f=rollFactor(sig)*L.attMul;
+  att=clamp(Math.round(e.raw*f),0,v.cap);fill=att/v.cap;rev=att*st.price;pay=rev*a.cut;
+  cost=e.fix+Math.round(att*e.varRate);   // a fejenkénti rész a TÉNYLEGES nézőszámmal számol
+  merch=merchRev(att,fansBefore);      // merch: nézőszám × rajongói szint × pult-fejlesztés
+  profit=rev+merch-cost-pay;
+  repD=Math.round((fill-0.5)*v.rep);
+  if(fill>=0.98)repD+=Math.round(v.rep*0.5);        // telt ház: extra hírnév
+  else if(fill<0.25)repD-=Math.round(v.rep*0.6);    // kongó terem: rossz sajtó
+  /* a fellépés építi az ottani rajongótábort — nagyobb hely, teltebb ház = többet */
+  fanG=(0.5+fill)*(VFAN[v.id]||1)*(1+S.upg.marketing*0.05)*(fill>=0.98?1.25:1);
+  A.fans[reg]=clamp(A.fans[reg]+fanG,0,100);
+  L.fanGain[reg]=(L.fanGain[reg]||0)+fanG;
+  L.mom=fill>=0.9?Math.min(1.4,L.mom+0.06):(fill<0.45?Math.max(0.75,L.mom-0.05):L.mom);
+ }
+ L.attMul=1;                            // az eseményhatás egy koncertre szól
+ S.money+=rev+merch-cost-pay;           // azonnal a kasszába (a HUD élőben követi)
+ S.rep=Math.max(0,S.rep+repD);L.rep+=repD;
+ L.tRev+=rev;L.tCost+=cost;L.tPay+=pay;L.tAtt+=att;L.tMerch+=merch;
+ L.rows.push({city:city.n,region:reg,photo:cityPhoto(city,600,300),venue:v.n,att,exp:e.att,cap:v.cap,fill,
+   price:st.price,profit,merch,fans:Math.round(fansBefore),fanG:+fanG.toFixed(1),cancelled});
+ if(!cancelled&&S.tab==='terkep')toast(`${city.n}: ${k(att)} néző · ${money(profit)} (merch ${money(merch)})`);
+}
+function endTour(){
+ const L=S.live,a=AM[L.artist],A=artState(a.id);
+ const net=L.tRev+L.tMerch-L.tCost-L.tPay-L.promoSpent+L.tEvent;
+ S.toursDone++;
+ /* Az elhanyagolt régiók lassan kopnak — ezért érdemes visszatérni oda, ahol felépítettél valamit.
+    Csak a már jól ismert régiókat érinti, hogy a kezdés ne legyen büntető. */
+ const decay={};
+ Object.keys(REGIONS).forEach(r=>{
+  if(!L.fanGain[r]&&A.fans[r]>30){const d=Math.min(1.5,(A.fans[r]-30)*0.05);A.fans[r]-=d;decay[r]=+d.toFixed(1);}});
+ const fanRows=Object.entries(L.fanGain).map(([r,g])=>({r,n:REGIONS[r],g:+g.toFixed(1),now:Math.round(A.fans[r])}))
+   .sort((x,y)=>y.g-x.g);
+ S.lastResult={artist:a.n,photo:artistPhoto(a,600,400),rows:L.rows,tRev:L.tRev,tCost:L.tCost,tPay:L.tPay,tTrav:L.tTrav,
+  net,rep:L.rep,tAtt:L.tAtt,setQ:Math.round(setlistQ(a,L.setlist)),promoSpent:L.promoSpent,tEvent:L.tEvent,days:L.days,log:L.log,
+  tMerch:L.tMerch,fanRows,decay,streams:A.streams};
+ S.live=null;S.resultPending=true;      // ha közben bezárták a játékot, újranyitáskor is lássa
+ stopTicker();save();teardownMap();showResult();
+}
+function abandonTour(){
+ const L=S.live;if(!L)return;
+ const left=L.ph.slice(L.i).filter(p=>p.k==='show').length, pen=left*5;
+ S.rep=Math.max(0,S.rep-pen);L.rep-=pen;
+ L.log.push({t:'Turné megszakítva',s:`${left} elmaradt koncert · −${pen} hírnév`,ic:'alert'});
+ L.i=L.ph.length;endTour();
+}
+
+/* ---------- reklámvideóval gyorsítás ---------- */
+function adSkip(){
+ const L=S.live;if(!L||L.pendingEv)return;
+ if(L.adUsed[L.i]){toast('Ehhez a szakaszhoz már megnéztél egy videót.');return;}
+ L.pausedLeft=remainMs();                       // az idő megáll a videó alatt
+ Ads.show(()=>{                                 // teljes megtekintés = jutalom
+   L.adUsed[L.i]=true;L.pausedLeft=null;L.ends=Date.now()-1;save();
+   toast('Szakasz átugorva!');tick();
+ },()=>{                                        // megszakítva = nincs jutalom
+   L.ends=Date.now()+L.pausedLeft;L.pausedLeft=null;save();
+   toast('A videó megszakadt — nincs gyorsítás.');
+ });
+}
+
+/* ============================ VÁRATLAN ESEMÉNYEK ============================ */
+const EV_CHANCE=0.40;                       // esély fázishatáronként
+function rollEvent(){
+ const L=S.live,p=L.ph[L.i];if(!p)return null;
+ const slot=p.k==='show'?'pre':(L.i<=1?null:'road');   // koncert előtt / úton
+ const slots=slot?[slot]:[];
+ if(p.k==='travel'&&L.i>1)slots.push('post');          // az előző koncert utóélete
+ if(!slots.length)return null;
+ if(Math.random()>EV_CHANCE)return null;
+ const pool=EVENTS.filter(e=>e.when.some(w=>slots.includes(w))&&L.evUsed.indexOf(e.id)<0);
+ if(!pool.length)return null;
+ let tot=pool.reduce((s,e)=>s+e.w,0),r=Math.random()*tot;
+ for(const e of pool){r-=e.w;if(r<=0)return e;}
+ return pool[0];
+}
+function openEvent(ev){
+ const L=S.live;
+ L.pausedLeft=remainMs();L.pendingEv=ev.id;L.evUsed.push(ev.id);save();
+ if(S.tab==='terkep')liveScreen();renderHUD();      // a háttér is a friss állapotot mutassa
+ renderEvent(ev);
+}
+function renderEvent(ev){
+ const L=S.live,a=AM[L.artist],city=phaseCity()||CM[L.stops[0].city];
+ const txt=ev.d.replace(/\{A\}/g,esc(a.n));
+ let h=`<div class="ev"><div class="ph"><img src="${cityPhoto(city,700,300)}" ${imgFB()}><div class="g"></div>
+   <span class="kick" style="color:var(--gold)">Váratlan esemény</span>
+   <div class="ic" style="color:var(--gold)">${icon(ev.ic)}</div></div>
+   <div class="bd"><h3>${esc(ev.t)}</h3><p>${txt}</p><div class="evch">`;
+ ev.ch.forEach((c,i)=>h+=`<button class="evb ${c.c||''}" data-ch="${i}"><div class="l">${esc(c.l)}</div><div class="s">${esc(c.s)}</div></button>`);
+ h+=`</div></div></div>`;
+ const m=$('#modal');m.innerHTML=h;m.className='on';
+ m.querySelectorAll('[data-ch]').forEach(b=>b.onclick=()=>chooseEvent(ev,+b.dataset.ch));
+}
+function chooseEvent(ev,idx){
+ const L=S.live,ch=ev.ch[idx],e=ch.e||{};
+ let extra=0;
+ if(e.money){S.money+=e.money;L.tEvent+=e.money;}
+ if(e.rep){S.rep=Math.max(0,S.rep+e.rep);L.rep+=e.rep;}
+ if(e.att)L.attMul=clamp(L.attMul*(1+e.att),0.15,2.4);
+ if(e.days)L.days+=e.days;
+ if(e.skip)L.skipNext=true;
+ if(e.wait)extra=e.wait;
+ L.log.push({t:ev.t,s:ch.l+(e.money?` · ${money(e.money)}`:'')+(e.rep?` · ${e.rep>0?'+':''}${e.rep} hírnév`:'')+
+   (e.att?` · ${e.att>0?'+':''}${Math.round(e.att*100)}% nézőszám`:'')+(e.days?` · +${e.days} nap`:''),ic:ev.ic});
+ L.ends=Date.now()+(L.pausedLeft||0)+extra;L.pausedLeft=null;L.pendingEv=null;
+ $('#modal').className='';$('#modal').innerHTML='';
+ save();if(S.tab==='terkep')liveScreen();renderHUD();
+}
+/* megerősítő kérdés (turné megszakítása) */
+function confirmBox(title,text,okLabel,fn){
+ let h=`<div class="ev"><div class="bd"><h3>${esc(title)}</h3><p>${esc(text)}</p><div class="evch">
+   <button class="evb risk" data-ok="1"><div class="l">${esc(okLabel)}</div></button>
+   <button class="evb" data-no="1"><div class="l">Mégse</div></button></div></div></div>`;
+ const m=$('#modal');m.innerHTML=h;m.className='on';
+ m.querySelector('[data-ok]').onclick=()=>{m.className='';m.innerHTML='';fn();};
+ m.querySelector('[data-no]').onclick=()=>{m.className='';m.innerHTML='';};
+}
+
+/* ============================ REKLÁM (placeholder) ============================
+   Ez a modul szimulálja a jutalmazott videót (rewarded ad).
+   ÉLESBEN: a show() belsejét kell kicserélni a valódi SDK hívására, pl.
+     AdMob:  rewardedAd.show(); reward eseményre -> onReward(); bezárásra -> onFail();
+   A játék többi része nem tud a hirdetésről — csak ezt a két visszahívást várja. */
+const Ads={
+ available(){return true;},
+ show(onReward,onFail){
+  const el=$('#adv');let left=5,done=false,iv=null;
+  const paint=()=>{el.innerHTML=`<div class="adbox"><div class="adscreen">
+     <span class="adx" id="advX">✕</span>
+     <div class="lbl">Hirdetés</div>
+     <div class="big">${done?'Kész! Jöhet a jutalom.':'Reklámvideó fut…'}</div>
+     ${done?'':`<div class="cd">${left}</div><div class="adring"></div>`}
+     <div class="sm">${done?'Köszönjük, hogy megnézted.':'A videó végén átugorhatod az aktuális szakaszt.'}</div>
+    </div>
+    ${done?`<button class="btn lime" id="advOk" style="margin-top:14px">${icon('ff','18px')} Jutalom átvétele</button>`:''}
+    </div>`;
+   const x=$('#advX');if(x)x.onclick=()=>{fin(false);};
+   const ok=$('#advOk');if(ok)ok.onclick=()=>{fin(true);};};
+  const fin=(rew)=>{if(iv)clearInterval(iv);el.className='';el.innerHTML='';rew?onReward():onFail();};
+  el.className='on';paint();
+  iv=setInterval(()=>{left--;if(left<=0){done=true;clearInterval(iv);iv=null;}paint();},1000);
+ }
+};
+
+/* ============================ TÉRKÉP ============================ */
+const G={map:null,markers:{},route:null,glow:null,done:null,pos:null};
+/* a térkép a tervezőt ÉS az élő turnét is kiszolgálja */
+function actStops(){return S.live?S.live.stops:(S.tour?S.tour.stops:[]);}
+function doneCount(){return S.live?S.live.rows.length:0;}
+function teardownMap(){if(G.map){try{G.map.remove();}catch(e){}G.map=null;G.markers={};G.route=null;G.glow=null;G.done=null;G.pos=null;}}
+function pinIcon(city,ord,done){const on=ord>0;return L.divIcon({className:'',iconSize:on?[26,26]:[12,12],iconAnchor:on?[13,13]:[6,6],
+  html:`<div class="pin ${on?'on':''} ${done?'done':''}"><div class="dot">${on?ord:''}</div></div>`});}
+function initMap(){if(!HAS_MAP)return;teardownMap();
+ G.map=L.map('lmap',{worldCopyJump:true,zoomControl:true,attributionControl:true,minZoom:1}).setView([25,12],2);
+ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19,attribution:'&copy; OpenStreetMap &copy; CARTO'}).addTo(G.map);
+ const st=actStops(),dc=doneCount();
+ CITIES.forEach(c=>{const ord=st.findIndex(s=>s.city===c.id)+1;
+  const m=L.marker([c.lat,c.lon],{icon:pinIcon(c,ord,ord>0&&ord<=dc),title:c.n}).addTo(G.map);
+  if(!S.live)m.on('click',()=>toggleCity(c.id));
+  m.bindTooltip(c.n,{direction:'top',offset:[0,-8]});G.markers[c.id]=m;});
+ drawRoute();setTimeout(()=>{try{G.map.invalidateSize();}catch(e){}},80);}
+function refreshMarkers(){if(!G.map)return;const st=actStops(),dc=doneCount();
+ CITIES.forEach(c=>{const ord=st.findIndex(s=>s.city===c.id)+1;G.markers[c.id]&&G.markers[c.id].setIcon(pinIcon(c,ord,ord>0&&ord<=dc));});}
+function drawRoute(){if(!G.map)return;
+ [ 'route','glow','done' ].forEach(k=>{if(G[k]){G.map.removeLayer(G[k]);G[k]=null;}});
+ const pts=actStops().map(s=>[CM[s.city].lat,CM[s.city].lon]);
+ if(pts.length>1){G.glow=L.polyline(pts,{color:'#C6FF3A',weight:8,opacity:.18}).addTo(G.map);
+  G.route=L.polyline(pts,{color:'#C6FF3A',weight:3,opacity:.95,dashArray:'9,7'}).addTo(G.map);}
+ const dc=doneCount();                                   // már megjárt szakasz kiemelése
+ if(dc>1){G.done=L.polyline(pts.slice(0,dc),{color:'#2FE39B',weight:4,opacity:.95}).addTo(G.map);}}
+function fitRoute(){if(!G.map)return;const pts=actStops().map(s=>[CM[s.city].lat,CM[s.city].lon]);
+ if(pts.length>=2)G.map.fitBounds(pts,{padding:[40,40]});else if(pts.length===1)G.map.setView(pts[0],4);}
+/* élő turné: mozgó pozíciójelző az útvonalon */
+function updateLivePos(prog){
+ if(!G.map||!S.live)return;const p=curPhase();if(!p)return;
+ const L2=S.live,cur=CM[L2.stops[p.i].city];let lat=cur.lat,lon=cur.lon;
+ if(p.k==='travel'&&p.i>0){const pv=CM[L2.stops[p.i-1].city];
+  lat=pv.lat+(cur.lat-pv.lat)*prog;let d=cur.lon-pv.lon;
+  if(d>180)d-=360;if(d<-180)d+=360;lon=pv.lon+d*prog;}
+ const html=`<div class="movpin">${icon(p.k==='travel'?'plane':'mic','14px')}</div>`;
+ if(!G.pos){G.pos=L.marker([lat,lon],{icon:L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html}),
+   zIndexOffset:900,interactive:false}).addTo(G.map);}
+ else{G.pos.setLatLng([lat,lon]);G.pos.setIcon(L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html}));}}
+
+/* ============================ SZÁMLÁLÓ ANIMÁCIÓ ============================ */
+function animateNum(el,to,fmt){const from=parseFloat(el.dataset.v||'0')||0;if(from===to){el.textContent=fmt(to);el.dataset.v=to;return;}
+ const t0=performance.now(),dur=650;el.dataset.v=to;
+ function step(t){const p=clamp((t-t0)/dur,0,1),e=1-Math.pow(1-p,3),val=from+(to-from)*e;el.textContent=fmt(val);if(p<1)requestAnimationFrame(step);}
+ requestAnimationFrame(step);}
+
+/* ============================ HUD ============================ */
+function renderHUD(){
+ const lp=levelProg(), av=S.roster.length?artistPhoto(AM[S.roster[0]],80,80):null;
+ hud.innerHTML=`<div class="hud-top">
+   <div class="ag-av">${av?`<img src="${av}" ${imgFB()}>`:icon('star','20px')}</div>
+   <div class="ag-who"><div class="nm">Star Agency</div>
+     <div class="lv">Iroda <b>Lv.${lp.l}</b> · ${lp.need>0?`${lp.need} hírnév a Lv.${lp.l+1}-ig`:'max szint'}</div></div>
+   <div class="ag-set">${icon('cog')}</div>
+ </div>
+ <div class="res">
+   <div class="pill cash">${icon('banknote','18px')}<div><div class="k">Kassza</div><div class="v" id="hudMoney"></div></div></div>
+   <div class="pill rep">${icon('star','18px')}<div><div class="k">Hírnév</div><div class="v" id="hudRep"></div></div></div>
+   <div class="pill wk">${icon('calendar','18px')}<div><div class="k">Hét</div><div class="v" id="hudWk"></div></div></div>
+ </div>`;
+ animateNum($('#hudMoney'),S.money,v=>money(v));
+ animateNum($('#hudRep'),S.rep,v=>Math.round(v).toLocaleString('hu-HU'));
+ $('#hudWk').textContent=String(S.week).padStart(2,'0');
+}
+
+/* ============================ NAV ============================ */
+function renderNav(){const tabs=[['iroda','house','Iroda'],['terkep','globe','Térkép'],['eloadok','mic','Előadók'],['studio','notes','Stúdió'],['fejlesztes','upgrade','Fejlesztés']];
+ navEl.innerHTML=tabs.map(([id,ic,l])=>`<a class="${S.tab===id?'on':''}" data-tab="${id}">${icon(ic)}${l}</a>`).join('');
+ navEl.querySelectorAll('[data-tab]').forEach(a=>a.onclick=()=>{if(S.tab!==a.dataset.tab){S.detail=null;if(a.dataset.tab!=='terkep')teardownMap();S.tab=a.dataset.tab;save();render();}});}
+
+/* ============================ RENDER ============================ */
+function render(){renderHUD();renderNav();stickyHost.innerHTML='';
+ if(S.tab!=='terkep')teardownMap();
+ ({iroda:tabIroda,terkep:tabTerkep,eloadok:tabEloadok,studio:tabStudio,fejlesztes:tabFejlesztes}[S.tab]||tabIroda)();
+ view.scrollTop=0;
+ if(S.live||S.rel)startTicker();else stopTicker();
+ /* félbehagyott döntés visszaállítása újratöltés után */
+ if(S.live&&S.live.pendingEv&&$('#modal').className!=='on'){const e=EVENTS.find(x=>x.id===S.live.pendingEv);if(e)renderEvent(e);}}
+function bind(sel,fn){view.querySelectorAll(sel).forEach(el=>el.onclick=()=>fn(el));}
+
+/* ---------- IRODA ---------- */
+function tabIroda(){
+ const sg=signed();
+ // adaptív következő teendő
+ let coach;
+ if(S.live) coach={n:'▶',h:'Turné van folyamatban',s:'A csapat úton van. Kövesd élőben a Térkép fülön — döntéseket is kérhetnek tőled útközben.',go:'terkep'};
+ else if(sg.length===0) coach={n:'1',h:'Igazold le az első előadódat',s:'Menj az Előadók fülre és válassz egy feltörekvő tehetséget – ingyen van!',go:'eloadok'};
+ else if(S.toursDone===0) coach={n:'2',h:'Tervezd meg az első turnédat',s:'A Térkép fülön válaszd ki az előadót, rakd sorba a városokat, és indítsd el a turnét.',go:'terkep'};
+ else if(!S.rel&&!S.relLog.length) coach={n:'3',h:'Adj ki egy zenét a Stúdióban',s:'Egy single megdobja a streaminget, az pedig országonként hozza a rajongókat — a következő turnéd sokkal jobban fizet.',go:'studio'};
+ else coach={n:'★',h:'Pörgesd a körforgást',s:'Kiadás → streaming → rajongótábor → nagyobb koncertkereslet → több pénz. Vidd a turnét oda, ahol erős a rajongótáborod.',go:'terkep'};
+
+ let h=`<div class="hud-space"></div><div class="pad">`;
+ // hero
+ h+=`<div class="hero"><img class="bg" src="${sg.length?artistPhoto(sg[0],900,600):CROWD}" ${imgFB()}><div class="g"></div>
+   <div class="in"><div class="kick"><span class="eq"><i></i><i></i><i></i><i></i></span> A te menedzserirodád</div>
+     <h1>Építs egy turné­birodalmat</h1>
+     <p>Igazolj le előadókat, tervezz világ­körüli turnékat, és nőj, míg a legnagyobb nevek is nálad kopognak.</p></div></div>`;
+ // coach
+ h+=`<div class="coach" data-go="${coach.go}"><div class="n">${coach.n}</div>
+   <div class="t"><div class="h">${coach.h}</div><div class="s">${coach.s}</div></div><div class="go">›</div></div>`;
+
+ // folyamatban lévő turné, vagy gyorsindítás
+ if(S.live){
+   const L=S.live,la=AM[L.artist],p=curPhase(),city=CM[L.stops[p.i].city];
+   h+=`<div class="sec"><h2>Turné folyamatban</h2><span class="r act">${L.rows.length}/${L.stops.length}</span></div>`;
+   h+=`<div class="nextshow"><div class="ph"><img src="${cityPhoto(city,700,320)}" ${imgFB()}><div class="g"></div>
+     <div class="top"><span class="live"><span class="d"></span>${p.k==='travel'?'Úton':'Élő koncert'}</span>
+       <span class="badge2">${icon('calendar','12px')} ${L.days+1}. nap</span></div></div>
+     <div class="bd"><div class="city">${esc(city.n)}</div><div class="sub">${esc(la.n)} · ${L.rows.length} koncert kész · ${money(L.tRev)} bevétel</div>
+     <button class="btn lime" data-go="terkep" style="margin-top:12px">${icon('plane','18px')} Turné követése élőben</button></div></div>`;
+ }else if(sg.length){
+   h+=`<div class="sec"><h2>Indíts egy turnét</h2></div>`;
+   h+=`<div class="nextshow"><div class="ph"><img src="${CROWD}" ${imgFB()}><div class="g"></div>
+     <div class="top"><span class="live"><span class="d"></span>Készen áll</span></div></div>
+     <div class="bd"><div class="city">Világturné</div><div class="sub">${sg.length} előadó a rosteredben · válaszd ki a térképen</div>
+     <button class="btn lime" data-go="terkep" style="margin-top:12px">${icon('globe','18px')} Turné tervezése</button></div></div>`;
+ }
+
+ // előadók strip
+ h+=`<div class="sec"><h2>Előadóid</h2><span class="r ${sg.length?'act':''}">${sg.length} aktív</span></div></div>`;
+ h+=`<div class="hscroll">`;
+ sg.forEach(a=>h+=acardHTML(a));
+ h+=`<div class="acard add" data-go="eloadok"><div class="plus">＋</div><div class="l">Új előadó leigazolása</div></div>`;
+ h+=`</div>`;
+
+ // statisztika
+ // stúdió állapota
+ const totStreams=sg.reduce((s,x)=>s+artState(x.id).streams,0);
+ if(S.rel){const rk=RM[S.rel.kind],ra=AM[S.rel.artist];
+  h+=`<div class="pad"><div class="sec"><h2>A stúdióban</h2><span class="r act">${rk.n}</span></div>
+    <div class="lcard" data-go="studio"><div class="ph"><img src="${artistPhoto(ra,220,240)}" ${imgFB()}></div>
+      <div class="bd"><div class="nm">${esc(ra.n)}</div>
+        <div class="chips"><span class="chip lime">${rk.n} felvétele</span><span class="chip">${mmss(relRemain())} van hátra</span></div>
+        <div style="font-size:11.5px;color:var(--muted);margin-top:7px">Megjelenés után ugrik a streaming és minden régióban a rajongótábor.</div>
+      </div></div></div>`;}
+
+ h+=`<div class="pad"><div class="sec"><h2>Az irodád</h2></div>
+   <div class="tiles">
+     <div class="tile c1">${icon('banknote','20px')}<div class="v">${money(S.money)}</div><div class="k">Kassza</div></div>
+     <div class="tile c2">${icon('star','20px')}<div class="v">${S.rep}</div><div class="k">Hírnév</div></div>
+     <div class="tile c3">${icon('trophy','20px')}<div class="v">${S.toursDone}</div><div class="k">Turné</div></div>
+   </div>`;
+ if(sg.length)h+=`<div class="tiles" style="margin-top:9px">
+     <div class="tile c3">${icon('headphones','20px')}<div class="v">${fmtStream(totStreams)}</div><div class="k">Havi hallgató</div></div>
+     <div class="tile c1">${icon('banknote','20px')}<div class="v">${money(S.streamIncome||0)}</div><div class="k">Streamingből</div></div>
+     <div class="tile c2">${icon('notes','20px')}<div class="v">${S.relLog.length}</div><div class="k">Megjelenés</div></div>
+   </div>`;
+ if(S.lastResult){const l=S.lastResult;
+   h+=`<div class="sec"><h2>Legutóbbi turné</h2></div>
+     <div class="lcard"><div class="ph"><img src="${l.photo}" ${imgFB()}></div>
+     <div class="bd"><div class="nm">${esc(l.artist)}</div>
+       <div class="chips"><span class="chip">${l.rows.length} állomás</span><span class="chip">${k(l.tAtt)} néző</span></div>
+       <div class="btm"><span class="num" style="font-size:20px;color:${l.net>=0?'var(--cash)':'var(--hot)'}">${money(l.net)}</span></div></div></div>`;}
+ h+=`</div>`;
+
+ view.innerHTML=h;
+ bind('[data-go]',b=>{S.tab=b.dataset.go;save();render();});
+ bind('[data-artist]',b=>openDetail(b.dataset.artist));
+}
+function acardHTML(a){return `<div class="acard" data-artist="${a.id}"><div class="ph"><img src="${artistPhoto(a,300,380)}" ${imgFB()}><div class="g"></div>
+   <span class="badge">${icon(a.ic,'11px')} ${a.genre}</span>
+   <div class="info"><div class="nm">${esc(a.n)}</div><div class="gen">Részesedés ${Math.round(a.cut*100)}%</div>
+     <div class="fame"><div class="fbar"><i style="width:${af(a)}%"></i></div><span class="fn">${af(a)}</span></div></div></div></div>`;}
+
+/* ---------- ELŐADÓK ---------- */
+function tabEloadok(){
+ if(S.detail){detailScreen();return;}
+ const mine=signed(), pool=avail().filter(a=>!S.roster.includes(a.id)), locked=ARTISTS.filter(a=>a.minRep>S.rep);
+ let h=`<div class="hud-space"></div><div class="pad">
+   <div class="shead"><div class="eyebrow">Roster</div><h1>Előadók</h1><p>A leigazolt előadóiddal tervezhetsz turnét. Nagyobb nevek magasabb hírnévnél szerződnek.</p></div>`;
+ h+=`<div class="sec"><h2>A csapatod</h2><span class="r ${mine.length?'act':''}">${mine.length}</span></div>`;
+ if(!mine.length)h+=`<div class="empty">Még nincs előadód.<br>Válassz lentről egy feltörekvő tehetséget – ingyen!</div>`;
+ mine.forEach(a=>h+=lcardArtist(a,'mine'));
+ h+=`<div class="sec"><h2>Leigazolható</h2></div>`;
+ if(!pool.length)h+=`<div class="empty">Most nincs új elérhető név. Növeld a hírneved turnékkal!</div>`;
+ pool.forEach(a=>h+=lcardArtist(a,'sign'));
+ if(locked.length){h+=`<div class="sec"><h2 style="color:var(--muted);font-size:15px">${icon('star')} Magasabb hírnév kell</h2></div>`;
+  locked.forEach(a=>h+=`<div class="lcard" style="opacity:.6"><div class="ph"><img src="${artistPhoto(a,220,240)}" ${imgFB()}></div>
+   <div class="bd"><div class="nm">${esc(a.n)}</div><div class="chips"><span class="chip">${a.genre}</span><span class="chip gold">Hírnév ${af(a)}</span></div>
+     <div class="btm"><span class="lock">${icon('star')} ${a.minRep} hírnév kell</span></div></div></div>`);}
+ h+=`</div>`;
+ view.innerHTML=h;
+ bind('[data-artist]',b=>openDetail(b.dataset.artist));
+ bind('[data-sign]',b=>doSign(b.dataset.sign));
+}
+function lcardArtist(a,mode){const canPay=S.money>=a.sign, top=Object.entries(a.reg).sort((x,y)=>y[1]-x[1]).slice(0,2).map(([r])=>REGIONS[r]).join(', ');
+ return `<div class="lcard"><div class="ph" data-artist="${a.id}"><img src="${artistPhoto(a,220,260)}" ${imgFB()}><span class="gi">${icon(a.ic,'13px')}</span></div>
+   <div class="bd"><div class="nm" data-artist="${a.id}">${esc(a.n)}</div>
+     <div class="chips"><span class="chip">${a.genre}</span><span class="chip gold">Hírnév ${af(a)}</span><span class="chip">${esc(top)}</span></div>
+     <div class="btm">${mode==='mine'
+        ? `<button class="btn lime sm" data-artist="${a.id}">${icon('globe','15px')} Megnyitás</button>`
+        : `<button class="btn ${canPay?'lime':'dark'} sm" data-sign="${a.id}" ${canPay?'':'disabled'}>${a.sign?(canPay?'Leigazolás · '+money(a.sign):'Nincs elég pénz'):'Leigazolás · ingyen'}</button>`}
+     </div></div></div>`;}
+function doSign(id){const a=AM[id];if(S.money<a.sign){toast('Nincs elég pénz.');return;}S.money-=a.sign;S.roster.push(id);save();toast(`${a.n} leigazolva!`);render();}
+function openDetail(id){S.detail=id;S.tab='eloadok';save();render();}
+
+function detailScreen(){const a=AM[S.detail],mine=S.roster.includes(a.id),canPay=S.money>=a.sign;
+ let h=`<div class="adhero"><img src="${artistPhoto(a,900,700)}" ${imgFB()}><div class="g"></div>
+   <div class="back" data-back="1">‹</div>
+   <div class="info"><div class="gen">${icon(a.ic)} ${a.genre} · Részesedés ${Math.round(a.cut*100)}%</div><h1>${esc(a.n)}</h1></div></div>`;
+ h+=`<div class="pad"><p style="color:var(--muted);font-size:14px;margin:14px 0;line-height:1.5">${esc(a.bio)}</p>`;
+ const A=artState(a.id);
+ h+=`<div class="tiles"><div class="tile c2">${icon('star','20px')}<div class="v">${af(a)}</div><div class="k">Hírnév</div></div>
+     <div class="tile c1">${icon('banknote','20px')}<div class="v">${Math.round(a.cut*100)}%</div><div class="k">Részesedés</div></div>
+     <div class="tile c3">${icon('headphones','20px')}<div class="v">${fmtStream(A.streams)}</div><div class="k">Havi hallgató</div></div></div>`;
+ h+=`<div class="sec"><h2>Rajongótábor</h2><span class="r ${avgFans(A)>=40?'act':''}">átlag ${Math.round(avgFans(A))} · ${fanLabel(avgFans(A))}</span></div>
+   <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px">${fanBars(A)}</div>`;
+ if(mine)h+=`<div class="hint"><span class="i">${icon('notes','13px')}</span><span>A Stúdióban adhatsz ki vele single-t vagy albumot — attól nő a streaming, és vele minden régióban a rajongótábor.</span></div>`;
+ h+=`<div class="sec"><h2>Repertoár</h2></div>`;
+ a.songs.forEach(s=>{const col=s.q>=85?'var(--cash)':s.q>=70?'var(--gold)':'var(--muted)';
+  h+=`<div class="song"><span class="q" style="background:${col}"></span><span class="t">${esc(s.n)}</span><span class="qn">${s.q}</span></div>`;});
+ h+=`<div style="height:14px"></div>`;
+ if(mine)h+=`<button class="btn lime" data-tour="${a.id}">${icon('globe','18px')} Turné tervezése</button>`;
+ else h+=`<button class="btn ${canPay?'lime':'dark'}" data-sign="${a.id}" ${canPay?'':'disabled'}>${a.sign?(canPay?'Leigazolás · '+money(a.sign):'Nincs elég pénz ('+money(a.sign)+')'):'Leigazolás · ingyen'}</button>`;
+ h+=`</div>`;
+ view.innerHTML=h;
+ $('.back').onclick=()=>{S.detail=null;save();render();};
+ const sb=view.querySelector('[data-sign]');if(sb)sb.onclick=()=>{doSign(a.id);};
+ const tb=view.querySelector('[data-tour]');if(tb)tb.onclick=()=>{startTour(a.id);};
+}
+
+/* ---------- TÉRKÉP / TURNÉ ---------- */
+function startTour(id){if(S.live){toast('Előbb fejezd be a folyamatban lévő turnét.');S.tab='terkep';save();render();return;}
+ const a=AM[id];const top=a.songs.map((s,i)=>[i,s.q]).sort((x,y)=>y[1]-x[1]).slice(0,5).map(x=>x[0]);
+ S.tour={artist:id,stops:[],setlist:top,promo:0};S.detail=null;S.tab='terkep';save();render();}
+function defVenue(a){const f=af(a);return f>=80?VM.arena:f>=50?VM.theatre:VM.club;}
+
+function tabTerkep(){
+ if(S.live){liveScreen();return;}
+ const sg=signed();
+ if(!sg.length){view.innerHTML=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">Turné</div><h1>Térkép</h1></div>
+   <div class="coach" data-go="eloadok"><div class="n">1</div><div class="t"><div class="h">Előbb kell egy előadó</div><div class="s">Igazolj le valakit az Előadók fülön, aztán ide visszatérve turnét tervezhetsz.</div></div><div class="go">›</div></div></div>`;
+   bind('[data-go]',b=>{S.tab=b.dataset.go;save();render();});return;}
+ if(!S.tour){ // előadó választó
+   let h=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">Turné · 1. lépés</div><h1>Kit viszel turnéra?</h1><p>Válaszd ki, melyik előadódnak szervezel világkörüli turnét.</p></div></div><div class="hscroll">`;
+   sg.forEach(a=>h+=acardHTML(a).replace('data-artist','data-tour'));
+   h+=`</div>`;view.innerHTML=h;bind('[data-tour]',b=>startTour(b.dataset.tour));return;}
+ plannerScreen();
+}
+
+/* ---------- ÉLŐ TURNÉ KÉPERNYŐ ---------- */
+function mmss(ms){const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+function liveScreen(){
+ const L=S.live,a=AM[L.artist],p=curPhase(),sc=view.scrollTop;
+ const cur=CM[L.stops[p.i].city],v=VM[L.stops[p.i].venue];
+ const travelling=p.k==='travel', first=travelling&&p.i===0;
+ const prev=(travelling&&p.i>0)?CM[L.stops[p.i-1].city]:null;
+ const title=travelling?(first?`Indulás · ${cur.n}`:`${prev.n} → ${cur.n}`):cur.n;
+ const sub=travelling?(first?`A stáb pakol, a busz a kapuban áll · ${dur(p.min)}`:`${Math.round(p.km).toLocaleString('hu-HU')} km · ${dur(p.min)} út`)
+   :`${v.n} · €${L.stops[p.i].price} · ${dur(p.min)} műsoridő`;
+ const badge=travelling?`<span class="badge2">${icon('plane','13px')} Úton</span>`:`<span class="live"><span class="d"></span>Élő koncert</span>`;
+
+ let h=`<div class="hud-space"></div><div class="pad">
+  <div class="shead"><div class="eyebrow">${icon(a.ic)} ${esc(a.n)} · turné folyamatban</div>
+   <h1>${L.rows.length}/${L.stops.length} állomás kész</h1></div>
+  <div class="lvc"><div class="ph"><img src="${cityPhoto(cur,700,340)}" ${imgFB()}><div class="g"></div>
+    <div class="top">${badge}<span class="badge2">${icon('calendar','12px')} ${L.days+1}. nap</span></div></div>
+   <div class="bd"><div class="kick">${travelling?'Utazás':'Színpadon'}</div>
+    <div class="ttl">${esc(title)}</div><div class="sub">${sub}</div>
+    <div class="pbar"><i id="lvBar" style="width:0%"></i></div>
+    <div class="pmeta"><span class="t">${icon('clock','15px')}<span id="lvTime">0:00</span></span>
+      <span id="lvNext">${travelling?'Utána: koncert':'Utána: továbbindulás'}</span></div>
+   </div></div>`;
+
+ /* reklámvideós gyorsítás */
+ const used=!!L.adUsed[L.i];
+ h+=`<button class="btn ${used?'dark':'lime'} sm" id="lvAd" style="margin-top:12px" ${used?'disabled':''}>
+   ${icon('play','16px')} ${used?'Ehhez a szakaszhoz már megnézted':'Reklám megnézése · szakasz átugrása'}</button>`;
+
+ /* térkép a haladással */
+ if(HAS_MAP){h+=`<div class="sec"><h2>Az útvonal</h2><span class="r act">${icon('plane','11px')} élő</span></div>
+   <div style="border-radius:14px;overflow:hidden;border:1px solid var(--line)"><div id="lmap"></div></div>`;}
+
+ /* állomás-idővonal */
+ h+=`<div class="sec"><h2>Állomások</h2></div><div class="tl">`;
+ L.stops.forEach((st,i)=>{
+  const c=CM[st.city],vv=VM[st.venue],row=L.rows[i],isNow=i===p.i&&!row;
+  if(row){
+   h+=`<div class="tlr done"><div class="h"><span class="c">${i+1}. ${c.n}</span>
+     <span class="p" style="color:${row.profit>=0?'var(--cash)':'var(--hot)'}">${money(row.profit)}</span></div>
+     <div class="m"><span>${row.cancelled?'Elmaradt':`${k(row.att)}/${k(row.cap)} néző · ${Math.round(row.fill*100)}%`}</span>
+       <span>${row.cancelled?'':`várt ${k(row.exp)}`}</span></div>
+     ${row.cancelled?'':`<div class="d">${row.att>=row.exp?'Többen jöttek a vártnál':'Kevesebben jöttek a vártnál'}${row.merch?` · merch <b style="color:var(--cash)">${money(row.merch)}</b>`:''}${row.fanG?` · <b style="color:var(--neon)">+${dec1(row.fanG)}</b> rajongó`:''}</div>`}</div>`;
+  }else{
+   const setQ=setlistQ(a,L.setlist),e=estimate(a,c,vv,st.price,setQ,L.mom,L.promo),sg=sigmaFor(a,L.promo),b=band(e.raw,sg,vv.cap);
+   h+=`<div class="tlr ${isNow?'now':'dead'}"><div class="h"><span class="c">${i+1}. ${c.n}</span>
+     <span class="p" style="color:var(--muted)">${vv.n}</span></div>
+     <div class="m"><span>Várható ${k(b.lo)}–${k(b.hi)} néző</span><span>€${st.price}</span></div>
+     <div class="d">${REGIONS[c.r]} rajongótábor <b style="color:${fanCol(e.fans)}">${Math.round(e.fans)}</b></div></div>`;
+  }});
+ h+=`</div>`;
+
+ /* eseménynapló */
+ if(L.log.length){h+=`<div class="sec"><h2>Ami történt</h2></div>`;
+  L.log.slice().reverse().forEach(x=>h+=`<div class="logr"><div class="i">${icon(x.ic||'star','15px')}</div>
+    <div class="tx"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></div></div>`);}
+
+ h+=`<div class="divider"></div><button class="btn dark sm" id="lvStop">Turné megszakítása</button><div style="height:10px"></div></div>`;
+ view.innerHTML=h;view.scrollTop=sc;
+ if(HAS_MAP){initMap();}
+ $('#lvAd').onclick=adSkip;
+ $('#lvStop').onclick=()=>confirmBox('Megszakítod a turnét?',
+   'A hátralévő koncertek elmaradnak, és ez hírnévbe kerül. A már megkeresett pénz megmarad.','Igen, megszakítom',abandonTour);
+ paintLive();
+}
+function paintLive(){
+ const L=S.live;if(!L)return;const p=curPhase();if(!p)return;
+ const left=remainMs(),prog=clamp(1-left/p.ms,0,1);
+ const b=$('#lvBar'),t=$('#lvTime');
+ if(b)b.style.width=(prog*100).toFixed(1)+'%';
+ if(t)t.textContent=mmss(left);
+ updateLivePos(prog);
+}
+
+function plannerScreen(){
+ const a=AM[S.tour.artist];
+ let h=`<div class="hud-space"></div><div class="pad">
+   <div class="shead"><div class="eyebrow">${icon(a.ic)} ${esc(a.n)} · Világturné</div><h1>Turné tervezése</h1></div>
+   <div class="coach"><div class="n">✦</div><div class="t"><div class="h">3 egyszerű lépés</div><div class="s">1) Válaszd ki a dalokat · 2) Rakd sorba a városokat a térképen · 3) Állítsd be a helyszínt és a jegyárat. Aztán indítsd a turnét!</div></div></div>`;
+
+ h+=`<div class="sec"><h2>1 · Setlist</h2><span class="r act">minőség <b class="num" id="sq">0</b>/100</span></div><div id="songs"></div>`;
+
+ h+=`<div class="sec"><h2>2 · Útvonal</h2></div>`;
+ if(HAS_MAP){h+=`<div class="route-sum">
+    <div class="b"><div class="k">Állomás</div><div class="v" id="rStops">0</div></div>
+    <div class="b"><div class="k">Táv</div><div class="v" id="rKm">0</div></div>
+    <div class="b"><div class="k">Utazás</div><div class="v" id="rCost">€0</div></div></div>
+   <div style="border-radius:14px;overflow:hidden;border:1px solid var(--line)"><div id="lmap"></div></div>`;}
+ h+=`<div class="hint"><span class="i">✦</span><span>Koppints a <b>térképi tűkre</b> vagy a városnevekre a sorrend szerint. A logikus, egy irányba haladó útvonal olcsóbb!</span></div>`;
+ h+=`<div class="btnrow"><button class="btn dark sm" id="fit" style="flex:0 0 auto">${icon('globe','15px')} Illeszt</button></div>`;
+ h+=`<div id="chips"></div>`;
+
+ h+=`<div class="sec"><h2>3 · Helyszínek és árak</h2></div><div id="stops"></div>`;
+
+ h+=`<div class="sec"><h2>4 · Promóció</h2><span class="r act" id="promoTag">€0</span></div><div id="promo"></div>`;
+ h+=`</div>`;
+ view.innerHTML=h;
+ if(HAS_MAP){initMap();const f=$('#fit');if(f)f.onclick=fitRoute;}
+ renderSongs();renderChips();renderStops();renderPromo();updateRouteSummary();updateSticky();
+}
+/* a jegyár csak a VÁRHATÓ nézőszámot adja — a promóció emeli és kiszámíthatóbbá teszi */
+function renderPromo(){
+ const a=AM[S.tour.artist],lvl=S.tour.promo||0,stops=S.tour.stops,cost=promoCost(stops,lvl),sg=sigmaFor(a,lvl);
+ let seg='';PROMO.forEach((p,i)=>{const c=promoCost(stops,i);
+  seg+=`<button class="${i===lvl?'on':''}" data-promo="${i}">${p.n}<small>${c?money(c):'ingyen'}</small></button>`;});
+ const afford=cost<=S.money;
+ $('#promo').innerHTML=`<div class="pseg">${seg}</div>
+  <div style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.45">${PROMO[lvl].d}</div>
+  <div class="chips" style="margin-top:9px">
+    <span class="chip lime">Várható nézőszám ×${PROMO[lvl].dem.toFixed(2)}</span>
+    <span class="chip mint">Bizonytalanság ±${Math.round(sg*100)}%</span>
+    ${afford?'':'<span class="chip" style="color:var(--hot);border-color:rgba(255,61,132,.4)">Nincs rá elég pénz</span>'}</div>
+  <div class="hint"><span class="i">${icon('megaphone','13px')}</span><span>A jegyár csak a <b>várható</b> látogatottságot szabja meg. A tényleges nézőszám ingadozik — erős promócióval többen jönnek, és <b>kisebb a meglepetés esélye</b>.</span></div>`;
+ const tag=$('#promoTag');if(tag)tag.textContent=cost?money(cost):'ingyen';
+ bind('[data-promo]',b=>{S.tour.promo=+b.dataset.promo;save();renderPromo();renderStops();updateSticky();});
+}
+function renderSongs(){const a=AM[S.tour.artist];let h='';
+ a.songs.forEach((s,i)=>{const on=S.tour.setlist.includes(i),col=s.q>=85?'var(--cash)':s.q>=70?'var(--gold)':'var(--muted)';
+  h+=`<div class="song ${on?'on':''}" data-song="${i}"><span class="q" style="background:${col}"></span><span class="t">${esc(s.n)}</span><span class="qn">${s.q}</span><span class="ck">✓</span></div>`;});
+ $('#songs').innerHTML=h;$('#sq').textContent=Math.round(setlistQ(a));
+ bind('[data-song]',el=>{const i=+el.dataset.song,arr=S.tour.setlist,p=arr.indexOf(i);
+  if(p>=0){if(arr.length<=1){toast('Legalább 1 dal kell.');return;}arr.splice(p,1);}else arr.push(i);save();renderSongs();renderStops();updateSticky();});}
+function renderChips(){const A=artState(S.tour.artist);let h='';
+ Object.keys(REGIONS).forEach(rg=>{const cs=CITIES.filter(c=>c.r===rg);if(!cs.length)return;const f=A.fans[rg]||0;
+  h+=`<div class="grp"><div class="l">${REGIONS[rg]} · <b style="color:${fanCol(f)}">rajongótábor ${Math.round(f)}</b> <span style="color:var(--faint)">(${fanLabel(f)})</span></div><div class="cchips">`;
+  cs.forEach(c=>{const idx=S.tour.stops.findIndex(s=>s.city===c.id);h+=`<div class="cchip ${idx>=0?'on':''}" data-city="${c.id}"><span class="o">${idx>=0?idx+1:''}</span>${c.n} <small>·${c.reach}</small></div>`;});
+  h+=`</div></div>`;});$('#chips').innerHTML=h;bind('[data-city]',el=>toggleCity(el.dataset.city));}
+function toggleCity(id){const a=AM[S.tour.artist],stops=S.tour.stops,p=stops.findIndex(s=>s.city===id);
+ if(p>=0)stops.splice(p,1);else{const v=defVenue(a);stops.push({city:id,venue:v.id,price:Math.round(fairPrice(a,v))});}
+ save();refreshMarkers();drawRoute();renderChips();renderStops();renderPromo();updateRouteSummary();updateSticky();}
+function updateRouteSummary(){const km=routeKm();let cost=0;const stops=S.tour.stops;
+ for(let i=1;i<stops.length;i++)cost+=legCost(CM[stops[i-1].city],CM[stops[i].city],VM[stops[i].venue]);
+ const a=$('#rStops'),b=$('#rKm'),c=$('#rCost');if(a)a.textContent=stops.length;if(b)b.textContent=km.toLocaleString('hu-HU');if(c)c.textContent=money(cost);}
+function renderStops(){const a=AM[S.tour.artist],stops=S.tour.stops,setQ=setlistQ(a),wrap=$('#stops'),pro=S.tour.promo||0,sg=sigmaFor(a,pro);
+ if(!stops.length){wrap.innerHTML=`<div class="empty">Előbb adj hozzá városokat az útvonalhoz a térképen vagy a lista alapján.</div>`;return;}
+ let h='';stops.forEach((st,i)=>{const city=CM[st.city],v=VM[st.venue];
+  const leg=i>0?legCost(CM[stops[i-1].city],city,v):0,e=estimate(a,city,v,st.price,setQ,1,pro),
+    profit=e.rev+e.merch-e.base-e.pay-leg,fp=Math.round(e.fill*100),
+    fc=e.fill>=0.85?'var(--cash)':e.fill>=0.5?'var(--gold)':'var(--hot)',b=band(e.raw,sg,v.cap),fit=venueFit(e.fill);
+  let seg='';VENUES.forEach(vv=>seg+=`<button class="${vv.id===st.venue?'on':''}" data-venue="${i}:${vv.id}">${vv.n}<small>${k(vv.cap)} fő</small></button>`);
+  h+=`<div class="stop"><div class="ph"><img src="${cityPhoto(city,600,300)}" ${imgFB()}><div class="g"></div>
+    <div class="lab"><div><span class="no">${i+1}. állomás</span><div class="c">${city.n}</div></div><span class="leg">${i>0?icon('globe','11px')+' '+money(leg):'nyitó'}</span></div></div>
+    <div class="bd"><div class="seg">${seg}</div>
+      <div class="pr"><label>Jegyár</label><input type="range" min="5" max="250" step="5" value="${st.price}" data-price="${i}"><span class="pv-price" id="pp${i}">€${st.price}</span></div>
+      <div class="pv"><div class="b"><span class="k">Várható</span><span class="v" id="pa${i}">${k(e.att)}/${k(v.cap)}</span></div>
+        <div class="b"><span class="k">Bevétel</span><span class="v">${money(e.rev)}</span></div>
+        <div class="b"><span class="k">Profit</span><span class="v ${profit>=0?'good':'bad'}" id="pf${i}">${money(profit)}</span></div></div>
+      <div class="fbar2"><i id="pb${i}" style="width:${fp}%;background:${fc}"></i></div>
+      <div class="band"><span>Reális kimenetel</span><span><b id="pl${i}">${k(b.lo)}</b> – <b id="ph${i}">${k(b.hi)}</b> néző</span></div>
+      <div class="rng" id="pr${i}">${rngHTML(b,e.att,v.cap)}</div>
+      <div class="band"><span>${REGIONS[city.r]} rajongótábor <b style="color:${fanCol(e.fans)}">${Math.round(e.fans)}</b></span>
+        <span id="pfit${i}" style="color:${fit.c};font-weight:700">${fit.t}</span></div>
+      <div class="band" id="pturn${i}" style="${e.raw>v.cap*1.15?'':'display:none'}"><span style="color:var(--gold)">${icon('alert','12px')} Kicsi ez a hely</span>
+        <span style="color:var(--gold)"><b id="ptn${i}">${k(Math.max(0,e.raw-v.cap))}</b> embert visszafordítasz</span></div>
+      <div class="band"><span>Fix költség <b id="pfx${i}">${money(e.fix)}</b> + fejenként <b id="pvr${i}">€${Math.round(e.varRate)}</b></span>
+        <span>nyereség <b id="pbe${i}" style="color:var(--gold)">${isFinite(e.beAtt)?k(e.beAtt):'—'}</b> nézőtől</span></div>
+      <div class="band"><span>Merch várhatóan</span><span><b id="pmc${i}" style="color:var(--cash)">${money(e.merch)}</b></span></div>
+      </div></div>`;});
+ wrap.innerHTML=h;
+ bind('[data-venue]',b=>{const[i,vid]=b.dataset.venue.split(':');const st=S.tour.stops[+i];st.venue=vid;st.price=Math.round(fairPrice(a,VM[vid]));save();refreshMarkers();renderStops();renderPromo();updateRouteSummary();updateSticky();});
+ view.querySelectorAll('[data-price]').forEach(inp=>{inp.oninput=()=>{const i=+inp.dataset.price,st=S.tour.stops[i];st.price=+inp.value;
+   const city=CM[st.city],v=VM[st.venue],leg=i>0?legCost(CM[S.tour.stops[i-1].city],city,v):0,e=estimate(a,city,v,st.price,setlistQ(a),1,pro),
+     profit=e.rev+e.merch-e.base-e.pay-leg,fp=Math.round(e.fill*100),fc=e.fill>=0.85?'var(--cash)':e.fill>=0.5?'var(--gold)':'var(--hot)',
+     bb=band(e.raw,sg,v.cap),ft=venueFit(e.fill);
+   $('#pp'+i).textContent='€'+st.price;$('#pa'+i).textContent=k(e.att)+'/'+k(v.cap);const pf=$('#pf'+i);pf.textContent=money(profit);pf.className='v '+(profit>=0?'good':'bad');
+   const pb=$('#pb'+i);pb.style.width=fp+'%';pb.style.background=fc;
+   $('#pl'+i).textContent=k(bb.lo);$('#ph'+i).textContent=k(bb.hi);$('#pr'+i).innerHTML=rngHTML(bb,e.att,v.cap);
+   const pfit=$('#pfit'+i);pfit.textContent=ft.t;pfit.style.color=ft.c;$('#pmc'+i).textContent=money(e.merch);
+   const pt=$('#pturn'+i);pt.style.display=e.raw>v.cap*1.15?'':'none';$('#ptn'+i).textContent=k(Math.max(0,e.raw-v.cap));
+   $('#pfx'+i).textContent=money(e.fix);$('#pvr'+i).textContent='€'+Math.round(e.varRate);
+   $('#pbe'+i).textContent=isFinite(e.beAtt)?k(e.beAtt):'—';};inp.onchange=()=>save();});}
+/* vizuális sáv: meddig terjedhet a tényleges nézőszám a férőhelyhez képest */
+function rngHTML(b,exp,cap){const l=clamp(b.lo/cap*100,0,100),w=clamp((b.hi-b.lo)/cap*100,1,100),m=clamp(exp/cap*100,0,100);
+ return `<i style="left:${l}%;width:${w}%"></i><u style="left:${m}%"></u>`;}
+function updateSticky(){const stops=S.tour.stops,cost=promoCost(stops,S.tour.promo||0);
+ const ready=stops.length>=1&&S.tour.setlist.length>=1&&cost<=S.money;
+ let label=stops.length<1?'Adj hozzá legalább 1 várost':(cost>S.money?'Nincs elég pénz a promócióra':
+   `${icon('mic','18px')} Turné indítása · ${stops.length} állomás${cost?' · promó '+money(cost):''}`);
+ const days=stops.reduce((s,st,i)=>s+1+(i>0?travelDays(haversine(CM[stops[i-1].city],CM[st.city])):1),0);
+ const realMin=stops.length?Math.round(tourRealMs(stops)/60000):0;
+ stickyHost.innerHTML=`<div class="sticky"><div class="in">
+   ${stops.length?`<div style="text-align:center;font-size:11px;color:var(--faint);font-weight:700;margin-bottom:7px">
+     ${icon('clock','12px')} ${days} nap a turnébuszon — nálad kb. ${realMin} perc, végig követheted</div>`:''}
+   <button class="btn lime" id="sim" ${ready?'':'disabled'}>${label}</button>
+   <button class="btn dark sm" id="cancel" style="margin-top:8px">Mégse, vissza</button></div></div>`;
+ if(ready)$('#sim').onclick=launchTour;$('#cancel').onclick=()=>{S.tour=null;teardownMap();save();render();};}
+
+/* ---------- STÚDIÓ (kiadások + streaming + rajongótábor) ---------- */
+function fanBars(A,gains){
+ let h='';Object.keys(REGIONS).forEach(r=>{const f=A.fans[r],g=gains&&gains[r];
+  h+=`<div class="fanrow"><span class="n">${REGIONS[r]}</span>
+    <span class="b"><i style="width:${clamp(f,0,100)}%;background:${fanCol(f)}"></i></span>
+    <span class="v" style="color:${fanCol(f)}">${Math.round(f)}</span>
+    <span class="d" style="color:${g>0?'var(--cash)':'transparent'}">${g>0?'+'+dec1(g):''}</span></div>`;});
+ return h;
+}
+function tabStudio(){
+ const sg=signed();
+ if(!sg.length){view.innerHTML=`<div class="hud-space"></div><div class="pad">
+   <div class="shead"><div class="eyebrow">Zene</div><h1>Stúdió</h1></div>
+   <div class="coach" data-go="eloadok"><div class="n">1</div><div class="t"><div class="h">Előbb kell egy előadó</div>
+     <div class="s">Igazolj le valakit, aztán itt adhatsz ki vele single-t vagy albumot.</div></div><div class="go">›</div></div></div>`;
+  bind('[data-go]',b=>{S.tab=b.dataset.go;save();render();});return;}
+ if(!S.studio||!S.roster.includes(S.studio))S.studio=S.roster[0];
+ const a=AM[S.studio],A=artState(a.id),tgt=streamTarget(a),
+   trend=tgt>A.streams*1.05?'Növekszik':tgt<A.streams*0.95?'Lassan csökken':'Stabil';
+
+ let h=`<div class="hud-space"></div><div class="pad">
+   <div class="shead"><div class="eyebrow">Zene</div><h1>Stúdió</h1>
+     <p>Két turné között itt tartod életben a zenét: a kiadás megdobja a streaminget, a streaming pedig országonként hozza a rajongókat — és velük a koncertkeresletet.</p></div>`;
+
+ /* folyamatban lévő felvétel */
+ if(S.rel){const k=RM[S.rel.kind],ra=AM[S.rel.artist];
+  h+=`<div class="lvc" style="margin-bottom:14px"><div class="ph" style="height:120px">
+     <img src="${artistPhoto(ra,700,300)}" ${imgFB()}><div class="g"></div>
+     <div class="top"><span class="live"><span class="d"></span>Felvétel</span>
+       <span class="badge2">${icon('calendar','12px')} ${k.days} nap</span></div></div>
+    <div class="bd"><div class="kick">Stúdióban</div><div class="ttl">${esc(ra.n)} · ${k.n}</div>
+      <div class="sub">${k.days} nap a stúdióban · megjelenés után azonnal hat a keresletre</div>
+      <div class="pbar"><i id="relBar" style="width:0%"></i></div>
+      <div class="pmeta"><span class="t">${icon('clock','15px')}<span id="relTime">0:00</span></span><span>Már nem szakítható meg</span></div>
+      <button class="btn lime sm" id="relAd" style="margin-top:11px">${icon('play','16px')} Reklám megnézése · felvétel gyorsítása</button>
+    </div></div>`;}
+
+ /* előadóválasztó */
+ if(sg.length>1){h+=`<div class="cchips" style="margin-bottom:14px">`;
+  sg.forEach(x=>h+=`<div class="cchip ${x.id===a.id?'on':''}" data-studio="${x.id}">${esc(x.n)}</div>`);
+  h+=`</div>`;}
+
+ /* streaming */
+ h+=`<div class="bigstat"><div class="k">Havi hallgató · ${esc(a.n)}</div>
+   <div class="v">${fmtStream(A.streams)}</div>
+   <div class="s">${trend} — a „természetes" szintje ${fmtStream(tgt)}.
+     Passzív bevétel kb. <b style="color:var(--cash)">${money(Math.round(A.streams*0.0015))}</b> hetente.</div>
+   ${A.hype>0.05?`<div style="margin-top:11px"><span class="hypechip">${icon('star','12px')} Friss megjelenés · +${Math.round(A.hype*25)}% kereslet</span></div>`:''}
+ </div>`;
+
+ /* rajongótábor */
+ h+=`<div class="sec"><h2>Rajongótábor</h2><span class="r act">átlag ${Math.round(avgFans(A))}</span></div>
+   <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px">${fanBars(A)}</div>
+   <div class="hint"><span class="i">${icon('globe','13px')}</span><span>Ahol magas a szint, ott <b>sokkal többen</b> jönnek el a koncertre és többet költenek merchre. Vidd oda a turnét, ahol erős vagy — vagy építsd fel a gyenge régiókat.</span></div>`;
+
+ /* kiadások */
+ h+=`<div class="sec"><h2>Új megjelenés</h2></div>`;
+ if(S.rel)h+=`<div class="empty">A stúdió most foglalt. Várd meg, míg elkészül a felvétel.</div>`;
+ else RELEASES.forEach(kd=>{const c=relCost(a,kd),can=S.money>=c;
+   h+=`<button class="relbtn" data-rel="${kd.id}" ${can?'':'disabled'}>
+     <span class="ic">${icon(kd.ic)}</span>
+     <span class="t"><span class="h">${kd.n}<span>${money(c)}</span></span>
+       <span class="s">${kd.d}</span>
+       <span class="m"><span class="chip lime">+${Math.round(kd.hype*100)}% streaming-lökés</span>
+         <span class="chip mint">+${kd.fansAdd} rajongó/régió</span><span class="chip gold">+${kd.fameAdd} hírnév</span>
+         <span class="chip">${kd.days} nap · nálad kb. ${Math.max(1,Math.round(msFromMin(kd.min)/60000))} perc</span></span></span></button>`;});
+
+ /* korábbi megjelenések */
+ if(S.relLog.length){h+=`<div class="sec"><h2>Eddigi megjelenések</h2></div>`;
+  S.relLog.forEach(x=>h+=`<div class="logr"><div class="i">${icon(x.ic||'notes','15px')}</div>
+    <div class="tx"><b>${esc(x.artist)} · ${esc(x.kind)}</b><span>${x.week}. hét · +${fmtStream(x.gain)} hallgató · +${x.fame} hírnév</span></div></div>`);}
+ h+=`<div style="height:8px"></div></div>`;
+ view.innerHTML=h;
+ bind('[data-studio]',b=>{S.studio=b.dataset.studio;save();tabStudio();});
+ bind('[data-rel]',b=>startRelease(a.id,b.dataset.rel));
+ const ad=$('#relAd');if(ad)ad.onclick=relAdSkip;
+ paintRel();
+}
+function paintRel(){
+ if(!S.rel)return;const b=$('#relBar'),t=$('#relTime');if(!b&&!t)return;
+ const left=relRemain(),prog=clamp(1-left/S.rel.ms,0,1);
+ if(b)b.style.width=(prog*100).toFixed(1)+'%';
+ if(t)t.textContent=mmss(left);
+}
+/* a felvétel is gyorsítható reklámmal (ugyanaz a modul, mint a turnénál) */
+function relAdSkip(){
+ if(!S.rel)return;
+ if(S.rel.adUsed){toast('Ehhez a felvételhez már megnéztél egy videót.');return;}
+ const left=relRemain();
+ Ads.show(()=>{S.rel.adUsed=true;S.rel.ends=Date.now()-1;save();toast('Felvétel kész!');tick();},
+          ()=>{S.rel.ends=Date.now()+left;save();toast('A videó megszakadt — nincs gyorsítás.');});
+}
+
+/* ---------- FEJLESZTÉS ---------- */
+/* A kártyák azt mutatják, amit a fizetéssel NYERSZ (jelenlegi → következő szint),
+   nem a jelenlegi szint hatását — különben a 0. szinten „+0%" állna az ár mellett. */
+const UPG={
+ marketing:{n:'Marketing',ic:'megaphone',cost:MK_COST,unit:'nézőszám',
+   eff:l=>`+${l*10}%`, eff2:l=>`−${l*5}%`, unit2:'bizonytalanság',
+   desc:'Több ember tud a koncertekről → nagyobb nézőszám minden helyszínen, és kiszámíthatóbb a jegyeladás.'},
+ staff:{n:'Stáb és technika',ic:'upgrade',cost:ST_COST,unit:'produkciós költség',
+   eff:l=>`−${l*8}%`,
+   desc:'Olcsóbb színpad és technika → nagyobb profit, főleg aréna és stadion méretben.'},
+ merch:{n:'Merch-pult',ic:'ticket',cost:MERCH_COST,unit:'merch-bevétel',
+   eff:l=>`+${l*35}%`,
+   desc:'Nagyobb választék és profibb pult a helyszíneken. A merch a rajongótábor kamata: ahol imádnak, ott sokkal többet költenek.'}
+};
+function tabFejlesztes(){
+ let h=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">Iroda</div><h1>Fejlesztés</h1><p>Fektesd vissza a bevételt: a marketing több nézőt hoz, az erős stáb csökkenti a költséget.</p></div>`;
+ h+=upgCard('marketing')+upgCard('staff')+upgCard('merch');
+ h+=`<div class="hint"><span class="i">✦</span><span>Tipp: az erős stáb főleg nagy helyszíneknél (aréna, stadion) fizetődik ki, ahol a produkció drága.</span></div></div>`;
+ view.innerHTML=h;
+ bind('[data-up]',b=>{const key=b.dataset.up,cost=UPG[key].cost[S.upg[key]+1];
+  if(cost===undefined){toast('Ez már maximumon van.');return;}
+  if(S.money<cost){toast('Nincs elég pénz.');return;}
+  S.money-=cost;S.upg[key]++;save();toast(`${UPG[key].n} fejlesztve — most ${UPG[key].eff(S.upg[key])} ${UPG[key].unit}.`);render();});}
+function upgCard(key){
+ const u=UPG[key],lvl=S.upg[key],next=u.cost[lvl+1],maxed=next===undefined,can=!maxed&&S.money>=next;
+ /* a fő badge: mit ad a JELENLEGI szint → mit adna a KÖVETKEZŐ */
+ const gain=maxed?`${u.eff(lvl)} ${u.unit} · teljes`
+                 :`${u.eff(lvl)} → <b style="color:var(--neon)">${u.eff(lvl+1)}</b> ${u.unit}`;
+ const gain2=u.eff2?(maxed?`${u.eff2(lvl)} ${u.unit2}`
+                          :`${u.eff2(lvl)} → <b style="color:var(--neon)">${u.eff2(lvl+1)}</b> ${u.unit2}`):'';
+ return `<div class="lcard" style="margin-top:12px"><div class="ph" style="flex:0 0 84px;width:84px;background:linear-gradient(145deg,#1a1f10,#0d0f08);display:flex;align-items:center;justify-content:center;color:var(--neon);font-size:30px">${icon(u.ic)}</div>
+   <div class="bd"><div class="nm" style="font-size:17px">${u.n}</div>
+     <div class="chips"><span class="chip lime">Szint ${lvl}/4</span><span class="chip mint">${gain}</span></div>
+     ${gain2?`<div class="chips" style="margin-top:5px"><span class="chip">${gain2}</span></div>`:''}
+     <div style="font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.4">${u.desc}</div>
+     <div class="btm">${maxed
+        ?`<span class="lock" style="color:var(--cash);border-color:rgba(47,227,155,.4)">✓ Maximális szint</span>`
+        :`<button class="btn ${can?'lime':'dark'} sm" data-up="${key}" ${can?'':'disabled'}>${can?`Fejlesztés → ${u.eff(lvl+1)} · ${money(next)}`:`Nincs elég pénz · ${money(next)}`}</button>`}</div>
+   </div></div>`;}
+
+/* ---------- EREDMÉNY ---------- */
+function showResult(){const r=S.lastResult,win=r.net>=0,col=win?'var(--cash)':'var(--hot)';
+ let lights='';for(let i=0;i<26;i++)lights+=`<span style="position:absolute;left:${(i/26*100).toFixed(1)}%;top:${(i%2?12:70)}%;width:6px;height:6px;border-radius:50%;background:${win?'var(--neon)':'var(--hot)'};box-shadow:0 0 10px ${win?'var(--neonglow)':'rgba(255,61,132,.6)'};animation:pulse ${(1+i%4*.2)}s infinite;animation-delay:${i*40}ms"></span>`;
+ let h=`<div class="rhero"><div class="lights">${lights}</div>
+   <div class="eyebrow" style="color:${col}">${win?'Sikeres turné!':'Veszteséges turné'}</div>
+   <div class="big" id="resNet" style="color:${col}">${money(0)}</div>
+   <div class="sub">${esc(r.artist)} · ${r.rows.length} állomás · ${k(r.tAtt)} néző${r.days?` · ${r.days} nap`:''} · hírnév <b style="color:${r.rep>=0?'var(--cash)':'var(--hot)'}">${r.rep>=0?'+':''}${r.rep}</b></div></div>`;
+ h+=`<div class="pad"><div class="lcard" style="display:block;padding:14px">
+   <div class="rline"><span>Jegybevétel</span><span class="num">${money(r.tRev)}</span></div>
+   ${r.tMerch?`<div class="rline"><span>Merch-bevétel</span><span class="num" style="color:var(--cash)">${money(r.tMerch)}</span></div>`:''}
+   <div class="rline"><span>Helyszín, technika, stáb</span><span class="num bad">−${money(r.tCost-r.tTrav).replace('−','')}</span></div>
+   ${r.tTrav?`<div class="rline"><span>Utazás</span><span class="num bad">−${money(r.tTrav).replace('−','')}</span></div>`:''}
+   ${r.promoSpent?`<div class="rline"><span>Promóció, marketing</span><span class="num bad">−${money(r.promoSpent).replace('−','')}</span></div>`:''}
+   ${r.tEvent?`<div class="rline"><span>Váratlan események</span><span class="num ${r.tEvent>=0?'good':'bad'}">${money(r.tEvent)}</span></div>`:''}
+   <div class="rline"><span>${esc(r.artist)} részesedése</span><span class="num bad">−${money(r.tPay).replace('−','')}</span></div>
+   <div class="rline"><span style="font-weight:700">Nettó eredmény</span><span class="num" style="color:${col};font-size:17px">${money(r.net)}</span></div></div>`;
+ h+=`<div class="sec"><h2>Állomások</h2></div>`;
+ r.rows.forEach((row,i)=>{
+  const dif=row.exp?Math.round((row.att-row.exp)/Math.max(1,row.exp)*100):0;
+  const dtx=row.cancelled?'Elmaradt koncert':(dif>=5?`${dif}%-kal többen jöttek a vártnál`:dif<=-5?`${Math.abs(dif)}%-kal kevesebben jöttek`:'Nagyjából a várt szinten');
+  const dcol=row.cancelled?'var(--hot)':dif>=5?'var(--cash)':dif<=-5?'var(--hot)':'var(--muted)';
+  h+=`<div class="tkt"><div class="ph"><img src="${row.photo}" ${imgFB()}><div class="g"></div>
+    <div class="h"><div class="c">${i+1}. ${row.city}</div><div class="p" style="color:${row.profit>=0?'var(--cash)':'var(--hot)'}">${money(row.profit)}</div></div></div>
+    <div style="padding:10px 13px;display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>${row.venue} · €${row.price}</span><span class="num">${k(row.att)}/${k(row.cap)} · ${Math.round(row.fill*100)}%</span></div>
+    <div style="padding:0 13px 10px;font-size:11.5px;color:${dcol};font-weight:600">${dtx}${row.exp&&!row.cancelled?` <span style="color:var(--faint)">(várt ${k(row.exp)})</span>`:''}
+      ${row.merch?`<span style="color:var(--cash)"> · merch ${money(row.merch)}</span>`:''}
+      ${row.fanG?`<span style="color:var(--neon)"> · +${dec1(row.fanG)} rajongó</span>`:''}</div></div>`;});
+ /* rajongótábor-mérleg: ez a turné hosszú távú hozama */
+ if(r.fanRows&&r.fanRows.length){
+  h+=`<div class="sec"><h2>Rajongótábor</h2><span class="r act">a turné hozama</span></div>
+    <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px">`;
+  r.fanRows.forEach(f=>h+=`<div class="fanrow"><span class="n">${f.n}</span>
+     <span class="b"><i style="width:${clamp(f.now,0,100)}%;background:${fanCol(f.now)}"></i></span>
+     <span class="v" style="color:${fanCol(f.now)}">${f.now}</span>
+     <span class="d" style="color:var(--cash)">+${dec1(f.g)}</span></div>`);
+  const dec=Object.entries(r.decay||{});
+  h+=`</div>${dec.length?`<div class="hint"><span class="i" style="color:var(--hot)">↓</span><span>Ahol nem jártál, ott lassan kopik a rajongótábor: ${dec.map(([rg,d])=>`${REGIONS[rg]} −${dec1(d)}`).join(' · ')}. Érdemes visszatérni.</span></div>`:''}`;
+  h+=`<div class="hint"><span class="i">${icon('headphones','13px')}</span><span>Havi hallgató most: <b>${fmtStream(r.streams||0)}</b>. Adj ki egy single-t vagy albumot a Stúdióban, hogy a következő turné előtt megugorjon a kereslet.</span></div>`;}
+ if(r.log&&r.log.length){h+=`<div class="sec"><h2>Váratlan események</h2></div>`;
+  r.log.forEach(x=>h+=`<div class="logr"><div class="i">${icon(x.ic||'star','15px')}</div>
+    <div class="tx"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></div></div>`);}
+ h+=`<button class="btn lime" id="resHome" style="margin-top:8px">${icon('house','18px')} Vissza az irodába</button></div>`;
+ resultEl.innerHTML=h;resultEl.style.display='block';resultEl.scrollTop=0;
+ const rn=$('#resNet');rn.dataset.v=0;animateNum(rn,r.net,v=>money(v));
+ $('#resHome').onclick=()=>{resultEl.style.display='none';resultEl.innerHTML='';S.tab='iroda';S.resultPending=false;save();render();};
+ renderHUD();
+}
+
+/* ============================ INDÍTÁS ============================ */
+render();
+/* a turné a játék bezárása alatt is véget érhetett — az eredményt akkor is meg kell mutatni */
+if(S.resultPending&&S.lastResult)showResult();
+})();
+</script>
+</body>
+</html>
