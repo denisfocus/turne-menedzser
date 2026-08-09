@@ -448,6 +448,63 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 @keyframes spin{to{transform:rotate(360deg)}}
 .adx{position:absolute;top:10px;right:12px;color:var(--faint);font-size:20px;font-weight:700;padding:4px 8px}
 
+/* ---------- RITMUS MINI-JÁTÉK ---------- */
+#mini{position:absolute;inset:0;z-index:85;display:none;flex-direction:column;
+  background:radial-gradient(120% 70% at 50% 0%,#141a06,#070809 62%)}
+#mini.on{display:flex}
+.mtop{padding:14px 16px 8px;flex:0 0 auto}
+.mtop .r1{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mtop .kick2{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--neon);font-weight:700}
+.mtop .sng{font-family:var(--disp);font-weight:700;font-size:21px;line-height:1.05;margin-top:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mtop .x{width:58px;height:40px;flex:0 0 auto;border-radius:12px;background:var(--panel);border:1px solid var(--line2);
+  font-size:10px;font-weight:700;letter-spacing:.08em;display:flex;align-items:center;justify-content:center;white-space:nowrap}
+.mbar{height:16px;border-radius:16px;background:rgba(255,255,255,.09);overflow:hidden;margin-top:12px;
+  border:1px solid rgba(255,255,255,.08);position:relative}
+.mbar i{display:block;height:100%;border-radius:16px;background:linear-gradient(90deg,var(--gold),var(--neon));
+  box-shadow:0 0 16px var(--neonglow);transition:width .12s linear}
+.mbar b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--disp);
+  font-size:10px;letter-spacing:.14em;color:#0d1004;text-shadow:0 0 6px rgba(255,255,255,.5)}
+.mmid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:70px}
+.mjudge{font-family:var(--disp);font-weight:700;font-size:38px;letter-spacing:.03em;opacity:0;transform:scale(.7)}
+.mjudge.go{animation:jpop .42s cubic-bezier(.2,1.4,.4,1)}
+@keyframes jpop{0%{opacity:0;transform:scale(.7)}25%{opacity:1;transform:scale(1.12)}100%{opacity:0;transform:scale(1)}}
+.mcombo{font-family:var(--disp);font-weight:700;font-size:15px;color:var(--muted);letter-spacing:.04em;height:20px}
+.mcount{font-family:var(--disp);font-weight:700;font-size:64px;color:var(--neon);text-shadow:0 0 26px var(--neonglow)}
+.pads{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 14px calc(16px + env(safe-area-inset-bottom));flex:0 0 auto}
+.pad2{position:relative;height:min(21vh,140px);min-height:98px;border-radius:22px;border:2px solid var(--line2);
+  background:linear-gradient(180deg,var(--panel2),var(--panel));display:flex;align-items:center;justify-content:center;
+  overflow:hidden;touch-action:manipulation;transition:transform .06s,background .1s}
+.pad2 .lbl2{font-family:var(--disp);font-weight:700;font-size:13px;color:var(--faint);letter-spacing:.08em;
+  text-transform:uppercase;position:relative;z-index:2;transition:color .1s}
+.pad2 .ring2{position:absolute;left:50%;top:50%;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;
+  border:4px solid currentColor;opacity:0;pointer-events:none}
+.pad2 .core{position:absolute;left:50%;top:50%;width:74px;height:74px;margin:-37px 0 0 -37px;border-radius:50%;
+  background:currentColor;opacity:0;pointer-events:none;filter:blur(2px)}
+.pad2.armed{border-color:currentColor}
+.pad2.hitfx{transform:scale(.965)}
+.pad2.flash{background:linear-gradient(180deg,rgba(255,255,255,.22),transparent)}
+.mfoot{padding:0 14px 12px;display:flex;gap:9px;flex:0 0 auto}
+.mfoot .btn{flex:1}
+.mready{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:rgba(7,8,9,.93);z-index:3;padding:24px;text-align:center}
+.mready h3{font-family:var(--disp);font-weight:700;font-size:25px;line-height:1.1}
+.mready p{font-size:13px;color:var(--muted);line-height:1.5;max-width:30ch}
+
+/* felkínáló kártya az élő turnén */
+.offer{display:flex;gap:12px;align-items:center;background:linear-gradient(135deg,rgba(198,255,58,.16),rgba(198,255,58,.04));
+  border:1px solid rgba(198,255,58,.42);border-radius:18px;padding:13px 14px;margin-top:12px;
+  animation:opulse 2.4s ease-in-out infinite}
+@keyframes opulse{0%,100%{box-shadow:0 0 0 0 rgba(198,255,58,0)}50%{box-shadow:0 0 22px -4px rgba(198,255,58,.45)}}
+.offer .ic3{width:40px;height:40px;border-radius:13px;background:var(--neon);color:#141a03;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 0 var(--neon-dd)}
+.offer .t3{flex:1;min-width:0}
+.offer .t3 .h3{font-family:var(--disp);font-weight:700;font-size:14.5px}
+.offer .t3 .s3{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+.drumres{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);
+  border-radius:14px;padding:11px 13px;margin-top:11px}
+.drumres .v3{font-family:var(--disp);font-weight:700;font-size:20px;font-feature-settings:"tnum" 1}
+
 /* ---------- SETLIST: energia-ív ---------- */
 .curve{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:13px 14px;box-shadow:var(--sh)}
 .curve .top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
@@ -607,6 +664,7 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
   <div id="nav"></div>
   <div id="result"></div>
   <div id="modal"></div>
+  <div id="mini"></div>
   <div id="adv"></div>
 </div>
 
@@ -873,7 +931,7 @@ const KEY='turne_menedzser_v3';
 let S=migrate(load()||newGame());
 function newGame(){return{money:60000,rep:0,week:1,roster:[],upg:{marketing:0,staff:0,merch:0},tab:'iroda',tour:null,live:null,
  art:{},rel:null,relLog:[],streamIncome:0,lastResult:null,toursDone:0,detail:null,studio:null,
- feed:[],lastLevel:1,lastVenues:1};}
+ feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false};}
 /* régi mentések kiegészítése az új mezőkkel */
 function migrate(s){if(!s)return newGame();
  if(s.live===undefined)s.live=null;
@@ -886,7 +944,12 @@ function migrate(s){if(!s)return newGame();
  if(!s.relLog)s.relLog=[];
  if(s.streamIncome===undefined)s.streamIncome=0;
  if(s.studio===undefined)s.studio=null;
- if(!s.feed)s.feed=[];   /* lastLevel / lastVenues szándékosan maradhat undefined:
+ if(!s.feed)s.feed=[];
+ if(s.sound===undefined)s.sound=true;
+ if(s.autoShow===undefined)s.autoShow=false;
+ if(s.live){if(!s.live.drum)s.live.drum={};if(!s.live.drumSkip)s.live.drumSkip={};
+  /* beragadt szünet feloldása (pl. ha mini-játék közben zárták be) */
+  if(s.live.pausedLeft!=null&&!s.live.pendingEv){s.live.ends=Date.now()+s.live.pausedLeft;s.live.pausedLeft=null;}}   /* lastLevel / lastVenues szándékosan maradhat undefined:
                             a checkUnlocks() az első futáskor csendben beállítja, nem spammel. */
  /* helyszín-feloldás bevezetése: a régi mentésben megtervezett, de már zárolt helyszínt lehúzzuk.
     A FUTÓ turnét nem bántjuk — az a szerződés már megköttetett. */
@@ -1140,7 +1203,7 @@ function launchTour(){
  S.live={artist:t.artist,setlist:t.setlist.slice(),promo:t.promo||0,promoSpent:cost,risk:!!t.risk,riskDone:false,
   stops:t.stops.map(s=>({...s})),ph:buildPhases(t.stops),i:0,ends:Date.now()+msFromMin(TIME.prepMin),
   pausedLeft:null,pendingEv:null,mom:1,attMul:1,skipNext:false,days:0,
-  rows:[],log:[],evUsed:[],adUsed:{},fanGain:{},
+  rows:[],log:[],evUsed:[],adUsed:{},fanGain:{},drum:{},drumSkip:{},
   tRev:0,tCost:0,tPay:0,tTrav:0,tAtt:0,tEvent:0,tMerch:0,rep:0};
  S.tour=null;S.tab='terkep';teardownMap();save();render();
 }
@@ -1182,7 +1245,10 @@ function finishPhase(){
 }
 /* egy koncert lefutása — itt dől el a TÉNYLEGES nézőszám (szórással) */
 function runShow(i){
- const L=S.live,a=AM[L.artist],st=L.stops[i],city=CM[st.city],v=VM[st.venue],setQ=setlistQ(a,L.setlist);
+ const L=S.live,a=AM[L.artist],st=L.stops[i],city=CM[st.city],v=VM[st.venue];
+ const dr=(L.drum&&L.drum[i])||null;
+ /* a dobos mini-játék a KÉSZ setlist-ív rendszeren át hat: a show-pontszámhoz adódik */
+ const setQ=clamp(setlistQ(a,L.setlist)+(dr?dr.pts:0),0,100);
  const A=artState(a.id),reg=city.r,fansBefore=A.fans[reg];
  const e=estimate(a,city,v,st.price,setQ,L.mom,L.promo), sig=sigmaFor(a,L.promo);
  let att,fill,rev,pay,cost,profit,repD,merch=0,fanG=0,cancelled=false;
@@ -1218,7 +1284,8 @@ function runShow(i){
  S.rep=Math.max(0,S.rep+repD);L.rep+=repD;
  L.tRev+=rev;L.tCost+=cost;L.tPay+=pay;L.tAtt+=att;L.tMerch+=merch;
  L.rows.push({city:city.n,region:reg,photo:cityPhoto(city,600,300),venue:v.n,att,exp:e.att,cap:v.cap,fill,
-   price:st.price,profit,merch,fans:Math.round(fansBefore),fanG:+fanG.toFixed(1),cancelled});
+   price:st.price,profit,merch,fans:Math.round(fansBefore),fanG:+fanG.toFixed(1),cancelled,
+   drum:dr?{acc:dr.acc,pts:dr.pts}:null});
  if(!cancelled&&S.tab==='terkep')toast(`${city.n}: ${k(att)} néző · ${money(profit)} (merch ${money(merch)})`);
 }
 function endTour(){
@@ -1317,6 +1384,163 @@ function confirmBox(title,text,okLabel,fn){
  const m=$('#modal');m.innerHTML=h;m.className='on';
  m.querySelector('[data-ok]').onclick=()=>{m.className='';m.innerHTML='';fn();};
  m.querySelector('[data-no]').onclick=()=>{m.className='';m.innerHTML='';};
+}
+
+/* ============================ RITMUS MINI-JÁTÉK (dobos) ============================
+   FILOZÓFIA: opcionális felső ráadás, nem kényszer. Aki nem játszik, annál a show
+   tisztességes ALAPSZINTEN fut le — a mini-játék csak bónuszt ad (max +14 pont a
+   show-értékeléshez), a gyenge játék pedig csak enyhén (max −8) húz le.
+   A pontszám a KÉSZ setlist-ív rendszeren keresztül hat: a show-pontszámhoz adódik,
+   onnan megy tovább a nézőszámba, merchbe és a rajongótáborba. */
+const PADS=[{n:'Lábdob',c:'#C6FF3A'},{n:'Pergő',c:'#2FE39B'},{n:'Tam',c:'#FFC24B'},{n:'Cintányér',c:'#FF3D84'}];
+const RG={lead:750,perfect:80,good:160,late:200,bpm:120,bars:12000};
+let M=null;
+
+/* apró WebAudio visszajelzés — a találat legyen kielégítő */
+let AC=null;
+function blip(freq,dur,type,vol){
+ if(S.sound===false)return;
+ try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.type=type||'sine';o.frequency.value=freq;
+  g.gain.setValueAtTime(vol||0.16,AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+(dur||0.09));
+  o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+(dur||0.09)+0.02);
+ }catch(e){}
+}
+function buildPattern(){
+ const beat=60000/RG.bpm, notes=[]; let pad=-1;
+ for(let b=2;b*beat<RG.bars-400;b++){
+  if(b%8===7)continue;                        // levegő a mintában
+  let p;do{p=Math.floor(Math.random()*4);}while(p===pad);
+  pad=p;notes.push({t:b*beat,pad:p,done:false});
+  if(b%4===2&&Math.random()<0.45){            // páros nyolcad: pörgős dupla
+   let p2;do{p2=Math.floor(Math.random()*4);}while(p2===p);
+   notes.push({t:b*beat+beat/2,pad:p2,done:false});pad=p2;}
+ }
+ return notes.sort((x,y)=>x.t-y.t);
+}
+function openMini(stopIdx){
+ const L=S.live;if(!L)return;
+ const a=AM[L.artist],peak=peakSong(a,L.setlist),city=CM[L.stops[stopIdx].city];
+ L.pausedLeft=remainMs();       // csak memóriában: ha újratöltenek játék közben, a turné magától folytatódik
+ M={notes:buildPattern(),t0:0,raf:0,stop:stopIdx,crowd:46,combo:0,best:0,
+    perfect:0,good:0,miss:0,total:0,started:false,ended:false};
+ M.total=M.notes.length;
+ const el=$('#mini');
+ el.innerHTML=`
+  <div class="mtop">
+    <div class="r1"><div style="min-width:0">
+      <div class="kick2">${esc(city.n)} · a show csúcspontja</div>
+      <div class="sng">${esc(peak?peak.n:'Dobszóló')}</div></div>
+      <button class="x" id="mSound" style="color:${S.sound===false?'var(--faint)':'var(--neon)'}">HANG</button></div>
+    <div class="mbar"><i id="mCrowd" style="width:46%"></i><b>KÖZÖNSÉG</b></div>
+  </div>
+  <div class="mmid"><div class="mjudge" id="mJudge"></div><div class="mcombo" id="mCombo"></div></div>
+  <div class="pads" id="mPads">${PADS.map((p,i)=>`
+    <div class="pad2" data-pad="${i}" style="color:${p.c}">
+      <div class="core"></div><div class="ring2"></div><div class="lbl2">${p.n}</div></div>`).join('')}</div>
+  <div class="mfoot"><button class="btn dark sm" id="mQuit">Kihagyom — menjen automatán</button></div>
+  <div class="mready" id="mReady">
+    <div class="mcount" id="mCount">3</div>
+    <h3>Állj a dobok mögé</h3>
+    <p>Koppints a padre, amikor a gyűrű összeér a közepén. Pontos ütés = felpörög a közönség.</p>
+  </div>`;
+ el.className='on';
+ $('#mSound').onclick=()=>{S.sound=(S.sound===false);save();$('#mSound').style.color=S.sound===false?'var(--faint)':'var(--neon)';};
+ $('#mQuit').onclick=()=>closeMini(false);
+ el.querySelectorAll('[data-pad]').forEach(p=>{
+  p.onpointerdown=ev=>{ev.preventDefault();tapPad(+p.dataset.pad,p);};
+ });
+ /* 3-2-1 visszaszámlálás, aztán indul a minta */
+ let c=3;const cd=$('#mCount');
+ const tick2=()=>{ if(!M||M.ended)return;
+   if(c>0){cd.textContent=c;blip(520+(3-c)*90,0.07,'sine',0.12);c--;setTimeout(tick2,620);}
+   else{$('#mReady').style.display='none';M.t0=performance.now();M.started=true;
+    M.iv=setInterval(miniTick,25);M.raf=requestAnimationFrame(miniDraw);}};
+ tick2();
+}
+function peakSong(a,list){
+ const songs=(list||[]).map(i=>a.songs[i]).filter(Boolean);if(!songs.length)return null;
+ let best=songs[0];songs.forEach(s=>{if(s.e>best.e)best=s;});return best;
+}
+function judge(kind,padEl){
+ const j=$('#mJudge'),cb=$('#mCombo');
+ if(kind==='perfect'){M.perfect++;M.combo++;M.crowd=clamp(M.crowd+3.6,0,100);blip(1180,0.08,'sine',0.2);}
+ else if(kind==='good'){M.good++;M.combo++;M.crowd=clamp(M.crowd+2,0,100);blip(760,0.08,'sine',0.16);}
+ else{M.miss++;M.combo=0;M.crowd=clamp(M.crowd-4.2,0,100);blip(130,0.11,'square',0.13);}
+ M.best=Math.max(M.best,M.combo);
+ if(j){const txt=kind==='perfect'?'PERFECT':kind==='good'?'JÓ':'MELLÉ';
+  const col=kind==='perfect'?'var(--neon)':kind==='good'?'var(--cash)':'var(--hot)';
+  j.textContent=txt;j.style.color=col;j.classList.remove('go');void j.offsetWidth;j.classList.add('go');}
+ if(cb)cb.textContent=M.combo>=3?`${M.combo}× SOROZAT`:'';
+ if(padEl&&kind!=='miss'){padEl.classList.add('flash','hitfx');
+  setTimeout(()=>padEl.classList.remove('flash','hitfx'),110);}
+ const cr=$('#mCrowd');if(cr)cr.style.width=M.crowd.toFixed(1)+'%';
+}
+function tapPad(pi,padEl){
+ if(!M||!M.started||M.ended)return;
+ const now=performance.now()-M.t0;
+ let best=null,bd=1e9;
+ M.notes.forEach(n=>{if(n.done||n.pad!==pi)return;const d=Math.abs(n.t-now);if(d<bd){bd=d;best=n;}});
+ if(!best||bd>RG.late)return;                     // korai/fölösleges koppintás: nem büntetjük
+ best.done=true;
+ judge(bd<=RG.perfect?'perfect':bd<=RG.good?'good':'miss',padEl);
+}
+/* A LOGIKA idozitovel fut (lekesett notak, jatek vege), a RAJZOLAS rAF-fal.
+   Igy a jatek akkor is helyesen zajlik le, ha a rAF akadozik vagy szunetel. */
+function miniTick(){
+ if(!M||M.ended)return;
+ const now=performance.now()-M.t0;
+ M.notes.forEach(n=>{if(!n.done&&now-n.t>RG.late){n.done=true;judge('miss',null);}});
+ if(now>=RG.bars)endMini();
+}
+function miniDraw(){
+ if(!M||M.ended)return;
+ const now=performance.now()-M.t0, pads=$('#mPads');
+ if(pads)for(let i=0;i<4;i++){
+  const el=pads.children[i];if(!el)continue;
+  const ring=el.querySelector('.ring2'),core=el.querySelector('.core');
+  let nx=null,nd=1e9;
+  M.notes.forEach(n=>{if(n.done||n.pad!==i)return;const d=n.t-now;if(d>=-RG.late&&d<nd){nd=d;nx=n;}});
+  if(nx&&nd<=RG.lead){
+   const p=clamp(1-nd/RG.lead,0,1.3);
+   ring.style.opacity=(0.25+p*0.75).toFixed(2);
+   ring.style.transform='scale('+(2.4-p*1.4).toFixed(3)+')';
+   core.style.opacity=(p>0.85?(p-0.85)*2.2:0).toFixed(2);
+   el.classList.add('armed');
+  }else{ring.style.opacity=0;core.style.opacity=0;el.classList.remove('armed');}
+ }
+ M.raf=requestAnimationFrame(miniDraw);
+}
+/* pontszám → a show-értékeléshez adott pont (a setlist-ív rendszeren keresztül) */
+function drumPoints(acc){return Math.round(clamp((acc-0.55)*30,-8,14));}
+function endMini(){
+ if(!M||M.ended)return;M.ended=true;cancelAnimationFrame(M.raf);if(M.iv)clearInterval(M.iv);
+ const hit=M.perfect+M.good, tot=Math.max(1,M.perfect+M.good+M.miss);
+ const acc=(M.perfect+M.good*0.6)/tot;
+ const pts=drumPoints(acc);
+ S.live.drum=S.live.drum||{};
+ S.live.drum[M.stop]={acc:+acc.toFixed(3),pts,perfect:M.perfect,good:M.good,miss:M.miss,combo:M.best};
+ const grade=acc>=0.9?'A+':acc>=0.78?'A':acc>=0.62?'B':acc>=0.45?'C':'D';
+ blip(acc>=0.62?1320:220,0.18,'sine',0.18);
+ $('#mini').innerHTML=`<div class="mready" style="position:relative;flex:1">
+   <div class="mcount" style="color:${pts>=0?'var(--neon)':'var(--hot)'}">${grade}</div>
+   <h3>${Math.round(acc*100)}% pontosság</h3>
+   <p>${M.perfect} perfect · ${M.good} jó · ${M.miss} melló · leghosszabb sorozat ${M.best}×<br>
+     <b style="color:${pts>=0?'var(--cash)':'var(--hot)'}">${pts>=0?'+':''}${pts} pont</b> a ma esti show-ra.</p>
+   <button class="btn lime" id="mDone" style="max-width:280px">Vissza a koncertre</button></div>`;
+ $('#mDone').onclick=()=>closeMini(true);
+}
+function closeMini(played){
+ const L=S.live;
+ if(M){if(M.raf)cancelAnimationFrame(M.raf);if(M.iv)clearInterval(M.iv);}
+ if(M&&!M.ended&&!played){                       // kiszállt: legyen tiszta auto, ne fél-eredmény
+  M.ended=true;if(L){L.drumSkip=L.drumSkip||{};L.drumSkip[M.stop]=true;}
+ }
+ M=null;$('#mini').className='';$('#mini').innerHTML='';
+ if(L&&L.pausedLeft!=null){L.ends=Date.now()+L.pausedLeft;L.pausedLeft=null;}
+ save();if(S.tab==='terkep')liveScreen();renderHUD();
 }
 
 /* ============================ REKLÁM (placeholder) ============================
@@ -1676,6 +1900,28 @@ function liveScreen(){
       <span id="lvNext">${travelling?'Utána: koncert':'Utána: továbbindulás'}</span></div>
    </div></div>`;
 
+ /* ---- dobos mini-játék: opcionális felső ráadás, sosem kényszer ---- */
+ if(!travelling){
+  const si=p.i, dr=(L.drum&&L.drum[si])||null, skipped=!!(L.drumSkip&&L.drumSkip[si]);
+  const big=(v.cap>=9000)||(si===L.stops.length-1);       // nagy este: színház+ vagy a turné zárása
+  if(dr){
+   const gr=dr.acc>=0.9?'A+':dr.acc>=0.78?'A':dr.acc>=0.62?'B':dr.acc>=0.45?'C':'D';
+   h+=`<div class="drumres"><span class="v3" style="color:${dr.pts>=0?'var(--neon)':'var(--hot)'}">${gr}</span>
+     <div style="flex:1"><div style="font-weight:700;font-size:13px">Dobszóló · ${Math.round(dr.acc*100)}% pontosság</div>
+       <div style="font-size:11.5px;color:var(--muted);margin-top:2px">
+         <b style="color:${dr.pts>=0?'var(--cash)':'var(--hot)'}">${dr.pts>=0?'+':''}${dr.pts} pont</b> a ma esti show-ra</div></div></div>`;
+  }else if(big&&!S.autoShow&&!skipped){
+   h+=`<div class="offer"><div class="ic3">${icon('mic','19px')}</div>
+     <div class="t3"><div class="h3">Nagy este — állj a dobok mögé!</div>
+       <div class="s3">Kb. 12 másodperc. Pontos ütés = felpörög a közönség, jobb show. Ha kihagyod, a koncert magától lemegy.</div></div></div>
+     <div class="btnrow" style="margin-top:9px"><button class="btn lime sm" id="lvDrum">${icon('play','15px')} Beállok</button>
+       <button class="btn dark sm" id="lvDrumNo" style="flex:0 0 auto">Most nem</button></div>
+     <div style="text-align:center;margin-top:8px"><button id="lvAuto" style="font-size:11.5px;color:var(--faint);font-weight:700;text-decoration:underline">Ne kérdezd többször — menjen automatán</button></div>`;
+  }else{
+   h+=`<button class="btn dark sm" id="lvDrum" style="margin-top:12px">${icon('mic','15px')} Beállok dobolni · bónusz a show-ra</button>`;
+  }
+ }
+
  /* reklámvideós gyorsítás */
  const used=!!L.adUsed[L.i];
  h+=`<button class="btn ${used?'dark':'lime'} sm" id="lvAd" style="margin-top:12px" ${used?'disabled':''}>
@@ -1713,6 +1959,9 @@ function liveScreen(){
  view.innerHTML=h;view.scrollTop=sc;
  if(HAS_MAP){initMap();}
  $('#lvAd').onclick=adSkip;
+ const dbtn=$('#lvDrum');if(dbtn)dbtn.onclick=()=>openMini(curPhase().i);
+ const dno=$('#lvDrumNo');if(dno)dno.onclick=()=>{L.drumSkip=L.drumSkip||{};L.drumSkip[curPhase().i]=true;save();liveScreen();};
+ const dau=$('#lvAuto');if(dau)dau.onclick=()=>{S.autoShow=true;save();toast('Rendben — a show-k automatán mennek.');liveScreen();};
  $('#lvStop').onclick=()=>confirmBox('Megszakítod a turnét?',
    'A hátralévő koncertek elmaradnak, és ez hírnévbe kerül. A már megkeresett pénz megmarad.','Igen, megszakítom',abandonTour);
  paintLive();
@@ -2165,7 +2414,8 @@ function showResult(){const r=S.lastResult,win=r.net>=0,col=win?'var(--cash)':'v
     <div style="padding:10px 13px;display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>${row.venue} · €${row.price}</span><span class="num">${k(row.att)}/${k(row.cap)} · ${Math.round(row.fill*100)}%</span></div>
     <div style="padding:0 13px 10px;font-size:11.5px;color:${dcol};font-weight:600">${dtx}${row.exp&&!row.cancelled?` <span style="color:var(--faint)">(várt ${k(row.exp)})</span>`:''}
       ${row.merch?`<span style="color:var(--cash)"> · merch ${money(row.merch)}</span>`:''}
-      ${row.fanG?`<span style="color:var(--neon)"> · +${dec1(row.fanG)} rajongó</span>`:''}</div></div>`;});
+      ${row.fanG?`<span style="color:var(--neon)"> · +${dec1(row.fanG)} rajongó</span>`:''}
+      ${row.drum?`<span style="color:${row.drum.pts>=0?'var(--neon)':'var(--hot)'}"> · dob ${Math.round(row.drum.acc*100)}% (${row.drum.pts>=0?'+':''}${row.drum.pts})</span>`:''}</div></div>`;});
  /* rajongótábor-mérleg: ez a turné hosszú távú hozama */
  if(r.fanRows&&r.fanRows.length){
   h+=`<div class="sec"><h2>Rajongótábor</h2><span class="r act">a turné hozama</span></div>
