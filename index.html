@@ -1225,7 +1225,7 @@ function newGame(){return{money:60000,rep:0,week:1,roster:[],upg:{marketing:0,st
  art:{},rel:null,relLog:[],streamIncome:0,lastResult:null,toursDone:0,detail:null,studio:null,
  feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false,credits:CRED_WELCOME,themes:['lime'],theme:'lime',scout:null,
  mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false,deal:{},fac:{},staff:{},artUp:{},earned:0,leg:null,recsAll:{},ioOpen:false,giftWk:undefined,giftN:0,
- ob:0,obDone:false,cities:{}};}
+ ob:0,obDone:false,cities:{},analyticsConsent:true,firstOpen:0};}
 /* régi mentések kiegészítése az új mezőkkel */
 function migrate(s){if(!s)return newGame();
  if(s.deal){Object.keys(s.deal).forEach(function(k){if(s.deal[k]>30)delete s.deal[k];});}  // régi 10-60%-os modell alaphelyzetbe
@@ -1259,6 +1259,8 @@ function migrate(s){if(!s)return newGame();
  if(s.earned===undefined)s.earned=0;
  if(!s.recsAll)s.recsAll={};
  if(!s.cities)s.cities={};
+ if(s.analyticsConsent===undefined)s.analyticsConsent=true;   // TODO: élesben false + consent-banner
+ if(s.firstOpen===undefined)s.firstOpen=0;
  if(s.ioOpen===undefined)s.ioOpen=false;
  if(s.giftN===undefined)s.giftN=0;
  /* Visszatérő mentés: a bemutató NEM indul újra. Új játéknál a newGame() false-ra állítja. */
@@ -1516,7 +1518,8 @@ function pushFeed(t,s,ic,col){
 function checkUnlocks(){
  const lv=level();
  if(S.lastLevel===undefined)S.lastLevel=lv;
- else if(lv>S.lastLevel){pushFeed(`Iroda Lv.${lv} · ${rankName(lv)}`,'Új szint — nagyobb nevek is szóba állnak veled.','trophy','var(--gold)');S.lastLevel=lv;}
+ else if(lv>S.lastLevel){Analytics.track('agency_level_up',{level:lv,rank:rankName(lv),rep:S.rep,tours:S.toursDone||0});
+  pushFeed(`Iroda Lv.${lv} · ${rankName(lv)}`,'Új szint — nagyobb nevek is szóba állnak veled.','trophy','var(--gold)');S.lastLevel=lv;}
  const openN=VENUES.filter(venueOpen).length;
  if(S.lastVenues===undefined)S.lastVenues=openN;
  else if(openN>S.lastVenues){const v=VENUES[openN-1];
@@ -1549,6 +1552,7 @@ function advanceWeeks(n){
    Egyszerre egy kiadás készül (a stúdió foglalt). Ugyanaz az ütemezett-időbélyeg
    logika, mint a turnénál, ezért a játék bezárása alatt is elkészül. */
 function startRelease(artistId,kindId){
+ Analytics.track('song_released',{type:kindId,artist:artistId,fame:AM[artistId]?af(AM[artistId]):0});
  if(S.rel){toast('A stúdió most foglalt.');return;}
  const a=AM[artistId],k=RM[kindId],cost=relCost(a,k);
  if(S.money<cost){toast('Nincs elég pénz erre a kiadásra.');return;}
@@ -1598,6 +1602,9 @@ function buildPhases(stops){
 function tourRealMs(stops){return buildPhases(stops).reduce((s,p)=>s+p.ms,0);}
 function launchTour(){
  const t=S.tour,a=AM[t.artist],cost=promoCost(t.stops,t.promo||0);
+ Analytics.track('tour_created',{stops:t.stops.length,artist:t.artist,setlist:t.setlist.length});
+ Analytics.track('tour_started',{stops:t.stops.length,artist:t.artist,fame:af(a),
+   promo:t.promo||0,promo_cost:cost,venues:t.stops.map(x=>x.venue).join(','),agency_level:level()});
 
  S.live={artist:t.artist,setlist:t.setlist.slice(),promo:t.promo||0,promoSpent:cost,risk:!!t.risk,riskDone:false,
   stops:t.stops.map(s=>({...s})),ph:buildPhases(t.stops),i:0,ends:Date.now()+msFromMin(TIME.prepMin),
@@ -1637,6 +1644,9 @@ function finishPhase(){
  }else{ runShow(p.i); advanceWeeks(1); }
  L.days+=p.days;
  L.i++;
+ const nx=L.ph[L.i];
+ if(nx&&nx.k==='show'){const ns=L.stops[nx.i];
+  Analytics.track('concert_started',{city:CM[ns.city].n,venue:VM[ns.venue].id,price:ns.price,stop:nx.i+1});}
  if(L.i>=L.ph.length){endTour();return;}
  L.ends+=L.ph[L.i].ms;
  if(L.ends<Date.now()-3600000)L.ends=Date.now()+L.ph[L.i].ms;  // nagyon régi mentés: ne pörögjön el
@@ -1693,6 +1703,9 @@ function runShow(i){
  if(repD>0)repD=Math.round(repD*repMul());          // örökség-perk + NG+ rang gyorsítja
  S.rep=Math.max(0,S.rep+repD);L.rep+=repD;
  L.tRev+=rev;L.tCost+=cost;L.tAtt+=att;L.tMerch+=merch;
+ Analytics.track('concert_completed',{city:city.n,venue:v.id,artist_fame:af(a),fans:Math.round(fansBefore),
+   attendance:att,capacity:v.cap,fill:Math.round(fill*100),revenue:Math.round(rev+merch),
+   profit:Math.round(tp),commission:Math.round(take),agency_level:level(),cancelled:cancelled?1:0});
  L.rows.push({city:city.n,region:reg,photo:cityPhoto(city,600,300),venue:v.n,att,exp:e.att,cap:v.cap,fill,
    price:st.price,profit:take,merch,fans:Math.round(fansBefore),fanG:+fanG.toFixed(1),cancelled,
    drum:dr?{acc:dr.acc,pts:dr.pts}:null});
@@ -1713,6 +1726,8 @@ function endTour(){
  S.lastResult={artist:a.n,photo:artistPhoto(a,600,400),rows:L.rows,tRev:L.tRev,tCost:L.tCost,tPay:L.tPay,tTrav:L.tTrav,
   net,rep:L.rep,tAtt:L.tAtt,setQ:Math.round(setlistQ(a,L.setlist)),promoSpent:L.promoSpent,tEvent:L.tEvent,days:L.days,log:L.log,
   tMerch:L.tMerch,fanRows,decay,streams:A.streams,tArtist:L.tArtist,tTake:L.tTake,comm:Math.round(commRate(a)*100)};
+ Analytics.track('tour_completed',{stops:L.rows.length,net:net,commission_pct:Math.round(commRate(a)*100),
+   attendance:L.tAtt,revenue:L.tRev+L.tMerch,days:L.days,agency_level:level()});
  pushFeed(`Turné vége · ${a.n}`,`${L.rows.length} állomás · ${k(L.tAtt)} néző · ${money(net)}`,'trophy',net>=0?'var(--cash)':'var(--hot)');
  const conts={};L.stops.forEach(function(x){conts[CM[x.city].r]=1;});
  bumpRec('cont',Object.keys(conts).length);bumpRec('bestTour',net);bumpRec('bestMerch',L.tMerch);
@@ -1766,7 +1781,9 @@ function giftReady(){return (S.week-(S.giftWk===undefined?-99:S.giftWk))>=GIFT_W
 function claimGift(){
  if(!giftReady())return;
  const g=GIFTS[giftIdx()];
+ Analytics.track('rewarded_ad_offered',{placement:'manager_bonus',gift:g.id||g.n});
  Ads.show(function(){
+   Analytics.track('rewarded_ad_watched',{placement:'manager_bonus',gift:g.id||g.n});
    const txt=g.f();S.giftWk=S.week;S.giftN=(S.giftN||0)+1;
    pushFeed('Ajándék: '+g.n,txt,g.ic,'var(--gold)');save();toast('Megvan: '+txt);render();
  },function(){toast('A videó megszakadt — nincs ajándék.');});
@@ -1863,15 +1880,58 @@ function applyTheme(){
 }
 function credits(){return S.credits||0;}
 function spendCredits(n){if(credits()<n)return false;S.credits=credits()-n;save();renderHUD();return true;}
+/* ============================ ANALITIKA ============================
+   Cserélhető réteg, ugyanaz a minta, mint az Ads.show() / Store.buy():
+   MOST no-op (fejlesztői módban konzol-log). Éles bekötéskor CSAK az
+   Analytics.send() törzsét kell kicserélni — a hívási helyek maradnak.
+
+   Firebase (web SDK):   logEvent(getAnalytics(), event, params)
+   GA4 (gtag.js):        gtag('event', event, params)
+
+   ADATVÉDELEM: kizárólag anonim JÁTÉK-események mennek, semmilyen személyes adat
+   (nincs név, e-mail, eszköz-azonosító, IP-alapú mező). A réteg tiszteli az
+   S.analyticsConsent kapcsolót.
+   TODO éles bekötéskor: EU/GDPR alatt a consent alapértéke LEGYEN false, és egy
+   consent-banner állítsa true-ra; a send() csak utána hívja a valódi SDK-t. */
+const Analytics={
+ ready:false, queue:[], log:[],
+ debug:(location.search.indexOf('debug=1')>=0||location.search.indexOf('dbg')>=0),
+ consent(){return S&&S.analyticsConsent!==false;},
+ init(){
+  if(this.ready)return;this.ready=true;
+  /* TODO: itt inicializáld a valódi SDK-t (firebase initializeApp / gtag config). */
+  if(!S.firstOpen){S.firstOpen=1;this.track('first_open',{});}
+  this.track('session_start',{level:level(),tours:S.toursDone||0,week:S.week});
+  const q=this.queue.slice();this.queue.length=0;q.forEach(x=>this.send(x.e,x.p));
+ },
+ track(event,params){
+  if(!this.consent())return;                       // consent nélkül semmi nem megy sehova
+  const p=Object.assign({},params||{});
+  if(!this.ready&&event!=='first_open'&&event!=='session_start'){this.queue.push({e:event,p:p});return;}
+  this.send(event,p);
+ },
+ /* ---- EGYETLEN BECSERÉLÉSI PONT ---- */
+ send(event,params){
+  this.log.push({t:Date.now(),event:event,params:params});
+  if(this.log.length>200)this.log.shift();
+  if(this.debug)console.log('%c[analytics]','color:#C6FF3A;font-weight:700',event,params);
+  /* ÉLESBEN ide jön az egyetlen sor, pl.:
+     window.gtag && gtag('event', event, params);            // GA4
+     window.fbLogEvent && fbLogEvent(event, params);         // Firebase */
+ }
+};
 const Store={
  buy(pack,onOk){
+  Analytics.track('iap_started',{pack:pack.c,price:pack.eur});
   /* PLACEHOLDER: itt hívná a bolt fizetését. Most azonnal jóváír, hogy a folyamat tesztelhető legyen. */
+  Analytics.track('iap_completed',{pack:pack.c,price:pack.eur});
   S.credits=credits()+pack.c;save();renderHUD();
   toast(`+${pack.c} kredit jóváírva.`);
   if(onOk)onOk();
  }
 };
 function openShop(why){
+ Analytics.track('iap_viewed',{reason:why?'gated':'hud',credits:credits()});
  let h=`<div class="ev"><div class="bd">
    <h3>${icon('vinyl','20px')} Kredit vásárlása</h3>
    <p>${why?esc(why):'Kényelmi funkciókra — a játék ingyen is teljes.'}</p>
@@ -2553,8 +2613,11 @@ let obLast=-1, obIv=null, obShown=false;
 function obActive(){return !S.obDone&&S.ob!=null&&S.ob<OB.length;}
 function obStep(){return obActive()?OB[S.ob]:null;}
 function obAllowedTabs(){const st=obStep();if(!st)return null;return st.allow||[st.tab];}
-function obStart(){S.obDone=false;S.ob=0;obLast=-1;S.tab='iroda';S.career=false;S.detail=null;save();render();}
-function obFinish(){S.obDone=true;S.ob=null;obLast=-1;obShown=false;if(obIv){clearInterval(obIv);obIv=null;}
+function obStart(){S.obDone=false;S.ob=0;obLast=-1;S.tab='iroda';S.career=false;S.detail=null;
+ Analytics.track('tutorial_started',{source:'replay'});save();render();}
+function obFinish(){
+ Analytics.track('tutorial_completed',{step:(S.ob||0)+1,total:OB.length,skipped:(S.ob<OB.length-1)?1:0});
+ S.obDone=true;S.ob=null;obLast=-1;obShown=false;if(obIv){clearInterval(obIv);obIv=null;}
  $('#ob').className='';$('#ob').innerHTML='';save();render();}
 function obNext(){if(!obActive())return;S.ob++;obLast=-1;if(S.ob>=OB.length){obFinish();return;}save();render();}
 function obHide(){obShown=false;$('#ob').className='';$('#ob').innerHTML='';}
@@ -2726,6 +2789,9 @@ function doPrestige(){
  const e=legEarn();
  const L=legS();
  const keep={pts:L.pts+e.total,tot:(L.tot||0)+e.total,rank:(L.rank||0)+1,perks:Object.assign({},L.perks||{})};
+ /* MÉG a reset ELŐTT: a futás értékei kellenek */
+ Analytics.track('prestige',{rank:keep.rank,legacy_points:e.total,total_points:keep.tot,
+   rep:S.rep,tours:S.toursDone||0,earned:S.earned||0,level:level()});
  const hall=(S.hall||[]).slice(), cityLog=Object.assign({},S.cities||{});
  const allRec=Object.assign({},S.recsAll||{});      // életmű-rekordok: a futás bestjeit belefésüljük
  Object.keys(S.recs||{}).forEach(function(k){allRec[k]=Math.max(allRec[k]||0,S.recs[k]||0);});
@@ -3022,6 +3088,8 @@ function dealRound(){
 function dealStop(){
  if(!D||D.locked)return;D.locked=true;clearInterval(D.raf);
  const ok=Math.abs(D.pos-D.zone)<=D.zw/2;
+ Analytics.track('contract_negotiated',{artist:D.a.id,asked:D.ask,base:dealBase(D.a),
+   round:D.round,chance:Math.round(dealChance(D.a,D.ask)*100),success:ok?1:0});
  const msg=$('#dMsg');
  if(ok){blip(1200,0.12,'sine',0.18);
   if(msg)msg.innerHTML='<b style="color:var(--cash)">MEGVAN! '+D.ask+'% jutalék.</b>';
@@ -3031,7 +3099,8 @@ function dealStop(){
   setTimeout(function(){
     if(!D)return;
     if(D.round<3)dealOffer();                       // fizetős újrapróbálkozás vagy alap
-    else{D.ask=dealBase(D.a);closeDeal(false);}
+    else{Analytics.track('contract_failed',{artist:D.a.id,asked:D.ask,fallback:dealBase(D.a)});
+      D.ask=dealBase(D.a);closeDeal(false);}
   },800);
  }
 }
@@ -3040,6 +3109,7 @@ function dealStop(){
 function dealOffer(){
  if(!D)return;
  const a=D.a,base=dealBase(a),nxt=D.round+1,byAd=(nxt===2);
+ if(byAd)Analytics.track('rewarded_ad_offered',{placement:'contract_retry'});
  const cost=byAd?'egy reklámvideó':(COST_DEAL+' arany lemez');
  const h='<div class="ev"><div class="bd">'+
   '<h3>'+D.round+'. próba nem sikerült</h3>'+
@@ -3054,7 +3124,7 @@ function dealOffer(){
  const m=$('#modal');m.innerHTML=h;m.className='on';
  m.querySelector('[data-base]').onclick=function(){D.ask=base;closeDeal(false);};
  m.querySelector('[data-retry]').onclick=function(){
-  if(byAd){ Ads.show(function(){ if(D)dealRound(); }, function(){ toast('A videó megszakadt.'); if(D)dealOffer(); }); }
+  if(byAd){ Ads.show(function(){ Analytics.track('rewarded_ad_watched',{placement:'contract_retry'}); if(D)dealRound(); }, function(){ toast('A videó megszakadt.'); if(D)dealOffer(); }); }
   else{
    if(!spendCredits(COST_DEAL)){openShop('A 3. alku-próba '+COST_DEAL+' arany lemez. Az alap '+base+'%-ot bármikor elfogadhatod ingyen!');return;}
    dealRound();
@@ -3306,11 +3376,15 @@ function tabIroda(){
        <div class="chips"><span class="chip">${l.rows.length} állomás</span><span class="chip">${k(l.tAtt)} néző</span></div>
        <div class="btm"><span class="num" style="font-size:20px;color:${l.net>=0?'var(--cash)':'var(--hot)'}">${money(l.net)}</span></div></div></div>`;}
  h+=`<div class="sec"><h2>Súgó</h2></div>
-   <button class="btn dark sm" id="obAgain">${icon('play','15px')} Bemutató újra</button>`;
+   <button class="btn dark sm" id="obAgain">${icon('play','15px')} Bemutató újra</button>
+   <button class="btn dark sm" id="anTgl" style="margin-top:8px">${icon('cog','15px')} Névtelen játékstatisztika: <b style="color:${S.analyticsConsent!==false?'var(--cash)':'var(--faint)'}">${S.analyticsConsent!==false?'BE':'KI'}</b></button>
+   <div class="hint"><span class="i">${icon('lock','13px')}</span><span>Csak névtelen játék-események, semmilyen személyes adat.</span></div>`;
  h+=`</div></div>`;
 
  view.innerHTML=h;
  const oba=$('#obAgain');if(oba)oba.onclick=obStart;
+ const at=$('#anTgl');if(at)at.onclick=function(){S.analyticsConsent=(S.analyticsConsent===false);save();
+   toast('Névtelen statisztika: '+(S.analyticsConsent!==false?'BE':'KI'));tabIroda();};
  const gf=$('#giftGo');if(gf)gf.onclick=claimGift;
  const fo=$('#ioFold');
  if(fo)fo.onclick=function(){S.ioOpen=!S.ioOpen;save();
@@ -3375,8 +3449,11 @@ function lcardArtist(a,mode){const canPay=S.money>=a.sign, top=Object.entries(a.
 function doSign(id){const a=AM[id];
  if(S.roster.length>=rosterCap()){toast('Tele az iroda ('+rosterCap()+' előadó) — fejleszd a Nagyobb irodát!');return;}
  if(S.money<a.sign){toast('Nincs elég pénz.');return;}S.money-=a.sign;S.roster.push(id);
+ Analytics.track('artist_signed',{artist:id,fame:af(a),tier:dealStatus(a),commission:dealShare(a),fee:a.sign});
  pushFeed(`${a.n} leigazolva`,`${a.genre} · hírnév ${af(a)} · ${fmtStream(artState(id).streams)} havi hallgató`,a.ic,'var(--neon)');save();toast(`${a.n} leigazolva!`);render();}
-function openDetail(id){S.detail=id;S.tab='eloadok';save();render();}
+function openDetail(id){S.detail=id;S.tab='eloadok';
+ if(AM[id])Analytics.track('artist_viewed',{artist:id,fame:af(AM[id]),genre:AM[id].genre,owned:S.roster.indexOf(id)>=0?1:0});
+ save();render();}
 
 function detailScreen(){const a=AM[S.detail],mine=S.roster.includes(a.id),canPay=S.money>=a.sign;
  let h=`<div class="adhero"><img src="${artistPhoto(a,900,700)}" ${imgFB()}><div class="g"></div>
@@ -4078,6 +4155,7 @@ function showResult(){const r=S.lastResult,win=r.net>=0,col=win?'var(--cash)':'v
  /* A játék EGYETLEN erős, ismétlődő reklám-pillanata: a turné jutalékának duplázása.
     Turnénként egyszer, konkrét összeggel kiírva. */
  const dbl=Math.max(0,r.net||0);
+ if(dbl>0&&!r.netX2&&!r.adLogged){r.adLogged=1;Analytics.track('rewarded_ad_offered',{placement:'tour_double',value:dbl});}
  if(dbl>0&&!r.netX2)h+=`<div class="hype" id="resX2" style="margin-top:14px"><div class="hi">${icon('bolt','20px')}</div>
    <div class="ht"><div class="h1">Duplázd meg a turné jutalékát</div>
      <div class="h2">${money(dbl)} → <b style="color:var(--cash)">${money(dbl*2)}</b></div>
@@ -4092,6 +4170,7 @@ function showResult(){const r=S.lastResult,win=r.net>=0,col=win?'var(--cash)':'v
  const rn=$('#resNet');rn.dataset.v=0;animateNum(rn,r.net,v=>money(v));
  const rx=$('#resX2');
  if(rx)rx.onclick=function(){Ads.show(function(){
+   Analytics.track('rewarded_ad_watched',{placement:'tour_double',value:dbl});
    S.money+=dbl;r.netX2=true;r.net+=dbl;S.earned=(S.earned||0)+dbl;save();
    toast('Duplázva! +'+money(dbl));showResult();
  },function(){toast('A videó megszakadt — marad az eredeti jutalék.');});};
@@ -4103,7 +4182,10 @@ function showResult(){const r=S.lastResult,win=r.net>=0,col=win?'var(--cash)':'v
 /* ============================ INDÍTÁS ============================ */
 render();
 /* a turné a játék bezárása alatt is véget érhetett — az eredményt akkor is meg kell mutatni */
+Analytics.init();
+if(!S.obDone&&S.ob===0)Analytics.track('tutorial_started',{source:'first_open'});
 if(S.resultPending&&S.lastResult)showResult();
+if(Analytics.debug)window.Analytics=Analytics;   // fejlesztői mód: konzolból is vizsgálható
 if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs};
 })();
 </script>
