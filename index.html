@@ -4,6 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
 <title>Turné Menedzser</title>
+<meta name="description" content="Zenei turnémenedzser-szimulátor: igazolj előadókat, tervezz turnét, és építs birodalmat.">
+<!-- ---------- PWA: telepíthető, appként induló ----------
+     A manifest és a service worker RELATÍV útvonalat használ, ezért ugyanúgy jó a
+     GitHub Pages /turne-menedzser/ al-útvonalán és helyi kiszolgálón is. -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#070809">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Turné Menedzser">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="preconnect" href="https://api.fontshare.com">
 <link href="https://api.fontshare.com/v2/css?f%5B%5D=clash-display@600,700&f%5B%5D=satoshi@500,700,900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -4950,6 +4964,28 @@ if(S.resultPending&&S.lastResult)showResult();
 if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
 if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs};
 })();
+</script>
+<script>
+/* ---------- SERVICE WORKER (offline app-héj + telepíthetőség) ----------
+   Relatív útvonal → a hatókör automatikusan a /turne-menedzser/ al-útvonal.
+   A regisztráció sosem blokkolja a játékot: hiba esetén némán elmarad
+   (pl. file:// megnyitás vagy nem biztonságos kapcsolat). */
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      /* Ha a háttérben új verzió készül el, a következő indításnál már az fut:
+         a sw skipWaiting + clients.claim párossal azonnal átveszi az irányítást. */
+      reg.addEventListener('updatefound', function () {
+        const w = reg.installing;
+        if (w) w.addEventListener('statechange', function () {
+          if (w.state === 'installed' && navigator.serviceWorker.controller) {
+            /* csendes frissítés — a következő megnyitáskor lép életbe */
+          }
+        });
+      });
+    }).catch(function () {});
+  });
+}
 </script>
 </body>
 </html>
