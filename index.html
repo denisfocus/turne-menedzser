@@ -2950,14 +2950,18 @@ const OB=[
   done:function(){return S.tab==='terkep';},allow:['terkep']},
  {id:'pick',tab:'terkep',sel:'#view [data-tour]',k:'Kit viszel',t:'Válaszd ki az előadót',
   tap:'Koppints a kártyájára',done:function(){return !!S.tour;},allow:['terkep']},
- {id:'set',tab:'terkep',pl:0,sel:'#songs',ringSel:'#songs .pool',slim:1,wide:1,k:'Setlist',t:'Rakd össze a teljes szetet',
-  p:'Nem a legjobb dalok nyernek, hanem a jó ív.',
-  /* csak a TELJES minimum szettel lép tovább — élő számlálóval */
+ {id:'set',tab:'terkep',pl:0,sel:'#songs',slim:1,wide:1,k:'Setlist',t:'Rakd össze a teljes szetet',
+  /* A gyűrű a lépésen BELÜL vált: amíg gyűjtesz, a repertoáron ül; ha megvan a
+     minimum, a szet sorrendjére, mert onnantól az átrendezés a feladat. */
+  ringSel:function(){return (S.tour&&S.tour.setlist.length>=minSet(AM[S.tour.artist]))?'#slwrap':'#songs .pool';},
+  p:'A sorrend számít: a fogantyúval húzva rendezheted át a dalokat.',
   tap:function(){if(!S.tour)return 'Válassz dalokat a repertoárból';
     const need=minSet(AM[S.tour.artist])-S.tour.setlist.length;
-    return need>0?('Még '+need+' dal kell a szethez'):'Kész a szet!';},
-  done:function(){return S.tour&&S.tour.setlist.length>=minSet(AM[S.tour.artist]);},allow:['terkep']},
- {id:'city',tab:'terkep',pl:1,sel:'#routebox',ringSel:'#routebox',slim:1,wide:1,k:'Útvonal',t:'Rakd sorba a városokat',
+    return need>0?('Még '+need+' dal kell a szethez'):'';},
+  /* NINCS auto-tovabblepes: a jatekos maga lep tovabb, hogy legyen ideje rendezni */
+  ready:function(){return S.tour&&S.tour.setlist.length>=minSet(AM[S.tour.artist]);},
+  btn:'Megvan a szet',allow:['terkep']},
+ {id:'city',tab:'terkep',pl:1,sel:'#routebox',noring:1,slim:1,wide:1,k:'Útvonal',t:'Rakd sorba a városokat',
   tap:'Válassz legalább egy várost',btn:'Megvan az útvonal',
   ready:function(){return S.tour&&S.tour.stops.length>=1;},allow:['terkep']},
  {id:'stop',tab:'terkep',pl:2,sel:'#stops',ringSel:'#stops .stop',k:'Állomás',t:'Helyszín és jegyár',
@@ -3074,7 +3078,8 @@ function obPaint(){
   S.tour.step=st.pl;save();plannerScreen();view.scrollTop=0;}
  let tgt=st.sel?document.querySelector(st.sel):null;
  /* ringSel: ha a szakasz magasabb, mint a tiszta zóna, a gyűrű a LÉNYEGI részre mutat */
- if(st.ringSel){const rt=document.querySelector(st.ringSel);if(rt)tgt=rt;}
+ if(st.ringSel){const rs=(typeof st.ringSel==='function')?st.ringSel():st.ringSel;
+  const rt=rs?document.querySelector(rs):null;if(rt)tgt=rt;}
  /* soft: ha nincs meg a cél (pl. nincs mini-játék ezen az estén), a magyarázat
     akkor is elhangzik, csak kiemelés nélkül. opt: ilyenkor átugorjuk. */
  if(st.sel&&!tgt){if(st.soft)tgt=null;else if(st.opt){obNext();return;}else{obHide();return;}}
@@ -3116,7 +3121,7 @@ function obPaint(){
   if(!sameStep&&el.contains(document.activeElement)&&document.activeElement.blur)document.activeElement.blur();
   if(!focused){
    el.dataset.sig=sig;
-   el.innerHTML=(tgt?'<div class="obring"></div>':'<div class="obdim"></div>');
+   el.innerHTML=st.noring?'':(tgt?'<div class="obring"></div>':'<div class="obdim"></div>');
   }
  }
  /* A SZÖVEG mindig a dokkolt sávban van — így semmit nem takarhat. */
@@ -4431,7 +4436,12 @@ function renderSongs(){
 function afterSetlistChange(){save();renderSongs();renderStops();updateStopProgress();updateSticky();
  /* A lista ujraepult: a gyuru azonnal, atmenet nelkul alljon a HELYERE,
     es a repertoar maradjon a lathato zonaban. */
- if(obActive()&&(OB[S.ob]||{}).id==='set'){obNoFx=true;obNeedScroll=true;obPaint();}}
+ if(obActive()&&(OB[S.ob]||{}).id==='set'){
+  obNoFx=true;
+  /* amig gyujt, kovesse a repertoart; ha mar teljes a szet, a nezet marad, ahol van */
+  if(S.tour.setlist.length<minSet(AM[S.tour.artist]))obNeedScroll=true;
+  obPaint();
+ }}
 function bindSetlist(a){
  bind('[data-add]',b=>{S.tour.setlist.push(+b.dataset.add);afterSetlistChange();});
  bind('[data-del]',b=>{S.tour.setlist.splice(+b.dataset.del,1);afterSetlistChange();});
