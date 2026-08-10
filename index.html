@@ -820,6 +820,16 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 .hype .h2 b{font-family:var(--disp);font-feature-settings:"tnum" 1}
 .hype .h3{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.35}
 .hype .hg{color:#FF9F3A;flex:0 0 auto}
+.obinline{margin:-2px 0 13px;padding:12px 13px;border-radius:14px;
+  border:1px solid rgba(198,255,58,.42);background:linear-gradient(135deg,rgba(198,255,58,.14),rgba(198,255,58,.03))}
+.obinline .k{font-size:9.5px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;color:var(--neon)}
+.obinline h4{font-family:var(--disp);font-weight:700;font-size:15px;margin-top:4px;line-height:1.15;word-spacing:.13em}
+.obinline p{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45}
+.obinline .row{display:flex;justify-content:space-between;align-items:center;margin-top:9px}
+.obinline .tap{font-size:11.5px;font-weight:700;color:var(--neon);display:flex;align-items:center;gap:6px}
+.obinline .tap .d{width:7px;height:7px;border-radius:50%;background:var(--neon);animation:pulse 1.1s infinite}
+.obinline .skip{font-size:11px;color:var(--faint);font-weight:700;text-decoration:underline;padding:4px 2px}
+#modal .ev{max-height:calc(100% - 6px);overflow-y:auto}
 .obinput{width:100%;margin-top:11px;padding:12px 13px;border-radius:13px;background:rgba(255,255,255,.06);
   border:1px solid rgba(198,255,58,.4);color:var(--text);font-family:var(--disp);font-weight:700;font-size:15px}
 .obinput::placeholder{color:var(--faint);font-weight:700}
@@ -2672,7 +2682,7 @@ function obAllowedTabs(){const st=obStep();if(!st)return null;return st.allow||[
 function obStart(){S.obDone=false;S.ob=S.live?OB.findIndex(function(x){return x.id==='liveTop';}):0;
  if(S.ob<0)S.ob=0;obLast=-1;S.tab=S.live?'terkep':'iroda';S.career=false;S.detail=null;S.obStarted=1;
  Analytics.track('tutorial_started',{source:'replay'});save();render();}
-function obFinish(){
+function obFinish(){obInlineClear();
  Analytics.track('tutorial_completed',{step:Math.min(OB.length,(S.ob||0)+1),total:OB.length,skipped:(S.ob<OB.length-1)?1:0});
  S.obDone=true;S.ob=null;obLast=-1;obShown=false;if(obIv){clearInterval(obIv);obIv=null;}
  $('#ob').className='';$('#ob').innerHTML='';save();render();}
@@ -2684,6 +2694,24 @@ function obRewindTo(id){
  if(i>=0&&S.ob>i){S.ob=i;obLast=-1;save();}
 }
 function obNext(){if(!obActive())return;S.ob++;obLast=-1;if(S.ob>=OB.length){obFinish();return;}save();render();}
+function obInline(st){
+ const bd=$('#modal .ev .bd');if(!bd)return;
+ const cur=bd.querySelector('.obinline');
+ if(cur&&cur.dataset.step===st.id)return;                 // már bent van, ne építsük újra
+ if(cur)cur.remove();
+ const el=document.createElement('div');el.className='obinline';el.dataset.step=st.id;
+ el.innerHTML='<div class="k">'+st.k+' · '+(S.ob+1)+'/'+OB.length+'</div>'+
+   '<h4>'+st.t+'</h4>'+(st.p?'<p>'+st.p+'</p>':'')+
+   '<div class="row">'+(st.tap?'<span class="tap"><span class="d"></span>'+st.tap+'</span>':'<span></span>')+
+     '<button class="skip" id="obSkipIn">Kihagyom</button></div>';
+ bd.insertBefore(el,bd.firstChild);
+ const sk=el.querySelector('#obSkipIn');if(sk)sk.onclick=obFinish;
+ /* a panel görgessen az akciógombokhoz, hogy a magyarázat ne tolja ki őket a képből */
+ const ev=$('#modal .ev');
+ if(ev)setTimeout(function(){try{const ch=ev.querySelector('.evch');
+   if(ch&&ch.getBoundingClientRect().bottom>window.innerHeight-6)ev.scrollTop=ev.scrollHeight;}catch(e){}},60);
+}
+function obInlineClear(){const e=document.querySelector('.obinline');if(e)e.remove();}
 function obHide(){obShown=false;const e=$('#ob');e.className='';e.innerHTML='';e.dataset.sig='';}
 /* MODÁLIS: amíg a bemutató látszik, a háttérben semmi nem kattintható —
    csak a kiemelt cél-elem és maga a buborék. A görgetés viszont szabad marad. */
@@ -2712,6 +2740,12 @@ function obPaint(){
  /* soft: ha nincs meg a cél (pl. nincs mini-játék ezen az estén), a magyarázat
     akkor is elhangzik, csak kiemelés nélkül. opt: ilyenkor átugorjuk. */
  if(st.sel&&!tgt){if(st.soft)tgt=null;else if(st.opt){obNext();return;}else{obHide();return;}}
+ if($('#modal').className==='on'&&st.onModal){
+  /* A tárgyaló-panel magasabb, mint a szabad sáv — egy lebegő buborék ELTAKARNÁ az
+     akciógombokat. Ezért modál-lépésnél a magyarázat BELEKERÜL a panelbe. */
+  obInline(st);obHide();return;
+ }
+ obInlineClear();
  if(($('#modal').className==='on'&&!st.onModal)||$('#mini').className==='on'||$('#adv').className==='on'){obHide();return;}
  const onRes=resultEl.style.display==='block';
  if(onRes&&!st.onRes){if(st.soft||st.opt){obNext();return;}obHide();return;}
@@ -2769,9 +2803,16 @@ function obPaint(){
    if(!inFixed){t=clamp(t,safeTop,safeBot-24); bm=clamp(bm,safeTop+24,safeBot);}
    if(ringEl){ringEl.style.cssText='top:'+t+'px;left:'+(r.left-app.left-pad)+'px;'+
      'width:'+(r.width+pad*2)+'px;height:'+Math.max(24,bm-t)+'px';}
-   const roomBelow=(inFixed?app.height:safeBot)-bm, roomAbove=t-safeTop;
-   if(roomBelow>=190)bubEl.style.cssText='top:'+(bm+12)+'px;max-height:'+(roomBelow-18)+'px;overflow:auto';
-   else if(roomAbove>=190)bubEl.style.cssText='bottom:'+(app.height-t+12)+'px;max-height:'+(roomAbove-18)+'px;overflow:auto';
+   /* A buborék SOSEM takarhatja a célt: a nagyobb szabad oldalra kerül, és a
+      rendelkezésre álló helyre zsugorodik (belül görgethető). Csak akkor fekszik rá,
+      ha egyik oldalon sincs értelmes hely — ilyenkor a cél úgyis a képernyő nagy része. */
+   const roomBelow=(inFixed?app.height:safeBot)-bm, roomAbove=t-safeTop, MIN=96;
+   if(roomBelow>=MIN&&roomBelow>=roomAbove)
+     bubEl.style.cssText='top:'+(bm+12)+'px;max-height:'+(roomBelow-18)+'px;overflow:auto';
+   else if(roomAbove>=MIN)
+     bubEl.style.cssText='bottom:'+(app.height-t+12)+'px;max-height:'+(roomAbove-18)+'px;overflow:auto';
+   else if(roomBelow>=MIN)
+     bubEl.style.cssText='top:'+(bm+12)+'px;max-height:'+(roomBelow-18)+'px;overflow:auto';
    else bubEl.style.cssText='bottom:'+(app.height-safeBot+10)+'px;max-height:'+(safeBot-safeTop-16)+'px;overflow:auto';
   }else{
    bubEl.style.cssText='top:'+safeTop+'px;bottom:'+(app.height-safeBot)+'px;'+
