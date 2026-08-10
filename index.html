@@ -837,12 +837,14 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 #obbar.slim h4{font-size:14.5px;margin-top:0}
 #obbar.slim .tap{margin-top:6px;font-size:12px}
 #obbar.slim .row{margin-top:6px}
+#obbar.slim p{font-size:12px;margin-top:3px;max-height:34px}
 #obbar.slim .row .btn{min-height:38px}
 #obbar.slim .skip{padding:6px 3px}
 /* A bemutato varos-lepesenel a lista/terkep JOVAL magasabb: minel kevesebb belso gorgetes */
 body.obwide .rthint,body.obwide #routebox .btnrow{display:none}
 /* a bemutato varos-lepesen az also osszegzo sav is pihen: minden hely a valasztoe */
 body.obwide #sticky-host{display:none}
+body.obwide .poolhint{margin-bottom:6px}
 #obbar .tap .d{width:8px;height:8px;border-radius:50%;background:var(--neon);
   box-shadow:0 0 0 0 rgba(198,255,58,.55);animation:obdot 1.5s ease-out infinite;flex:0 0 auto}
 @keyframes obdot{0%{box-shadow:0 0 0 0 rgba(198,255,58,.5)}70%{box-shadow:0 0 0 9px rgba(198,255,58,0)}100%{box-shadow:0 0 0 0 rgba(198,255,58,0)}}
@@ -2948,14 +2950,14 @@ const OB=[
   done:function(){return S.tab==='terkep';},allow:['terkep']},
  {id:'pick',tab:'terkep',sel:'#view [data-tour]',k:'Kit viszel',t:'Válaszd ki az előadót',
   tap:'Koppints a kártyájára',done:function(){return !!S.tour;},allow:['terkep']},
- {id:'set',tab:'terkep',pl:0,sel:'#songs',ringSel:'#songs .pool',k:'Setlist',t:'Rakd össze a teljes szetet',
-  p:'A repertoárból koppintással adsz hozzá dalt. Nem a legjobb dalok nyernek, hanem a jó ív.',
+ {id:'set',tab:'terkep',pl:0,sel:'#songs',ringSel:'#songs .pool',slim:1,wide:1,k:'Setlist',t:'Rakd össze a teljes szetet',
+  p:'Nem a legjobb dalok nyernek, hanem a jó ív.',
   /* csak a TELJES minimum szettel lép tovább — élő számlálóval */
   tap:function(){if(!S.tour)return 'Válassz dalokat a repertoárból';
     const need=minSet(AM[S.tour.artist])-S.tour.setlist.length;
     return need>0?('Még '+need+' dal kell a szethez'):'Kész a szet!';},
   done:function(){return S.tour&&S.tour.setlist.length>=minSet(AM[S.tour.artist]);},allow:['terkep']},
- {id:'city',tab:'terkep',pl:1,sel:'#routebox',ringSel:'#routebox',slim:1,k:'Útvonal',t:'Rakd sorba a városokat',
+ {id:'city',tab:'terkep',pl:1,sel:'#routebox',ringSel:'#routebox',slim:1,wide:1,k:'Útvonal',t:'Rakd sorba a városokat',
   tap:'Válassz legalább egy várost',btn:'Megvan az útvonal',
   ready:function(){return S.tour&&S.tour.stops.length>=1;},allow:['terkep']},
  {id:'stop',tab:'terkep',pl:2,sel:'#stops',ringSel:'#stops .stop',k:'Állomás',t:'Helyszín és jegyár',
@@ -3129,7 +3131,7 @@ function obPaint(){
      '<div class="prog"><span class="track"><i style="width:'+pct+'%"></i></span>'+
        '<span class="num">'+(S.ob+1)+' / '+OB.length+'</span></div>'+
      '<div class="k">'+st.k+'</div>'+
-     '<h4>'+st.t+'</h4>'+((st.p&&!st.slim)?'<p>'+st.p+'</p>':'')+
+     '<h4>'+st.t+'</h4>'+(st.p?'<p>'+st.p+'</p>':'')+
      (st.id==='welcome'?'<input class="obinput" id="obName" type="text" maxlength="24" autocomplete="off" '+
         'autocapitalize="words" enterkeyhint="done" placeholder="Az ügynökséged neve" value="'+esc(S.agency||'')+'">':'')+
      ((tapTxt&&(!st.ready||!st.ready()))?'<div class="tap"><span class="d"></span>'+tapTxt+'</div>':'')+
@@ -3140,7 +3142,7 @@ function obPaint(){
   }
  }
  bar.className='on'+(st.slim?' slim':'');
- document.body.classList.toggle('obwide',st.id==='city');
+ document.body.classList.toggle('obwide',!!st.wide);
  const barH=bar.offsetHeight||0;
  /* A varos-lepesen a terkep/lista doboz a TISZTA ZONA maradek helyet kapja: a magassag
     a zonabol szamol (nem a gorgetes allasabol), ezert gorgetes kozben sem ugral. */
@@ -4383,8 +4385,9 @@ function renderSongs(){
      (list.length>=4?`<div class="note" style="color:var(--cash)"><span class="i">${icon('star','13px')}</span><span>Szép ív — a közönség végig veled marad.</span></div>`:'')}
  </div>`;
 
- /* A REPERTOÁR (választható dalok) előre kerül, ha még üres a szet — különben a
-    „válassz dalokat" felszólítás alatt nem látszott, hogy honnan lehet választani. */
+ /* A REPERTOÁR (választható dalok) MINDIG ugyanott áll: közvetlenül a görbe alatt,
+    a szet sorrendje FÖLÖTT. Korábban üres szetnél elöl, az első dal után hátul volt —
+    a lista így „eltűnt" a képernyőről, a kiemelő gyűrű pedig az üres régi helyén maradt. */
  const rest=a.songs.map((s,i)=>i).filter(i=>list.indexOf(i)<0);
  let pool=`<div class="sec" style="margin:16px 2px 10px"><h2 style="font-size:15px">Repertoár</h2>
    <span class="r ${list.length?'':'act'}">${rest.length} választható</span></div>`;
@@ -4394,7 +4397,7 @@ function renderSongs(){
   pool+=`<button data-add="${i}"><span class="pl">＋</span><span class="n2">${esc(s.n)}</span>
     <span class="m2" style="color:${eCol(s.e)}">${eLab(s.e)} ${s.e}</span></button>`;});
  pool+=`</div>`;
- if(!list.length)h+=pool;
+ h+=pool;
 
  h+=`<div class="sec" style="margin:16px 2px 10px"><h2 style="font-size:15px">A szet sorrendje</h2>
    <span class="r ${list.length>=minSet(a)?'act':''}">${list.length}/${minSet(a)} dal</span></div>`;
@@ -4415,8 +4418,6 @@ function renderSongs(){
    <span style="opacity:.7;font-size:11px">(${credits()})</span></button>`;
  h+=`<div class="hint"><span class="i">${icon('alert','13px')}</span><span>Húzd a <b>fogantyút</b> az átrendezéshez.</span></div>`;
 
- if(list.length)h+=pool;
-
  /* rizikó: kiadatlan szám bemutatása */
  h+=`<div class="risk ${S.tour.risk?'on':''}" id="riskBox"><div class="t">
    <div class="h">${icon('notes','14px')} Kiadatlan szám bemutatása</div>
@@ -4427,7 +4428,10 @@ function renderSongs(){
  $('#songs').innerHTML=h;
  bindSetlist(a);
 }
-function afterSetlistChange(){save();renderSongs();renderStops();updateStopProgress();updateSticky();}
+function afterSetlistChange(){save();renderSongs();renderStops();updateStopProgress();updateSticky();
+ /* A lista ujraepult: a gyuru azonnal, atmenet nelkul alljon a HELYERE,
+    es a repertoar maradjon a lathato zonaban. */
+ if(obActive()&&(OB[S.ob]||{}).id==='set'){obNoFx=true;obNeedScroll=true;obPaint();}}
 function bindSetlist(a){
  bind('[data-add]',b=>{S.tour.setlist.push(+b.dataset.add);afterSetlistChange();});
  bind('[data-del]',b=>{S.tour.setlist.splice(+b.dataset.del,1);afterSetlistChange();});
