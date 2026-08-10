@@ -837,7 +837,7 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 #obbar.slim h4{font-size:14.5px;margin-top:0}
 #obbar.slim .tap{margin-top:6px;font-size:12px}
 #obbar.slim .row{margin-top:6px}
-#obbar.slim p{font-size:12px;margin-top:3px;max-height:34px}
+#obbar.slim p{font-size:12px;margin-top:3px;max-height:50px}
 #obbar.slim .row .btn{min-height:38px}
 #obbar.slim .skip{padding:6px 3px}
 /* A bemutato varos-lepesenel a lista/terkep JOVAL magasabb: minel kevesebb belso gorgetes */
@@ -2950,10 +2950,13 @@ const OB=[
   done:function(){return S.tab==='terkep';},allow:['terkep']},
  {id:'pick',tab:'terkep',sel:'#view [data-tour]',k:'Kit viszel',t:'Válaszd ki az előadót',
   tap:'Koppints a kártyájára',done:function(){return !!S.tour;},allow:['terkep']},
- {id:'set',tab:'terkep',pl:0,sel:'#songs',slim:1,wide:1,k:'Setlist',t:'Rakd össze a teljes szetet',
-  /* A gyűrű a lépésen BELÜL vált: amíg gyűjtesz, a repertoáron ül; ha megvan a
-     minimum, a szet sorrendjére, mert onnantól az átrendezés a feladat. */
-  ringSel:function(){return (S.tour&&S.tour.setlist.length>=minSet(AM[S.tour.artist]))?'#slwrap':'#songs .pool';},
+ /* ---- TÖMÖR TERVEZŐ-LÉPÉSEK: `noring` ----
+    A sűrű tervező-képernyőkön (setlist, útvonal, állomás, promó) a kiemelő keret
+    óhatatlanul ELVÁGTA a tartalmat (a zóna aljánál félbe vágott sorok, árak). Ezeken
+    a lépéseken ezért NINCS keret és nincs sötétítés: csak a slim sáv egymondatos
+    instrukciója, a képernyő pedig szabadon használható. A keretes kiemelés a TISZTA,
+    egyszerű célokon marad (HUD-csempék, fülek, előadó-kártya, eredmény). */
+ {id:'set',tab:'terkep',pl:0,sel:'#songs',noring:1,slim:1,wide:1,k:'Setlist',t:'Rakd össze a teljes szetet',
   p:'A sorrend számít: a fogantyúval húzva rendezheted át a dalokat.',
   tap:function(){if(!S.tour)return 'Válassz dalokat a repertoárból';
     const need=minSet(AM[S.tour.artist])-S.tour.setlist.length;
@@ -2964,11 +2967,12 @@ const OB=[
  {id:'city',tab:'terkep',pl:1,sel:'#routebox',noring:1,slim:1,wide:1,k:'Útvonal',t:'Rakd sorba a városokat',
   tap:'Válassz legalább egy várost',btn:'Megvan az útvonal',
   ready:function(){return S.tour&&S.tour.stops.length>=1;},allow:['terkep']},
- {id:'stop',tab:'terkep',pl:2,sel:'#stops',ringSel:'#stops .stop',k:'Állomás',t:'Helyszín és jegyár',
-  p:'Nagyobb terem = több néző, de drágább. A jegyár csak a VÁRHATÓ nézőszámot szabja meg.',
-  tap:function(){return todoCount()>0?('Még '+todoCount()+' állomás beállítása'):'Minden állomás kész!';},
-  done:function(){return S.tour&&S.tour.stops.length>=1&&todoCount()===0;},allow:['terkep']},
- {id:'promo',tab:'terkep',pl:3,sel:'#promo',k:'Promóció',t:'Mennyit költesz rá',
+ {id:'stop',tab:'terkep',pl:2,sel:'#stops',noring:1,slim:1,wide:1,k:'Állomás',t:'Helyszín és jegyár',
+  p:'Nagyobb terem = több néző, de drágább. A jegyár a várható nézőszámot szabja meg.',
+  tap:function(){return todoCount()>0?('Még '+todoCount()+' állomás beállítása'):'';},
+  ready:function(){return S.tour&&S.tour.stops.length>=1&&todoCount()===0;},
+  btn:'Megvan minden állomás',allow:['terkep']},
+ {id:'promo',tab:'terkep',pl:3,sel:'#promo',noring:1,slim:1,wide:1,k:'Promóció',t:'Mennyit költesz rá',
   p:'Több promó = több néző. A turné nyereségéből megy, nem előre.',btn:'Tovább',allow:['terkep']},
  {id:'go',tab:'terkep',sel:'#sticky-host .in',k:'Indulás',t:'Mehet a turné',
   tap:'Koppints a Turné indítása gombra',done:function(){return !!S.live;},allow:['terkep']},
