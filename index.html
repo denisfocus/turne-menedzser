@@ -1217,12 +1217,16 @@ function fmtStream(n){return n>=1e6?(n/1e6).toFixed(2).replace('.',',')+'M':n>=1
 
 /* ---------- KIADÁSOK (a két turné közti tartalom) ---------- */
 const RELEASES=[
- {id:'single',n:'Single',ic:'notes', min:90, days:5, mul:1,   hype:0.55,fansAdd:2,fameAdd:1,
-  d:'Egy dal, gyors lökés. Pár nap a stúdióban, azonnal érezhető streaming-ugrás.'},
- {id:'ep',    n:'EP',    ic:'headphones',min:180,days:10,mul:2,hype:1.05,fansAdd:4,fameAdd:2,
-  d:'Négy-öt dal. Erősebb és tartósabb hatás, közepes költséggel.'},
- {id:'album', n:'Album', ic:'crown', min:360,days:18,mul:3.6,hype:1.9, fansAdd:8,fameAdd:3,
-  d:'A nagy dobás: jelentős streaming-, rajongótábor- és hírnév-ugrás. Drága és sokáig tart.'},
+ /* A felvétel HOSSZÚ, de a HÁTTÉRBEN fut: közben nyugodtan turnézol, és a játék
+    bezárása alatt is telik (abszolút időbélyeg). Ezért nem baj, ha több turnét is
+    átível — a hossz arányosan nő: single < EP < album.
+    1 játékperc = 750 ms valós idő, egy 3 állomásos klubturné ≈ 4 perc. */
+ {id:'single',n:'Single',ic:'notes', min:600, days:7, mul:1,   hype:0.55,fansAdd:2,fameAdd:1,
+  d:'Egy dal, gyors lökés. Kb. két turné, míg elkészül — a streaming azonnal megugrik.'},
+ {id:'ep',    n:'EP',    ic:'headphones',min:1500,days:14,mul:2,hype:1.05,fansAdd:4,fameAdd:2,
+  d:'Négy-öt dal. Jóval hosszabb munka, de erősebb és tartósabb hatás.'},
+ {id:'album', n:'Album', ic:'crown', min:3300,days:28,mul:3.6,hype:1.9, fansAdd:8,fameAdd:3,
+  d:'A nagy dobás: hónapok a stúdióban, cserébe hatalmas streaming-, rajongó- és hírnév-ugrás.'},
 ];
 const RM=Object.fromEntries(RELEASES.map(r=>[r.id,r]));
 function relCost(a,k){return Math.round((4000+af(a)*260)*k.mul*(1-facLv('studio')*0.15)/500)*500;}
@@ -4678,8 +4682,10 @@ function tabStudio(){
     <div class="bd"><div class="kick">Stúdióban</div><div class="ttl">${esc(ra.n)} · ${k.n}</div>
       <div class="sub">${k.days} nap a stúdióban · megjelenés után azonnal hat a keresletre</div>
       <div class="pbar"><i id="relBar" style="width:0%"></i></div>
-      <div class="pmeta"><span class="t">${icon('clock','15px')}<span id="relTime">0:00</span></span><span>Már nem szakítható meg</span></div>
-      <button class="btn lime sm" id="relSkip" style="margin-top:11px">${icon('ff','16px')} Felvétel befejezése</button>
+      <div class="pmeta"><span class="t">${icon('clock','15px')}<span id="relTime">0:00</span></span><span>A háttérben készül — nyugodtan turnézz</span></div>
+      ${S.rel.ad?`<div class="hint" style="margin-top:11px"><span class="i">${icon('ff','13px')}</span>
+          <span>A felvétel már fel van gyorsítva — innen kivárod.</span></div>`
+       :`<button class="btn dark sm" id="relAd" style="margin-top:11px">${icon('ff','16px')} Reklám → feleannyi idő</button>`}
     </div></div>`;}
 
  /* előadóválasztó */
@@ -4720,7 +4726,21 @@ function tabStudio(){
  view.innerHTML=h;
  bind('[data-studio]',b=>{S.studio=b.dataset.studio;save();tabStudio();});
  bind('[data-rel]',b=>startRelease(a.id,b.dataset.rel));
- const rs=$('#relSkip');if(rs)rs.onclick=function(){S.rel.ends=Date.now()-1;save();toast('A felvétel elkészült!');tick();};
+ /* Nincs ingyen azonnali kiadás: a felvétel kivárható, VAGY egyszer reklámmal
+    felezhető. Opcionális ráadás — aki nem kéri, közben turnézik. */
+ const ra=$('#relAd');if(ra)ra.onclick=function(){
+  if(!S.rel||S.rel.ad)return;
+  Analytics.track('rewarded_ad_offered',{placement:'release_speedup',kind:S.rel.kind});
+  Ads.show(function(){
+    Analytics.track('rewarded_ad_watched',{placement:'release_speedup',kind:S.rel.kind});
+    if(!S.rel)return;
+    const left=relRemain();
+    S.rel.ad=1;S.rel.ends=Date.now()+Math.round(left/2);
+    save();
+    if(Date.now()>=S.rel.ends){toast('A felvétel elkészült!');tick();}
+    else{toast('Felgyorsítva — feleannyi idő maradt.');tabStudio();}
+  },function(){toast('A videó megszakadt — nincs gyorsítás.');});
+ };
  paintRel();
 }
 function paintRel(){
