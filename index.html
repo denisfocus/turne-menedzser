@@ -797,6 +797,7 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 @keyframes obhalo{
   0%,100%{box-shadow:0 0 0 1.5px rgba(198,255,58,.5),0 0 18px 3px rgba(198,255,58,.16),0 0 0 9999px rgba(4,6,10,.60)}
   50%    {box-shadow:0 0 0 1.5px rgba(198,255,58,.78),0 0 34px 8px rgba(198,255,58,.30),0 0 0 9999px rgba(4,6,10,.60)}}
+.obring.nofx{transition:none}
 @media (prefers-reduced-motion:reduce){.obring{animation:none}}
 .obdim{position:absolute;inset:0;background:rgba(4,6,10,.60)}
 /* DOKKOLT tutorial-sáv: saját helyet foglal, a görgethető tartalom fölé SOHA nem ér rá.
@@ -829,6 +830,19 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
   border-bottom:1px solid rgba(255,255,255,.18)}
 #obbar .tap{font-size:12.5px;font-weight:700;color:var(--neon);display:flex;align-items:center;gap:9px;margin-top:9px;
   padding:8px 11px;border-radius:12px;background:rgba(198,255,58,.09);border:1px solid rgba(198,255,58,.22)}
+/* SLIM mód: a szűk tervezo-lepeseknel a sav minimalis, hogy a valaszto kapja a helyet */
+#obbar.slim .card{padding:8px 14px 9px}
+#obbar.slim .prog{margin-bottom:4px}
+#obbar.slim .k{display:none}
+#obbar.slim h4{font-size:14.5px;margin-top:0}
+#obbar.slim .tap{margin-top:6px;font-size:12px}
+#obbar.slim .row{margin-top:6px}
+#obbar.slim .row .btn{min-height:38px}
+#obbar.slim .skip{padding:6px 3px}
+/* A bemutato varos-lepesenel a lista/terkep JOVAL magasabb: minel kevesebb belso gorgetes */
+body.obwide .rthint,body.obwide #routebox .btnrow{display:none}
+/* a bemutato varos-lepesen az also osszegzo sav is pihen: minden hely a valasztoe */
+body.obwide #sticky-host{display:none}
 #obbar .tap .d{width:8px;height:8px;border-radius:50%;background:var(--neon);
   box-shadow:0 0 0 0 rgba(198,255,58,.55);animation:obdot 1.5s ease-out infinite;flex:0 0 auto}
 @keyframes obdot{0%{box-shadow:0 0 0 0 rgba(198,255,58,.5)}70%{box-shadow:0 0 0 9px rgba(198,255,58,0)}100%{box-shadow:0 0 0 0 rgba(198,255,58,0)}}
@@ -2941,8 +2955,7 @@ const OB=[
     const need=minSet(AM[S.tour.artist])-S.tour.setlist.length;
     return need>0?('Még '+need+' dal kell a szethez'):'Kész a szet!';},
   done:function(){return S.tour&&S.tour.setlist.length>=minSet(AM[S.tour.artist]);},allow:['terkep']},
- {id:'city',tab:'terkep',pl:1,sel:'#routebox',ringSel:'.rtbody',k:'Útvonal',t:'Rakd sorba a városokat',
-  p:'Koppints a városokra a sorrend szerint. Több város = nagyobb turné.',
+ {id:'city',tab:'terkep',pl:1,sel:'#routebox',ringSel:'#routebox',slim:1,k:'Útvonal',t:'Rakd sorba a városokat',
   tap:'Válassz legalább egy várost',btn:'Megvan az útvonal',
   ready:function(){return S.tour&&S.tour.stops.length>=1;},allow:['terkep']},
  {id:'stop',tab:'terkep',pl:2,sel:'#stops',ringSel:'#stops .stop',k:'Állomás',t:'Helyszín és jegyár',
@@ -2990,7 +3003,7 @@ const OB=[
   p:'Turné → hírnév és pénz → nagyobb helyszín és nagyobb név. Az Iroda fülön mindig ott a következő célod. Mostantól minden nyitva áll.',
   btn:'Kezdhetem!',allow:ALLTABS},
 ];
-let obLast=-1, obIv=null, obShown=false, obNeedScroll=false;
+let obLast=-1, obIv=null, obShown=false, obNeedScroll=false, obNoFx=false;
 function obActive(){return !S.obDone&&S.ob!=null&&S.ob<OB.length;}
 function obStep(){return obActive()?OB[S.ob]:null;}
 function obAllowedTabs(){const st=obStep();if(!st)return null;return st.allow||[st.tab];}
@@ -3028,6 +3041,7 @@ function obInline(st){
 }
 function obInlineClear(){const e=document.querySelector('.obinline');if(e)e.remove();}
 function obBarClear(){const b=$('#obbar');b.className='';b.innerHTML='';b.dataset.sig='';
+ document.body.classList.remove('obwide');
  $('#app').style.setProperty('--obbar','0px');resultEl.style.paddingBottom='';}
 function obHide(){obShown=false;const e=$('#ob');e.className='';e.innerHTML='';e.dataset.sig='';obBarClear();}
 /* MODÁLIS: amíg a bemutató látszik, a háttérben semmi nem kattintható —
@@ -3115,7 +3129,7 @@ function obPaint(){
      '<div class="prog"><span class="track"><i style="width:'+pct+'%"></i></span>'+
        '<span class="num">'+(S.ob+1)+' / '+OB.length+'</span></div>'+
      '<div class="k">'+st.k+'</div>'+
-     '<h4>'+st.t+'</h4>'+(st.p?'<p>'+st.p+'</p>':'')+
+     '<h4>'+st.t+'</h4>'+((st.p&&!st.slim)?'<p>'+st.p+'</p>':'')+
      (st.id==='welcome'?'<input class="obinput" id="obName" type="text" maxlength="24" autocomplete="off" '+
         'autocapitalize="words" enterkeyhint="done" placeholder="Az ügynökséged neve" value="'+esc(S.agency||'')+'">':'')+
      ((tapTxt&&(!st.ready||!st.ready()))?'<div class="tap"><span class="d"></span>'+tapTxt+'</div>':'')+
@@ -3125,8 +3139,24 @@ function obPaint(){
    obBind();
   }
  }
- bar.className='on';
+ bar.className='on'+(st.slim?' slim':'');
+ document.body.classList.toggle('obwide',st.id==='city');
  const barH=bar.offsetHeight||0;
+ /* A varos-lepesen a terkep/lista doboz a TISZTA ZONA maradek helyet kapja: a magassag
+    a zonabol szamol (nem a gorgetes allasabol), ezert gorgetes kozben sem ugral. */
+ if(st.id==='city'){
+  const rb=view.querySelector('.rtbody');
+  if(rb){
+   const zone=Math.max(120,app.height-((hud.offsetHeight||0)+14)
+     -((navEl.offsetHeight||0)+barH+(sb?sb.offsetHeight:0)+14));
+   const box=view.querySelector('#routebox');
+   const other=box?Math.max(0,box.offsetHeight-rb.offsetHeight):0;
+   const h=Math.max(150,Math.round(zone-other-6));
+   view.querySelectorAll('.rtbody #lmap,.rtbody .rtscroll').forEach(function(e){
+    if(e.style.height!==h+'px')e.style.height=h+'px';});
+   if(G.map&&S.rtView==='map'){try{G.map.invalidateSize();}catch(e){}}
+  }
+ }
  $('#app').style.setProperty('--obbar',barH+'px');
  /* a görgethető tartalom hagyjon helyet a sávnak — így SEMMI nem kerül alá */
  if(!onRes)view.style.paddingBottom=((navEl.offsetHeight||0)+barH+(sb?sb.offsetHeight:0)+22)+'px';
@@ -3168,8 +3198,12 @@ function obPaint(){
    const inFixed=navEl.contains(tgt)||hud.contains(tgt)||(sb&&sb.contains(tgt));
    let t=r.top-app.top-pad, bm=r.bottom-app.top+pad;
    if(!inFixed){t=clamp(t,safeTop,safeBot2-24); bm=clamp(bm,safeTop+24,safeBot2);}
-   if(ringEl){ringEl.style.cssText='top:'+t+'px;left:'+(r.left-app.left-pad)+'px;'+
-     'width:'+(r.width+pad*2)+'px;height:'+Math.max(24,bm-t)+'px';}
+   if(ringEl){
+    /* gorgetes kozben nincs atmenet — a keret egyutt mozog a tartalommal */
+    ringEl.classList.toggle('nofx',obNoFx);
+    ringEl.style.cssText='top:'+t+'px;left:'+(r.left-app.left-pad)+'px;'+
+     'width:'+(r.width+pad*2)+'px;height:'+Math.max(24,bm-t)+'px';
+   }
   }
  }
  el.className='on'+(st.onModal?' overmodal':'');obShown=true;
@@ -3833,7 +3867,13 @@ function staffCard(st){
 /* ============================ RENDER ============================ */
 /* minden koppintás után újraértékeljük a lépést — ez a fő továbblépési jel */
 document.addEventListener('click',function(){if(obActive())setTimeout(obPaint,70);},true);
-view.addEventListener('scroll',function(){if(obActive())obPaint();},{passive:true});
+let obRaf=0,obFxT=0;
+view.addEventListener('scroll',function(){
+ if(!obActive())return;
+ obNoFx=true;clearTimeout(obFxT);obFxT=setTimeout(function(){obNoFx=false;},350);
+ if(obRaf)return;
+ obRaf=requestAnimationFrame(function(){obRaf=0;if(obActive())obPaint();});
+},{passive:true});
 window.addEventListener('resize',function(){if(obActive())obPaint();});
 function render(){applyTheme();checkUnlocks();chalLive();checkArcs();checkMiles();renderHUD();renderNav();
  stickyHost.innerHTML='';
