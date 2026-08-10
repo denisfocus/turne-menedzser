@@ -1,4 +1,4 @@
-# Turné Menedzser
+# Tour Empire
 
 Magyar nyelvű turné-menedzser szimulátor mobiljáték. Előadókat igazolsz le, világkörüli
 turnékat tervezel (setlist, útvonal, helyszín, jegyár, promóció), a turné pedig valós

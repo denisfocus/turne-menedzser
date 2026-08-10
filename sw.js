@@ -1,4 +1,4 @@
-/* Turné Menedzser — service worker
+/* Tour Empire — service worker
    Cél: az APP-HÉJ offline is elinduljon (index.html, icons.js, manifest, ikonok).
    A külső források (Leaflet, betűk, térkép-csempék, város- és előadófotók) NEM
    kerülnek gyorsítótárba: netkapcsolat nélkül a játék elindul, csak a térkép és a
@@ -7,7 +7,7 @@
    FRISSÍTÉS: a héj HÁLÓZAT-ELSŐ, ezért új verzió azonnal érkezik, ha van net;
    offline a cache-elt példány jön. A CACHE nevét minden kiadásnál emeljük, és az
    aktiválás töröl minden korábbit — így nem ragadhat be régi build. */
-const CACHE = 'tm-shell-v5';
+const CACHE = 'tm-shell-v6';
 const SHELL = [
   './',
   './index.html',
