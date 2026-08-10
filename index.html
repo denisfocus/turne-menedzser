@@ -799,6 +799,57 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 .giftcard .gs{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.35}
 .giftcard .go{color:var(--gold);flex:0 0 auto}
 .giftcard:active{transform:scale(.99)}
+/* ---------- KEZDŐKÉPERNYŐ ---------- */
+#start{position:absolute;inset:0;z-index:95;display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:radial-gradient(620px 420px at 50% -8%,rgba(198,255,58,.13),transparent 62%),
+             radial-gradient(520px 360px at 100% 12%,rgba(255,61,132,.09),transparent 60%),var(--bg)}
+#start.on{display:block}
+#start::-webkit-scrollbar{display:none}
+.stwrap{padding:calc(26px + env(safe-area-inset-top)) 18px calc(26px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto}
+.stlogo{display:flex;justify-content:center;margin-bottom:14px}
+.eqbig{display:flex;align-items:flex-end;gap:6px;height:66px}
+.eqbig i{width:11px;border-radius:6px;background:linear-gradient(180deg,var(--neon),var(--neon-dd));
+  box-shadow:0 0 18px rgba(198,255,58,.35);animation:eqb 1.5s ease-in-out infinite}
+.eqbig i:nth-child(1){height:30%;animation-delay:0s}
+.eqbig i:nth-child(2){height:56%;animation-delay:.18s}
+.eqbig i:nth-child(3){height:100%;animation-delay:.36s}
+.eqbig i:nth-child(4){height:48%;animation-delay:.54s}
+.eqbig i:nth-child(5){height:34%;animation-delay:.72s}
+@keyframes eqb{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.55)}}
+@media (prefers-reduced-motion:reduce){.eqbig i{animation:none}}
+.sttitle{font-family:var(--disp);font-weight:700;font-size:31px;line-height:1.02;text-align:center;letter-spacing:-.01em}
+.sttag{text-align:center;color:var(--muted);font-size:13.5px;line-height:1.5;margin:9px 6px 20px}
+.stsec{margin-bottom:17px}
+.stlab{font-size:9.5px;font-weight:900;letter-spacing:.19em;text-transform:uppercase;color:var(--neon);margin-bottom:9px}
+.stlangs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.stlang{min-height:46px;border-radius:13px;border:1px solid var(--line2);background:var(--panel);
+  color:var(--muted);display:flex;align-items:center;gap:9px;padding:0 11px;font-weight:700;font-size:13px;min-width:0}
+.stlang span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stlang.on{border-color:var(--neon);color:var(--neon);background:rgba(198,255,58,.1)}
+.lflag{display:flex;width:20px;height:14px;border-radius:3px;overflow:hidden;flex:0 0 auto;
+  border:1px solid rgba(255,255,255,.18)}
+.lflag i{flex:1}
+.stinput{width:100%;min-height:50px;border-radius:14px;border:1px solid var(--line2);background:var(--panel);
+  color:var(--text);font-family:var(--body);font-weight:700;font-size:15px;padding:0 14px;outline:none}
+.stinput:focus{border-color:var(--neon)}
+/* EGYETLEN gorgetheto felulet: a doboznak NINCS sajat gorgetese, az egesz
+   kezdokepernyo gorog — igy semmi nem "esik szet" gorgetes kozben. */
+.sthq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.sthqb{min-height:50px;border-radius:12px;border:1px solid var(--line2);background:var(--panel);
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:6px 10px;gap:2px;min-width:0}
+.sthqb b{font-family:var(--disp);font-size:13.5px;color:var(--muted);line-height:1;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sthqb span{font-size:10px;color:var(--faint);font-weight:700}
+.sthqb.on{border-color:var(--neon);background:rgba(198,255,58,.1)}
+.sthqb.on b{color:var(--neon)}
+.sthint{font-size:11.5px;color:var(--muted);margin-top:9px;display:flex;gap:7px;align-items:flex-start;line-height:1.45}
+.sthint .i,.sthint svg{color:var(--neon);flex:0 0 auto}
+.stskip{display:block;width:100%;margin-top:11px;padding:11px 4px;font-size:12.5px;font-weight:700;color:var(--faint)}
+.hqbadge{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:900;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--neon);border:1px solid rgba(198,255,58,.35);border-radius:7px;
+  padding:2px 7px;margin-left:7px;vertical-align:middle}
+.langrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px}
+
 /* ---------- ONBOARDING (vezetett első kör) ----------
    A réteg NEM fogja el a koppintást: a kiemelt elem és a görgetés végig természetes marad.
    A „kapu" a lenti sávon van — a bemutató alatt csak az aktuális lépés füle aktív. */
@@ -961,6 +1012,7 @@ body.obwide .poolhint{margin-bottom:6px}
   <div id="adv"></div>
   <div id="ob"></div>
   <div id="obbar"></div>
+  <div id="start"></div>
 </div>
 
 <svg width="0" height="0" style="position:absolute"><defs id="icondefs"></defs></svg>
@@ -1215,7 +1267,8 @@ function baseFans(reg){return clamp(Math.round((reg-FAN_MIN)/FAN_SPAN*100),5,70)
 function artState(id){
  if(!S.art)S.art={};
  if(!S.art[id]){const a=AM[id],f={};let s=0,n=0;
-  Object.keys(REGIONS).forEach(r=>{f[r]=baseFans(a.reg[r]||1);s+=f[r];n++;});
+  const home=(CM[S.hq]||{}).r;
+  Object.keys(REGIONS).forEach(r=>{f[r]=clamp(baseFans(a.reg[r]||1)+(r===home?HQ_FAN_BONUS:0),0,100);s+=f[r];n++;});
   S.art[id]={fans:f,streams:Math.round(Math.pow(a.fame,2.4)*60*(0.55+(s/n)/100*0.9)),hype:0,fameAdd:0,rels:0,played:{}};}
  if(!S.art[id].played)S.art[id].played={};
  return S.art[id];
@@ -1362,6 +1415,229 @@ const EVENTS=[
       {l:'Lemondjuk ezt az állomást',s:'Elmarad a koncert, marad a bérleti díj',c:'risk',e:{skip:1,rep:-6}}]},
 ];
 
+/* ============================ NYELVEK (i18n) ============================
+   Kulcs → nyelvenkénti szöveg. Új nyelv hozzáadása: egy új kód a LANGS-be és egy
+   új paraméter a D() hívásokban — semmi mást nem kell átírni.
+   A t(kulcs,{param}) a {param} helyőrzőket cseréli. Ha egy kulcs hiányzik az adott
+   nyelven, angolra, majd magyarra esik vissza — így sosem tűnik el felirat. */
+const LANGS=[
+ {id:'hu',n:'Magyar',    c:['#CE2939','#FFFFFF','#477050']},
+ {id:'en',n:'English',   c:['#012169','#FFFFFF','#C8102E']},
+ {id:'de',n:'Deutsch',   c:['#000000','#DD0000','#FFCE00']},
+ {id:'es',n:'Español',   c:['#AA151B','#F1BF00','#AA151B']},
+ {id:'fr',n:'Français',  c:['#002395','#FFFFFF','#ED2939']},
+ {id:'it',n:'Italiano',  c:['#008C45','#F4F5F0','#CD212A']},
+ {id:'pt',n:'Português', c:['#046A38','#FFE900','#DA291C']},
+ {id:'pl',n:'Polski',    c:['#FFFFFF','#FFFFFF','#DC143C']},
+ {id:'nl',n:'Nederlands',c:['#AE1C28','#FFFFFF','#21468B']},
+ {id:'tr',n:'Türkçe',    c:['#E30A17','#FFFFFF','#E30A17']}
+];
+const LANGIDS=LANGS.map(function(x){return x.id;});
+const DICT={};
+function TD(k,hu,en,de,es,fr,it,pt,pl,nl,tr){
+ DICT[k]={hu:hu,en:en,de:de,es:es,fr:fr,it:it,pt:pt,pl:pl,nl:nl,tr:tr};
+}
+function browserLang(){
+ const list=(navigator.languages&&navigator.languages.length)?navigator.languages:[navigator.language||'en'];
+ for(let i=0;i<list.length;i++){
+  const two=String(list[i]||'').slice(0,2).toLowerCase();
+  if(LANGIDS.indexOf(two)>=0)return two;
+ }
+ return 'en';
+}
+function lang(){return (typeof S!=='undefined'&&S&&S.lang&&LANGIDS.indexOf(S.lang)>=0)?S.lang:browserLang();}
+function langName(id){const l=LANGS.find(function(x){return x.id===id;});return l?l.n:id;}
+function hasT(k){return !!DICT[k];}
+function t(k,p){
+ const row=DICT[k];
+ let s=row?(row[lang()]||row.en||row.hu||k):k;
+ if(p)Object.keys(p).forEach(function(x){s=s.split('{'+x+'}').join(p[x]);});
+ return s;
+}
+/* nyelvi zászló-csík: három sáv a nemzeti színekből (nincs emoji — a stílus tiltja) */
+function langFlag(l){
+ return '<span class="lflag">'+l.c.map(function(c){return '<i style="background:'+c+'"></i>';}).join('')+'</span>';
+}
+
+TD('reg.EU','Európa','Europe','Europa','Europa','Europe','Europa','Europa','Europa','Europa','Avrupa');
+TD('reg.NA','Észak-Amerika','North America','Nordamerika','Norteamérica','Amérique du Nord','Nord America','América do Norte','Ameryka Płn.','Noord-Amerika','Kuzey Amerika');
+TD('reg.SA','Dél-Amerika','South America','Südamerika','Sudamérica','Amérique du Sud','Sud America','América do Sul','Ameryka Płd.','Zuid-Amerika','Güney Amerika');
+TD('reg.AS','Ázsia','Asia','Asien','Asia','Asie','Asia','Ásia','Azja','Azië','Asya');
+TD('reg.OC','Óceánia','Oceania','Ozeanien','Oceanía','Océanie','Oceania','Oceania','Oceania','Oceanië','Okyanusya');
+TD('reg.AF','Afrika','Africa','Afrika','África','Afrique','Africa','África','Afryka','Afrika','Afrika');
+/* régió-név a nyelvi táblából (a REGIONS kulcsai maradnak a logikához) */
+function rgN(r){return hasT('reg.'+r)?t('reg.'+r):(REGIONS[r]||r);}
+
+/* ---- navigáció ---- */
+TD('nav.iroda','Iroda','Office','Büro','Oficina','Bureau','Ufficio','Escritório','Biuro','Kantoor','Ofis');
+TD('nav.terkep','Térkép','Map','Karte','Mapa','Carte','Mappa','Mapa','Mapa','Kaart','Harita');
+TD('nav.eloadok','Előadók','Artists','Künstler','Artistas','Artistes','Artisti','Artistas','Artyści','Artiesten','Sanatçılar');
+TD('nav.studio','Stúdió','Studio','Studio','Estudio','Studio','Studio','Estúdio','Studio','Studio','Stüdyo');
+TD('nav.fejlesztes','Fejlesztés','Upgrades','Ausbau','Mejoras','Améliorations','Potenziamenti','Melhorias','Rozwój','Upgrades','Geliştirme');
+
+/* ---- HUD ---- */
+TD('hud.money','A pénzed','Your money','Dein Geld','Tu dinero','Ton argent','I tuoi soldi','O teu dinheiro','Twoje pieniądze','Jouw geld','Paran');
+TD('hud.rep','Hírnév','Fame','Ruhm','Fama','Renommée','Fama','Fama','Sława','Roem','Ün');
+TD('hud.week','Hét','Week','Woche','Semana','Semaine','Settimana','Semana','Tydzień','Week','Hafta');
+TD('hud.office','Iroda','Office','Büro','Oficina','Bureau','Ufficio','Escritório','Biuro','Kantoor','Ofis');
+TD('hud.toNext','{n} hírnév a Lv.{l}-ig','{n} fame to Lv.{l}','{n} Ruhm bis Lv.{l}','{n} de fama hasta Nv.{l}','{n} de renommée pour Niv.{l}','{n} fama al Liv.{l}','{n} de fama até Nv.{l}','{n} sławy do poz.{l}','{n} roem tot Lv.{l}','Lv.{l} için {n} ün');
+TD('hud.max','max szint','max level','Maximalstufe','nivel máximo','niveau max','livello max','nível máximo','maks. poziom','max niveau','maks. seviye');
+TD('hud.credTitle','Arany lemez — koppints a boltért','Gold record — tap for the shop','Goldene Schallplatte — für den Shop tippen','Disco de oro — toca para la tienda','Disque d\'or — touche pour la boutique','Disco d\'oro — tocca per il negozio','Disco de ouro — toca para a loja','Złota płyta — dotknij, by otworzyć sklep','Gouden plaat — tik voor de shop','Altın plak — mağaza için dokun');
+TD('hud.tipMoney','Az ügynökséged pénze. Ebből fizeted a fejlesztéseket, a stábot és a leigazolásokat.','Your agency\'s cash. It pays for upgrades, staff and signings.','Das Geld deiner Agentur. Damit zahlst du Ausbau, Crew und Verpflichtungen.','El dinero de tu agencia. Paga mejoras, equipo y fichajes.','L\'argent de ton agence. Il paie les améliorations, l\'équipe et les signatures.','I soldi della tua agenzia. Pagano potenziamenti, staff e ingaggi.','O dinheiro da tua agência. Paga melhorias, equipa e contratações.','Pieniądze twojej agencji. Płacisz nimi za rozwój, ekipę i kontrakty.','Het geld van je bureau. Hiermee betaal je upgrades, crew en contracten.','Ajansının parası. Geliştirmeleri, ekibi ve transferleri bununla ödersin.');
+TD('hud.tipRep','Az iroda hírneve. Ez nyitja a nagyobb helyszíneket és a nagyobb neveket.','Your agency\'s fame. It unlocks bigger venues and bigger names.','Der Ruf deiner Agentur. Er öffnet größere Venues und größere Namen.','La fama de tu agencia. Desbloquea recintos y nombres más grandes.','La renommée de ton agence. Elle ouvre de plus grandes salles et de plus grands noms.','La fama della tua agenzia. Sblocca locali e nomi più grandi.','A fama da tua agência. Abre salas e nomes maiores.','Sława twojej agencji. Otwiera większe sale i większe nazwiska.','De roem van je bureau. Het opent grotere zalen en grotere namen.','Ajansının ünü. Daha büyük mekanları ve isimleri açar.');
+TD('hud.tipWeek','Hányadik heténél tart az ügynökség. Turnék és kiadások alatt telik.','Which week your agency is in. It passes during tours and releases.','In welcher Woche deine Agentur steckt. Sie läuft während Touren und Releases.','En qué semana está tu agencia. Avanza durante giras y lanzamientos.','La semaine où en est ton agence. Elle avance pendant les tournées et les sorties.','A che settimana è la tua agenzia. Avanza durante tour e uscite.','Em que semana está a tua agência. Avança durante digressões e lançamentos.','W którym tygodniu jest twoja agencja. Płynie podczas tras i wydawnictw.','In welke week je bureau zit. Hij loopt door tijdens tours en releases.','Ajansının kaçıncı haftasında olduğu. Turneler ve çıkışlar sırasında ilerler.');
+
+/* ---- fejlécek ---- */
+TD('head.roster','Roster','Roster','Roster','Plantel','Roster','Roster','Elenco','Skład','Roster','Kadro');
+TD('head.artists','Előadók','Artists','Künstler','Artistas','Artistes','Artisti','Artistas','Artyści','Artiesten','Sanatçılar');
+TD('head.artistsSub','A leigazolt előadóiddal tervezhetsz turnét. Nagyobb nevek magasabb hírnévnél szerződnek.','You can plan tours with the artists you sign. Bigger names sign at higher fame.','Mit deinen verpflichteten Künstlern planst du Touren. Größere Namen unterschreiben bei höherem Ruhm.','Con los artistas fichados puedes planear giras. Los nombres grandes firman con más fama.','Tu planifies des tournées avec tes artistes signés. Les grands noms signent à plus haute renommée.','Con gli artisti ingaggiati puoi pianificare tour. I nomi grossi firmano con più fama.','Com os artistas contratados podes planear digressões. Os grandes nomes assinam com mais fama.','Z podpisanymi artystami planujesz trasy. Wielkie nazwiska podpisują przy większej sławie.','Met je gecontracteerde artiesten plan je tours. Grotere namen tekenen bij meer roem.','Sözleşme yaptığın sanatçılarla turne planlarsın. Büyük isimler daha yüksek ünde imza atar.');
+TD('head.tour','Turné','Tour','Tour','Gira','Tournée','Tour','Digressão','Trasa','Tour','Turne');
+TD('head.map','Térkép','Map','Karte','Mapa','Carte','Mappa','Mapa','Mapa','Kaart','Harita');
+TD('head.step1','Turné · 1. lépés','Tour · step 1','Tour · Schritt 1','Gira · paso 1','Tournée · étape 1','Tour · passo 1','Digressão · passo 1','Trasa · krok 1','Tour · stap 1','Turne · 1. adım');
+TD('head.pickWho','Kit viszel turnéra?','Who goes on tour?','Wer geht auf Tour?','¿Quién sale de gira?','Qui part en tournée ?','Chi va in tour?','Quem vai em digressão?','Kto jedzie w trasę?','Wie gaat er op tour?','Turneye kim çıkıyor?');
+TD('head.pickWhoSub','Válaszd ki, melyik előadódnak szervezel világkörüli turnét.','Choose which artist you\'re taking around the world.','Wähle, für welchen Künstler du eine Welttournee planst.','Elige a qué artista le organizas una gira mundial.','Choisis l\'artiste pour qui tu organises une tournée mondiale.','Scegli per quale artista organizzi un tour mondiale.','Escolhe para que artista organizas uma digressão mundial.','Wybierz, komu organizujesz światową trasę.','Kies voor welke artiest je een wereldtour organiseert.','Hangi sanatçına dünya turnesi düzenleyeceğini seç.');
+TD('head.music','Zene','Music','Musik','Música','Musique','Musica','Música','Muzyka','Muziek','Müzik');
+TD('head.studio','Stúdió','Studio','Studio','Estudio','Studio','Studio','Estúdio','Studio','Studio','Stüdyo');
+TD('head.office','Iroda','Office','Büro','Oficina','Bureau','Ufficio','Escritório','Biuro','Kantoor','Ofis');
+TD('head.upgrade','Fejlesztés','Upgrades','Ausbau','Mejoras','Améliorations','Potenziamenti','Melhorias','Rozwój','Upgrades','Geliştirme');
+TD('head.upgradeSub','Fektesd vissza a bevételt: a marketing több nézőt hoz, az erős stáb csökkenti a költséget.','Reinvest your income: marketing brings more people, a strong crew cuts costs.','Investiere deine Einnahmen: Marketing bringt mehr Publikum, eine starke Crew senkt die Kosten.','Reinvierte los ingresos: el marketing trae más público y un buen equipo baja costes.','Réinvestis tes revenus : le marketing amène du public, une bonne équipe réduit les coûts.','Reinvesti gli incassi: il marketing porta più pubblico, uno staff forte taglia i costi.','Reinveste as receitas: o marketing traz mais público e uma boa equipa corta custos.','Reinwestuj przychody: marketing przyciąga widzów, mocna ekipa obniża koszty.','Herinvesteer je inkomsten: marketing brengt meer publiek, een sterke crew verlaagt kosten.','Geliri yeniden yatır: pazarlama daha çok seyirci getirir, güçlü ekip masrafı düşürür.');
+TD('head.career','Út a csúcsra','Road to the top','Weg nach oben','Camino a la cima','La route vers le sommet','La strada verso la vetta','Caminho para o topo','Droga na szczyt','Weg naar de top','Zirveye giden yol');
+TD('head.careerEyebrow','Karrier','Career','Karriere','Carrera','Carrière','Carriera','Carreira','Kariera','Carrière','Kariyer');
+TD('head.planTour','Turné tervezése','Plan the tour','Tour planen','Planear la gira','Planifier la tournée','Pianifica il tour','Planear a digressão','Planowanie trasy','Tour plannen','Turne planı');
+TD('head.worldTour','Világturné','World tour','Welttournee','Gira mundial','Tournée mondiale','Tour mondiale','Digressão mundial','Światowa trasa','Wereldtour','Dünya turnesi');
+TD('head.tourRunning','turné folyamatban','tour in progress','Tour läuft','gira en curso','tournée en cours','tour in corso','digressão a decorrer','trasa w toku','tour bezig','turne devam ediyor');
+
+/* ---- kezdőképernyő ---- */
+TD('start.tagline','Igazolj le előadókat, tervezz világkörüli turnékat, és építs birodalmat a semmiből.','Sign artists, plan world tours, and build an empire from nothing.','Verpflichte Künstler, plane Welttourneen und baue aus dem Nichts ein Imperium.','Ficha artistas, planea giras mundiales y construye un imperio desde cero.','Signe des artistes, planifie des tournées mondiales et bâtis un empire à partir de rien.','Ingaggia artisti, pianifica tour mondiali e costruisci un impero dal nulla.','Contrata artistas, planeia digressões mundiais e constrói um império do zero.','Podpisuj artystów, planuj światowe trasy i zbuduj imperium od zera.','Contracteer artiesten, plan wereldtours en bouw een imperium uit het niets.','Sanatçılarla anlaş, dünya turneleri planla ve sıfırdan bir imparatorluk kur.');
+TD('start.langLabel','Nyelv','Language','Sprache','Idioma','Langue','Lingua','Idioma','Język','Taal','Dil');
+TD('start.nameLabel','Az ügynökséged neve','Your agency\'s name','Name deiner Agentur','Nombre de tu agencia','Le nom de ton agence','Il nome della tua agenzia','O nome da tua agência','Nazwa twojej agencji','De naam van je bureau','Ajansının adı');
+TD('start.namePh','Pl. Neon Live','E.g. Neon Live','z. B. Neon Live','Ej. Neon Live','Ex. Neon Live','Es. Neon Live','Ex. Neon Live','Np. Neon Live','Bijv. Neon Live','Örn. Neon Live');
+TD('start.hqLabel','A székhelyed','Your headquarters','Dein Hauptsitz','Tu sede','Ton siège','La tua sede','A tua sede','Twoja siedziba','Je hoofdkantoor','Merkezin');
+TD('start.hqHint','Az itthoni régiódban nagyobb kezdő rajongótáborral indulsz.','You start with a bigger fan base in your home region.','In deiner Heimatregion startest du mit mehr Fans.','Empiezas con más seguidores en tu región de origen.','Tu démarres avec plus de fans dans ta région d\'origine.','Parti con più fan nella tua regione d\'origine.','Começas com mais fãs na tua região.','Startujesz z większą bazą fanów w swoim regionie.','Je start met meer fans in je eigen regio.','Kendi bölgende daha büyük bir hayran kitlesiyle başlarsın.');
+TD('start.begin','Kezdés','Start','Los geht\'s','Empezar','Commencer','Inizia','Começar','Zaczynamy','Beginnen','Başla');
+TD('start.quick','Gyors indítás alapbeállításokkal','Quick start with defaults','Schnellstart mit Standardwerten','Inicio rápido con valores por defecto','Démarrage rapide par défaut','Avvio rapido con i valori predefiniti','Início rápido com predefinições','Szybki start z domyślnymi ustawieniami','Snelstart met standaardinstellingen','Varsayılanlarla hızlı başlangıç');
+TD('start.hqSet','Székhely: {city}','Headquarters: {city}','Hauptsitz: {city}','Sede: {city}','Siège : {city}','Sede: {city}','Sede: {city}','Siedziba: {city}','Hoofdkantoor: {city}','Merkez: {city}');
+TD('start.chooseLang','Válassz nyelvet','Choose your language','Sprache wählen','Elige tu idioma','Choisis ta langue','Scegli la lingua','Escolhe o idioma','Wybierz język','Kies je taal','Dilini seç');
+TD('start.hqBadge','{city} HQ','{city} HQ','{city} HQ','{city} HQ','{city} HQ','{city} HQ','{city} HQ','{city} HQ','{city} HQ','{city} HQ');
+
+/* ---- általános gombok / feliratok ---- */
+TD('ui.next','Tovább','Next','Weiter','Siguiente','Suivant','Avanti','Seguinte','Dalej','Volgende','Devam');
+TD('ui.gotIt','Értem','Got it','Verstanden','Entendido','Compris','Ho capito','Percebi','Rozumiem','Begrepen','Anladım');
+TD('ui.skip','Kihagyom','Skip','Überspringen','Saltar','Passer','Salta','Saltar','Pomiń','Overslaan','Atla');
+TD('ui.language','Nyelv','Language','Sprache','Idioma','Langue','Lingua','Idioma','Język','Taal','Dil');
+TD('ui.langChanged','Nyelv: {name}','Language: {name}','Sprache: {name}','Idioma: {name}','Langue : {name}','Lingua: {name}','Idioma: {name}','Język: {name}','Taal: {name}','Dil: {name}');
+
+/* ---- bemutató (24 lépés) ---- */
+TD('ob.welcome.k','Üdv','Welcome','Willkommen','Bienvenido','Bienvenue','Benvenuto','Bem-vindo','Witaj','Welkom','Hoş geldin');
+TD('ob.welcome.t','Te vagy az ügynökség','You are the agency','Du bist die Agentur','Tú eres la agencia','Tu es l\'agence','Sei tu l\'agenzia','Tu és a agência','To ty jesteś agencją','Jij bent het bureau','Ajans sensin');
+TD('ob.welcome.p','Előadókat igazolsz le, felépíted őket, és világ körüli turnékra viszed a csapatot. A turné nyereségéből jutalékot viszel.','You sign artists, build them up, and take the crew on tours around the world. You take a commission from each tour\'s profit.','Du verpflichtest Künstler, baust sie auf und schickst die Crew auf Welttournee. Vom Gewinn jeder Tour bekommst du eine Provision.','Fichas artistas, los haces crecer y llevas al equipo de gira por el mundo. Te llevas una comisión del beneficio de cada gira.','Tu signes des artistes, tu les fais grandir et tu emmènes l\'équipe en tournée mondiale. Tu prends une commission sur le bénéfice.','Ingaggi artisti, li fai crescere e porti la squadra in tour per il mondo. Prendi una commissione sull\'utile di ogni tour.','Contratas artistas, fá-los crescer e levas a equipa em digressão pelo mundo. Ficas com uma comissão do lucro.','Podpisujesz artystów, rozwijasz ich i wysyłasz ekipę w trasy po świecie. Bierzesz prowizję od zysku z trasy.','Je contracteert artiesten, laat ze groeien en neemt de crew mee op wereldtour. Je krijgt commissie over de winst.','Sanatçılarla anlaşır, onları büyütür ve ekibi dünya turnesine çıkarırsın. Her turnenin kârından komisyon alırsın.');
+TD('ob.welcome.btn','Kezdjük','Let\'s go','Los geht\'s','Vamos','C\'est parti','Iniziamo','Vamos','Zaczynajmy','Aan de slag','Başlayalım');
+
+TD('ob.hud.k','Műszerfal','Dashboard','Übersicht','Panel','Tableau de bord','Cruscotto','Painel','Pulpit','Dashboard','Gösterge');
+TD('ob.hud.t','Pénz, hírnév, hét','Money, fame, week','Geld, Ruhm, Woche','Dinero, fama, semana','Argent, renommée, semaine','Soldi, fama, settimana','Dinheiro, fama, semana','Pieniądze, sława, tydzień','Geld, roem, week','Para, ün, hafta');
+TD('ob.hud.p','A pénzedből fejlesztesz és igazolsz. A hírnév nyitja a nagyobb helyszíneket és a nagyobb neveket. A hét a turnék és kiadások alatt telik.','Money pays for upgrades and signings. Fame unlocks bigger venues and bigger names. The week passes during tours and releases.','Mit Geld zahlst du Ausbau und Verpflichtungen. Ruhm öffnet größere Venues und Namen. Die Woche läuft während Touren und Releases.','Con dinero pagas mejoras y fichajes. La fama abre recintos y nombres mayores. La semana avanza en giras y lanzamientos.','L\'argent paie améliorations et signatures. La renommée ouvre de plus grandes salles et de plus grands noms. La semaine avance pendant les tournées et les sorties.','I soldi pagano potenziamenti e ingaggi. La fama sblocca locali e nomi più grandi. La settimana avanza durante tour e uscite.','O dinheiro paga melhorias e contratações. A fama abre salas e nomes maiores. A semana avança nas digressões e lançamentos.','Za pieniądze rozwijasz agencję i podpisujesz artystów. Sława otwiera większe sale i nazwiska. Tydzień płynie w trasach i wydawnictwach.','Met geld betaal je upgrades en contracten. Roem opent grotere zalen en namen. De week loopt door tijdens tours en releases.','Parayla geliştirme ve transfer yaparsın. Ün, daha büyük mekanları ve isimleri açar. Hafta, turne ve çıkışlarda ilerler.');
+
+TD('ob.nav.k','Fülek','Tabs','Reiter','Pestañas','Onglets','Schede','Separadores','Zakładki','Tabs','Sekmeler');
+TD('ob.nav.t','Öt hely, ahol dolgozol','Five places you work','Fünf Orte, an denen du arbeitest','Cinco lugares donde trabajas','Cinq endroits où tu travailles','Cinque posti in cui lavori','Cinco sítios onde trabalhas','Pięć miejsc, w których działasz','Vijf plekken waar je werkt','Çalıştığın beş yer');
+TD('ob.nav.p','Iroda: áttekintés és célok. Térkép: turnétervezés. Előadók: leigazolás. Stúdió: kiadások. Fejlesztés: beruházások. Mindegyiket végigvesszük.','Office: overview and goals. Map: tour planning. Artists: signings. Studio: releases. Upgrades: investments. We\'ll go through all of them.','Büro: Überblick und Ziele. Karte: Tourplanung. Künstler: Verpflichtungen. Studio: Releases. Ausbau: Investitionen. Wir gehen alles durch.','Oficina: resumen y metas. Mapa: planificar giras. Artistas: fichajes. Estudio: lanzamientos. Mejoras: inversiones. Los veremos todos.','Bureau : vue d\'ensemble et objectifs. Carte : planification. Artistes : signatures. Studio : sorties. Améliorations : investissements. On voit tout.','Ufficio: quadro e obiettivi. Mappa: pianificazione. Artisti: ingaggi. Studio: uscite. Potenziamenti: investimenti. Li vedremo tutti.','Escritório: visão geral e metas. Mapa: planeamento. Artistas: contratações. Estúdio: lançamentos. Melhorias: investimentos. Vamos ver tudo.','Biuro: przegląd i cele. Mapa: planowanie tras. Artyści: kontrakty. Studio: wydawnictwa. Rozwój: inwestycje. Przejdziemy przez wszystko.','Kantoor: overzicht en doelen. Kaart: tours plannen. Artiesten: contracten. Studio: releases. Upgrades: investeringen. We nemen alles door.','Ofis: genel bakış ve hedefler. Harita: turne planı. Sanatçılar: transfer. Stüdyo: çıkışlar. Geliştirme: yatırım. Hepsini göreceğiz.');
+
+TD('ob.goEl.k','Első lépés','First step','Erster Schritt','Primer paso','Première étape','Primo passo','Primeiro passo','Pierwszy krok','Eerste stap','İlk adım');
+TD('ob.goEl.t','Kell egy előadó','You need an artist','Du brauchst einen Künstler','Necesitas un artista','Il te faut un artiste','Ti serve un artista','Precisas de um artista','Potrzebujesz artysty','Je hebt een artiest nodig','Bir sanatçı lazım');
+TD('ob.goEl.p','Nyisd meg az Előadók fület.','Open the Artists tab.','Öffne den Reiter Künstler.','Abre la pestaña Artistas.','Ouvre l\'onglet Artistes.','Apri la scheda Artisti.','Abre o separador Artistas.','Otwórz zakładkę Artyści.','Open het tabblad Artiesten.','Sanatçılar sekmesini aç.');
+TD('ob.goEl.tap','Koppints az Előadók fülre','Tap the Artists tab','Tippe auf den Reiter Künstler','Toca la pestaña Artistas','Touche l\'onglet Artistes','Tocca la scheda Artisti','Toca no separador Artistas','Dotknij zakładki Artyści','Tik op het tabblad Artiesten','Sanatçılar sekmesine dokun');
+
+TD('ob.sign.k','Leigazolás','Signing','Verpflichtung','Fichaje','Signature','Ingaggio','Contratação','Kontrakt','Contract','Transfer');
+TD('ob.sign.t','Válassz egyet a listából','Pick one from the list','Wähle einen aus der Liste','Elige uno de la lista','Choisis-en un dans la liste','Scegline uno dalla lista','Escolhe um da lista','Wybierz kogoś z listy','Kies er één uit de lijst','Listeden birini seç');
+TD('ob.sign.p','A felhozatal hírnév szerint NŐ: elöl a kezdők, hátul a nagy nevek. A kezdők ingyen szerződnek — bármelyiket választhatod.','The list is sorted by fame: newcomers first, big names last. Newcomers sign for free — pick any of them.','Die Liste ist nach Ruhm sortiert: Newcomer vorn, große Namen hinten. Newcomer unterschreiben gratis — nimm irgendeinen.','La lista va por fama: primero los novatos, al final los grandes. Los novatos firman gratis: elige cualquiera.','La liste suit la renommée : débutants d\'abord, grands noms ensuite. Les débutants signent gratuitement — prends qui tu veux.','La lista è ordinata per fama: prima gli emergenti, poi i nomi grossi. Gli emergenti firmano gratis — scegli chi vuoi.','A lista segue a fama: primeiro os novatos, depois os grandes nomes. Os novatos assinam de graça — escolhe qualquer um.','Lista rośnie według sławy: najpierw debiutanci, na końcu wielkie nazwiska. Debiutanci podpisują za darmo — wybierz dowolnego.','De lijst loopt op in roem: eerst nieuwkomers, achteraan grote namen. Nieuwkomers tekenen gratis — kies er eentje.','Liste üne göre sıralı: önce yeni isimler, sonra büyükler. Yeni isimler bedava imza atar — hangisini istersen seç.');
+TD('ob.sign.tap','Koppints valamelyik Leigazolás gombra','Tap any Sign button','Tippe auf einen Verpflichten-Button','Toca cualquier botón Fichar','Touche un bouton Signer','Tocca un pulsante Ingaggia','Toca num botão Contratar','Dotknij dowolnego przycisku Podpisz','Tik op een Contracteer-knop','Herhangi bir Anlaş butonuna dokun');
+
+TD('ob.deal.k','Alku','Deal','Deal','Trato','Négociation','Trattativa','Acordo','Negocjacje','Deal','Pazarlık');
+TD('ob.deal.t','Így működik a tárgyalás','How negotiating works','So läuft die Verhandlung','Así funciona la negociación','Comment se passe la négociation','Come funziona la trattativa','Como funciona a negociação','Jak działają negocjacje','Zo werkt onderhandelen','Pazarlık böyle işler');
+TD('ob.deal.p','A csúszka azt állítja, MENNYI JUTALÉKOT kérsz. Feljebb tolva többet vinnél, de zuhan a sikeresély — a nagy nevek keményebben alkudnak. A jutalék alapja a turné NYERESÉGE. Az alapajánlatot bármikor elfogadhatod: az mindig sikerül.','The slider sets HOW MUCH COMMISSION you ask for. Higher means more for you but a lower chance of success — big names drive a harder bargain. Commission is taken from the tour\'s PROFIT. You can always accept the base offer: that never fails.','Der Regler bestimmt, WIE VIEL PROVISION du forderst. Höher heißt mehr für dich, aber weniger Erfolgschance — große Namen verhandeln härter. Die Provision geht vom GEWINN der Tour ab. Das Basisangebot klappt immer.','El deslizador fija CUÁNTA COMISIÓN pides. Más alto es más para ti, pero baja la probabilidad — los grandes regatean más. La comisión sale del BENEFICIO de la gira. La oferta base siempre se acepta.','Le curseur règle LA COMMISSION que tu demandes. Plus haut = plus pour toi, mais moins de chances — les grands noms négocient dur. La commission vient du BÉNÉFICE. L\'offre de base passe toujours.','Il cursore imposta QUANTA COMMISSIONE chiedi. Più alto significa più per te ma meno probabilità — i nomi grossi trattano duro. La commissione viene dall\'UTILE del tour. L\'offerta base riesce sempre.','O cursor define QUANTA COMISSÃO pedes. Mais alto é mais para ti, mas menos hipóteses — os grandes negoceiam melhor. A comissão sai do LUCRO. A proposta base passa sempre.','Suwak ustala, JAKĄ PROWIZJĘ żądasz. Wyżej to więcej dla ciebie, ale mniejsza szansa — wielkie nazwiska targują się ostrzej. Prowizja liczy się od ZYSKU trasy. Oferta bazowa zawsze przechodzi.','De schuif bepaalt HOEVEEL COMMISSIE je vraagt. Hoger is meer voor jou, maar minder kans — grote namen onderhandelen harder. Commissie komt uit de WINST. Het basisbod lukt altijd.','Kaydırıcı NE KADAR KOMİSYON istediğini belirler. Yükseltirsen payın artar ama şans düşer — büyük isimler sıkı pazarlık yapar. Komisyon turnenin KÂRINDAN alınır. Temel teklif her zaman kabul edilir.');
+TD('ob.deal.tap','Alkudj, vagy fogadd el az alapot','Haggle, or accept the base offer','Verhandle oder nimm das Basisangebot','Regatea o acepta la oferta base','Négocie ou accepte l\'offre de base','Tratta oppure accetta l\'offerta base','Negoceia ou aceita a proposta base','Targuj się albo przyjmij ofertę bazową','Onderhandel of neem het basisbod','Pazarlık et ya da temel teklifi kabul et');
+
+TD('ob.goMap.k','Turné','Tour','Tour','Gira','Tournée','Tour','Digressão','Trasa','Tour','Turne');
+TD('ob.goMap.t','Megvan az előadód','You\'ve got your artist','Du hast deinen Künstler','Ya tienes artista','Tu as ton artiste','Hai il tuo artista','Já tens o teu artista','Masz swojego artystę','Je hebt je artiest','Sanatçın hazır');
+TD('ob.goMap.p','Most jöhet az első turné.','Now for the first tour.','Jetzt kommt die erste Tour.','Ahora, la primera gira.','Place à la première tournée.','Ora il primo tour.','Agora a primeira digressão.','Teraz pierwsza trasa.','Nu de eerste tour.','Şimdi ilk turne.');
+TD('ob.goMap.tap','Koppints a Térkép fülre','Tap the Map tab','Tippe auf den Reiter Karte','Toca la pestaña Mapa','Touche l\'onglet Carte','Tocca la scheda Mappa','Toca no separador Mapa','Dotknij zakładki Mapa','Tik op het tabblad Kaart','Harita sekmesine dokun');
+
+TD('ob.pick.k','Kit viszel','Who\'s going','Wer kommt mit','A quién llevas','Qui part','Chi porti','Quem levas','Kogo bierzesz','Wie gaat mee','Kimi götürüyorsun');
+TD('ob.pick.t','Válaszd ki az előadót','Choose your artist','Wähle den Künstler','Elige al artista','Choisis l\'artiste','Scegli l\'artista','Escolhe o artista','Wybierz artystę','Kies de artiest','Sanatçını seç');
+TD('ob.pick.tap','Koppints a kártyájára','Tap their card','Tippe auf seine Karte','Toca su tarjeta','Touche sa carte','Tocca la sua scheda','Toca no cartão dele','Dotknij jego karty','Tik op de kaart','Kartına dokun');
+
+TD('ob.set.k','Setlist','Setlist','Setlist','Repertorio','Setlist','Scaletta','Alinhamento','Setlista','Setlist','Şarkı listesi');
+TD('ob.set.t','Rakd össze a teljes szetet','Build the full set','Stell das ganze Set zusammen','Arma el repertorio completo','Compose tout le set','Componi tutta la scaletta','Monta o alinhamento completo','Ułóż pełny set','Stel de hele set samen','Tüm listeyi oluştur');
+TD('ob.set.p','A sorrend számít: a fogantyúval húzva rendezheted át a dalokat.','Order matters: drag the handle to rearrange the songs.','Die Reihenfolge zählt: zieh am Griff, um die Songs umzusortieren.','El orden importa: arrastra el asa para reordenar los temas.','L\'ordre compte : glisse la poignée pour réorganiser les morceaux.','L\'ordine conta: trascina la maniglia per riordinare i brani.','A ordem conta: arrasta a pega para reordenar as músicas.','Kolejność ma znaczenie: przeciągnij uchwyt, by zmienić układ.','De volgorde telt: sleep de greep om nummers te verschuiven.','Sıra önemli: tutamağı sürükleyerek şarkıları yeniden diz.');
+TD('ob.set.btn','Megvan a szet','Set is ready','Set steht','Repertorio listo','Set prêt','Scaletta pronta','Alinhamento pronto','Set gotowy','Set is klaar','Liste hazır');
+TD('ob.set.empty','Válassz dalokat a repertoárból','Pick songs from the repertoire','Wähle Songs aus dem Repertoire','Elige temas del repertorio','Choisis des morceaux du répertoire','Scegli brani dal repertorio','Escolhe músicas do repertório','Wybierz utwory z repertuaru','Kies nummers uit het repertoire','Repertuardan şarkı seç');
+TD('ob.set.need','Még {n} dal kell a szethez','{n} more song(s) needed','Noch {n} Song(s) nötig','Faltan {n} tema(s)','Encore {n} morceau(x)','Mancano {n} brano/i','Faltam {n} música(s)','Brakuje jeszcze {n} utworu/ów','Nog {n} nummer(s) nodig','{n} şarkı daha gerek');
+
+TD('ob.city.k','Útvonal','Route','Route','Ruta','Itinéraire','Percorso','Rota','Trasa','Route','Rota');
+TD('ob.city.t','Rakd sorba a városokat','Put the cities in order','Bring die Städte in Reihenfolge','Ordena las ciudades','Mets les villes dans l\'ordre','Metti le città in ordine','Põe as cidades por ordem','Ustaw miasta w kolejności','Zet de steden op volgorde','Şehirleri sıraya diz');
+TD('ob.city.tap','Válassz legalább egy várost','Pick at least one city','Wähle mindestens eine Stadt','Elige al menos una ciudad','Choisis au moins une ville','Scegli almeno una città','Escolhe pelo menos uma cidade','Wybierz co najmniej jedno miasto','Kies minstens één stad','En az bir şehir seç');
+TD('ob.city.btn','Megvan az útvonal','Route is set','Route steht','Ruta lista','Itinéraire prêt','Percorso pronto','Rota pronta','Trasa gotowa','Route is klaar','Rota hazır');
+
+TD('ob.stop.k','Állomás','Stop','Station','Parada','Étape','Tappa','Paragem','Przystanek','Stop','Durak');
+TD('ob.stop.t','Helyszín és jegyár','Venue and ticket price','Venue und Ticketpreis','Recinto y precio','Salle et prix du billet','Locale e prezzo del biglietto','Sala e preço do bilhete','Sala i cena biletu','Zaal en ticketprijs','Mekân ve bilet fiyatı');
+TD('ob.stop.p','Nagyobb terem = több néző, de drágább. A jegyár a várható nézőszámot szabja meg.','Bigger room = more people, but pricier. The ticket price sets how many are expected to come.','Größerer Saal = mehr Publikum, aber teurer. Der Ticketpreis bestimmt die erwartete Besucherzahl.','Sala más grande = más público, pero más cara. El precio marca cuánta gente se espera.','Salle plus grande = plus de monde, mais plus cher. Le prix du billet fixe l\'affluence attendue.','Sala più grande = più pubblico, ma costa di più. Il prezzo del biglietto determina l\'affluenza attesa.','Sala maior = mais público, mas mais cara. O preço do bilhete define a afluência esperada.','Większa sala = więcej widzów, ale drożej. Cena biletu ustala spodziewaną frekwencję.','Grotere zaal = meer publiek, maar duurder. De ticketprijs bepaalt de verwachte opkomst.','Daha büyük salon = daha çok seyirci ama daha pahalı. Bilet fiyatı beklenen katılımı belirler.');
+TD('ob.stop.btn','Megvan minden állomás','All stops are set','Alle Stationen stehen','Todas las paradas listas','Toutes les étapes sont prêtes','Tutte le tappe pronte','Todas as paragens prontas','Wszystkie przystanki gotowe','Alle stops klaar','Tüm duraklar hazır');
+TD('ob.stop.need','Még {n} állomás beállítása','{n} stop(s) left to set','Noch {n} Station(en) einstellen','Faltan {n} parada(s)','Encore {n} étape(s) à régler','Restano {n} tappa/e da impostare','Faltam {n} paragem(ns)','Zostało {n} przystanek/ów','Nog {n} stop(s) instellen','{n} durak daha ayarla');
+
+TD('ob.promo.k','Promóció','Promo','Promo','Promoción','Promo','Promo','Promoção','Promocja','Promo','Tanıtım');
+TD('ob.promo.t','Mennyit költesz rá','How much you spend','Wie viel du ausgibst','Cuánto gastas','Combien tu dépenses','Quanto spendi','Quanto gastas','Ile wydajesz','Hoeveel je uitgeeft','Ne kadar harcarsın');
+TD('ob.promo.p','Több promó = több néző. A turné nyereségéből megy, nem előre.','More promo = more people. It comes out of the tour\'s profit, not up front.','Mehr Promo = mehr Publikum. Es geht vom Gewinn der Tour ab, nicht vorab.','Más promo = más público. Sale del beneficio de la gira, no por adelantado.','Plus de promo = plus de monde. C\'est pris sur le bénéfice, pas d\'avance.','Più promo = più pubblico. Esce dall\'utile del tour, non in anticipo.','Mais promo = mais público. Sai do lucro da digressão, não à cabeça.','Więcej promocji = więcej widzów. Idzie z zysku trasy, nie z góry.','Meer promo = meer publiek. Het komt uit de winst, niet vooraf.','Daha çok tanıtım = daha çok seyirci. Peşin değil, turnenin kârından düşer.');
+
+TD('ob.go.k','Indulás','Departure','Abfahrt','Salida','Départ','Partenza','Partida','Start','Vertrek','Kalkış');
+TD('ob.go.t','Mehet a turné','The tour can roll','Die Tour kann rollen','La gira puede arrancar','La tournée peut partir','Il tour può partire','A digressão pode arrancar','Trasa może ruszyć','De tour kan rollen','Turne başlayabilir');
+TD('ob.go.tap','Koppints a Turné indítása gombra','Tap the Start tour button','Tippe auf Tour starten','Toca el botón Iniciar gira','Touche le bouton Lancer la tournée','Tocca il pulsante Avvia tour','Toca no botão Iniciar digressão','Dotknij przycisku Rozpocznij trasę','Tik op Tour starten','Turneyi başlat butonuna dokun');
+
+TD('ob.liveTop.k','Élő turné','Live tour','Live-Tour','Gira en directo','Tournée en direct','Tour dal vivo','Digressão ao vivo','Trasa na żywo','Live tour','Canlı turne');
+TD('ob.liveTop.t','Ez fut most','This is running now','Das läuft gerade','Esto está en marcha','C\'est en cours','Questo sta girando ora','Isto está a decorrer','To właśnie trwa','Dit loopt nu','Şu an bu çalışıyor');
+TD('ob.liveTop.p','Itt látod, hol tart a csapat: utazás vagy koncert, hányadik nap, mennyi a hátralévő műsoridő — alatta pedig az állomások eredménye élőben.','Here you see where the crew is: travelling or on stage, which day, how much show time is left — and below, each stop\'s result live.','Hier siehst du, wo die Crew steckt: unterwegs oder auf der Bühne, welcher Tag, wie viel Showzeit bleibt — darunter die Ergebnisse live.','Aquí ves dónde está el equipo: viaje o concierto, qué día, cuánto queda de show — y debajo, el resultado de cada parada en directo.','Ici tu vois où en est l\'équipe : trajet ou concert, quel jour, combien de show reste — et dessous, le résultat de chaque étape en direct.','Qui vedi dov\'è la squadra: viaggio o concerto, che giorno, quanto show resta — e sotto, il risultato di ogni tappa in diretta.','Aqui vês onde está a equipa: viagem ou concerto, que dia, quanto falta do espetáculo — e abaixo, o resultado de cada paragem ao vivo.','Tu widzisz, gdzie jest ekipa: podróż czy koncert, który dzień, ile show zostało — a niżej wynik każdego przystanku na żywo.','Hier zie je waar de crew is: onderweg of op het podium, welke dag, hoeveel showtijd rest — en eronder live het resultaat per stop.','Ekibin nerede olduğunu burada görürsün: yolda mı sahnede mi, kaçıncı gün, ne kadar şov kaldı — altında her durağın sonucu canlı.');
+
+TD('ob.liveMini.k','Mini-játék','Mini-game','Minispiel','Minijuego','Mini-jeu','Minigioco','Minijogo','Minigra','Minigame','Mini oyun');
+TD('ob.liveMini.t','Beállok — extra a show-ra','Step in — a boost for the show','Einspringen — Extra für die Show','Te subes: extra para el show','Tu montes : un plus pour le show','Sali sul palco — un extra per lo show','Entras — um extra para o espetáculo','Wskakujesz — dodatek do show','Je springt in — extra voor de show','Sahneye çık — şova ekstra');
+TD('ob.liveMini.p','A nagy estéken beállhatsz dobolni, a fénypulthoz vagy a zongorához. A jó teljesítmény bónuszt ad a koncertre. Teljesen opcionális: ha kihagyod, semmit nem veszítesz.','On big nights you can play drums, run the lights or sit at the piano. A good run gives the show a bonus. Fully optional: skipping costs you nothing.','An großen Abenden kannst du trommeln, das Licht fahren oder ans Klavier. Gute Leistung gibt einen Bonus. Völlig optional: Auslassen kostet nichts.','En las noches grandes puedes tocar la batería, la mesa de luces o el piano. Hacerlo bien da bonus. Es opcional: saltarlo no cuesta nada.','Les grands soirs, tu peux jouer la batterie, la console lumière ou le piano. Une bonne perf donne un bonus. Optionnel : passer ne coûte rien.','Nelle grandi serate puoi suonare la batteria, le luci o il piano. Una buona prova dà un bonus. Del tutto opzionale: saltarlo non costa nulla.','Nas grandes noites podes tocar bateria, a mesa de luzes ou o piano. Correr bem dá bónus. É opcional: saltar não custa nada.','W wielkie wieczory możesz zagrać na perkusji, świetle albo pianinie. Dobry występ daje bonus. W pełni opcjonalne: pominięcie nic nie kosztuje.','Op grote avonden speel je drums, licht of piano. Een goede beurt geeft bonus. Volledig optioneel: overslaan kost niets.','Büyük gecelerde davul çalabilir, ışıkları yönetebilir ya da piyanoya geçebilirsin. İyi performans bonus verir. Tamamen isteğe bağlı: atlarsan bir şey kaybetmezsin.');
+
+TD('ob.liveSkip.k','Gyorsítás','Fast-forward','Vorspulen','Adelantar','Avance rapide','Avanti veloce','Avançar','Przewijanie','Doorspoelen','Hızlandır');
+TD('ob.liveSkip.t','Nem kell várnod','No waiting required','Warten musst du nicht','No hace falta esperar','Pas besoin d\'attendre','Non devi aspettare','Não precisas de esperar','Nie musisz czekać','Wachten hoeft niet','Beklemene gerek yok');
+TD('ob.liveSkip.p','Ugrás a végére: az aktuális szakasz azonnal lefut. Mind: az egész hátralévő turné lepörög. Mindkettő INGYEN, egy koppintás.','Skip: the current leg finishes instantly. All: the whole remaining tour plays out. Both are FREE, one tap.','Überspringen: der aktuelle Abschnitt läuft sofort durch. Alles: die ganze restliche Tour. Beides GRATIS, ein Tipp.','Saltar: el tramo actual termina al instante. Todo: se resuelve el resto de la gira. Ambos GRATIS, un toque.','Passer : l\'étape en cours se termine aussitôt. Tout : le reste de la tournée se déroule. Les deux sont GRATUITS, en un geste.','Salta: la tappa attuale finisce subito. Tutto: si svolge tutto il tour restante. Entrambi GRATIS, un tocco.','Saltar: a etapa atual termina já. Tudo: o resto da digressão decorre. Ambos GRÁTIS, um toque.','Pomiń: bieżący etap kończy się od razu. Wszystko: reszta trasy rozgrywa się sama. Oba ZA DARMO, jedno dotknięcie.','Overslaan: het huidige deel is meteen klaar. Alles: de rest van de tour speelt zich af. Beide GRATIS, één tik.','Atla: mevcut bölüm anında biter. Tümü: turnenin kalanı akar. İkisi de ÜCRETSİZ, tek dokunuş.');
+
+TD('ob.resBreak.k','Eredmény','Result','Ergebnis','Resultado','Résultat','Risultato','Resultado','Wynik','Resultaat','Sonuç');
+TD('ob.resBreak.t','Így jön ki a pénz','How the money adds up','So kommt das Geld zustande','Así salen las cuentas','Voilà comment l\'argent tombe','Ecco come tornano i conti','É assim que as contas fecham','Tak wychodzą pieniądze','Zo komt het geld uit','Para böyle çıkıyor');
+TD('ob.resBreak.p','Jegybevétel + merch a bevétel. Ebből jön le a helyszín, technika, stáb, utazás és promóció — ami marad, az a turné nyeresége. Azon osztoztok: az előadóé a nagyobb rész, a tiéd a jutalék.','Tickets + merch make the revenue. Venue, gear, crew, travel and promo come off it — what\'s left is the tour\'s profit. You split that: the artist takes the bigger share, you take your commission.','Tickets + Merch ergeben den Umsatz. Davon gehen Venue, Technik, Crew, Reise und Promo ab — der Rest ist der Gewinn. Den teilt ihr: der Künstler bekommt mehr, du deine Provision.','Entradas + merch son los ingresos. De ahí salen recinto, técnica, equipo, viaje y promo: lo que queda es el beneficio. Se reparte: el artista se lleva más, tú tu comisión.','Billets + merch, voilà les recettes. On en retire salle, technique, équipe, voyage et promo — le reste est le bénéfice. Vous le partagez : l\'artiste prend le gros, toi ta commission.','Biglietti + merch fanno il ricavo. Ne escono locale, tecnica, staff, viaggio e promo — il resto è l\'utile. Ve lo dividete: all\'artista la parte grossa, a te la commissione.','Bilhetes + merch são a receita. Saem daí sala, técnica, equipa, viagem e promo — o que resta é o lucro. Dividem: o artista leva mais, tu levas a comissão.','Bilety + merch to przychód. Odchodzą sala, technika, ekipa, podróż i promocja — reszta to zysk. Dzielicie się: artysta bierze więcej, ty prowizję.','Tickets + merch vormen de omzet. Daar gaan zaal, techniek, crew, reis en promo vanaf — wat rest is de winst. Die deel je: de artiest krijgt het grootste deel, jij je commissie.','Bilet + merch geliri oluşturur. Mekân, teknik, ekip, yol ve tanıtım düşer — kalan turnenin kârıdır. Onu paylaşırsınız: büyük pay sanatçının, komisyon senin.');
+
+TD('ob.resStops.k','Állomások','Stops','Stationen','Paradas','Étapes','Tappe','Paragens','Przystanki','Stops','Duraklar');
+TD('ob.resStops.t','Mi történt esténként','What happened each night','Was an jedem Abend passierte','Qué pasó cada noche','Ce qui s\'est passé chaque soir','Cos\'è successo ogni sera','O que aconteceu em cada noite','Co się działo każdego wieczoru','Wat er elke avond gebeurde','Her gece ne oldu');
+TD('ob.resStops.p','Állomásonként látod a nézőszámot a férőhelyhez képest, hogy a vártnál többen vagy kevesebben jöttek, a merch-bevételt és az új rajongókat.','For each stop you see attendance against capacity, whether more or fewer came than expected, merch revenue and new fans.','Pro Station siehst du Besucher vs. Kapazität, ob mehr oder weniger kamen als erwartet, Merch-Umsatz und neue Fans.','En cada parada ves el público frente al aforo, si vino más o menos gente de lo previsto, el merch y los nuevos fans.','Pour chaque étape : l\'affluence face à la capacité, plus ou moins que prévu, les recettes merch et les nouveaux fans.','Per ogni tappa vedi il pubblico rispetto alla capienza, se sono venuti più o meno del previsto, il merch e i nuovi fan.','Em cada paragem vês o público face à lotação, se vieram mais ou menos do que o previsto, o merch e os novos fãs.','Przy każdym przystanku widzisz frekwencję wobec pojemności, czy przyszło więcej czy mniej, przychód z merchu i nowych fanów.','Per stop zie je opkomst tegenover capaciteit, of er meer of minder kwamen, merch-omzet en nieuwe fans.','Her durakta kapasiteye göre katılımı, beklenenden çok mu az mı geldiğini, merch gelirini ve yeni hayranları görürsün.');
+
+TD('ob.resX2.k','Bónusz','Bonus','Bonus','Bonus','Bonus','Bonus','Bónus','Bonus','Bonus','Bonus');
+TD('ob.resX2.t','Duplázás — csak ha akarod','Double it — only if you want','Verdoppeln — nur wenn du willst','Doblar: solo si quieres','Doubler — seulement si tu veux','Raddoppia — solo se vuoi','Duplicar — só se quiseres','Podwojenie — tylko jeśli chcesz','Verdubbelen — alleen als je wilt','İkiye katla — istersen');
+TD('ob.resX2.p','A turné végén egy rövid videóért megduplázhatod a jutalékodat. Ez az egyetlen ilyen ajánlat a játékban, turnénként egyszer — semmi más nincs reklámhoz kötve.','At the end of a tour, a short video can double your commission. It\'s the only offer like it, once per tour — nothing else is tied to ads.','Am Tourende kannst du deine Provision für ein kurzes Video verdoppeln. Das ist das einzige Angebot dieser Art, einmal pro Tour — sonst hängt nichts an Werbung.','Al final de la gira, un vídeo corto dobla tu comisión. Es la única oferta así, una vez por gira: nada más depende de anuncios.','En fin de tournée, une courte vidéo double ta commission. C\'est la seule offre de ce type, une fois par tournée — rien d\'autre n\'est lié à la pub.','A fine tour, un breve video raddoppia la tua commissione. È l\'unica offerta del genere, una volta per tour — nient\'altro dipende dalla pubblicità.','No fim da digressão, um vídeo curto duplica a tua comissão. É a única oferta assim, uma vez por digressão — nada mais depende de anúncios.','Na koniec trasy krótki film podwaja twoją prowizję. To jedyna taka oferta, raz na trasę — nic innego nie zależy od reklam.','Aan het eind van een tour verdubbelt een korte video je commissie. Het is het enige aanbod zo, één keer per tour — verder niets met advertenties.','Turne sonunda kısa bir video komisyonunu ikiye katlar. Türünün tek örneği, turne başına bir kez — başka hiçbir şey reklama bağlı değil.');
+
+TD('ob.goStudio.k','Stúdió','Studio','Studio','Estudio','Studio','Studio','Estúdio','Studio','Studio','Stüdyo');
+TD('ob.goStudio.t','Zene két turné között','Music between tours','Musik zwischen den Touren','Música entre giras','De la musique entre deux tournées','Musica tra un tour e l\'altro','Música entre digressões','Muzyka między trasami','Muziek tussen tours','Turneler arası müzik');
+TD('ob.goStudio.p','Nyisd meg a Stúdiót.','Open the Studio.','Öffne das Studio.','Abre el Estudio.','Ouvre le Studio.','Apri lo Studio.','Abre o Estúdio.','Otwórz Studio.','Open de Studio.','Stüdyoyu aç.');
+TD('ob.goStudio.tap','Koppints a Stúdió fülre','Tap the Studio tab','Tippe auf den Reiter Studio','Toca la pestaña Estudio','Touche l\'onglet Studio','Tocca la scheda Studio','Toca no separador Estúdio','Dotknij zakładki Studio','Tik op het tabblad Studio','Stüdyo sekmesine dokun');
+
+TD('ob.studio.k','Stúdió','Studio','Studio','Estudio','Studio','Studio','Estúdio','Studio','Studio','Stüdyo');
+TD('ob.studio.t','Kiadás → streaming → rajongók','Release → streams → fans','Release → Streams → Fans','Lanzamiento → streams → fans','Sortie → streams → fans','Uscita → stream → fan','Lançamento → streams → fãs','Wydawnictwo → streamy → fani','Release → streams → fans','Çıkış → dinlenme → hayran');
+TD('ob.studio.p','Itt adsz ki single-t, EP-t vagy albumot. A megjelenés megdobja a streaminget, az pedig régiónként hozza a rajongókat — és velük a koncertkeresletet. A felvétel a háttérben készül: közben nyugodtan turnézhatsz.','Here you release a single, EP or album. A release boosts streams, and streams bring fans region by region — and with them, demand for shows. Recording runs in the background: you can tour meanwhile.','Hier veröffentlichst du Single, EP oder Album. Ein Release pusht die Streams, die bringen regionsweise Fans — und damit Nachfrage nach Konzerten. Die Aufnahme läuft im Hintergrund: du kannst weiter touren.','Aquí lanzas single, EP o álbum. Un lanzamiento sube los streams, y estos traen fans por región, y con ellos demanda de conciertos. La grabación va en segundo plano: puedes seguir de gira.','Ici tu sors un single, un EP ou un album. Une sortie booste les streams, qui amènent des fans région par région — et donc de la demande. L\'enregistrement tourne en fond : tu peux tourner en attendant.','Qui pubblichi un singolo, un EP o un album. L\'uscita spinge gli stream, che portano fan regione per regione — e con loro la domanda di concerti. La registrazione va in background: intanto puoi andare in tour.','Aqui lanças um single, EP ou álbum. O lançamento impulsiona os streams, que trazem fãs por região — e com eles procura por concertos. A gravação corre em segundo plano: podes andar em digressão.','Tu wydajesz singla, EP-kę albo album. Wydawnictwo podbija streamy, a te przynoszą fanów w regionach — i popyt na koncerty. Nagranie idzie w tle: w tym czasie możesz jeździć w trasę.','Hier breng je een single, ep of album uit. Een release stuwt de streams, en die brengen fans per regio — en dus vraag naar shows. De opname loopt op de achtergrond: je kunt ondertussen touren.','Burada single, EP ya da albüm çıkarırsın. Çıkış dinlenmeleri artırır, o da bölge bölge hayran ve konser talebi getirir. Kayıt arka planda ilerler: bu sırada turneye çıkabilirsin.');
+
+TD('ob.goUpg.k','Fejlesztés','Upgrades','Ausbau','Mejoras','Améliorations','Potenziamenti','Melhorias','Rozwój','Upgrades','Geliştirme');
+TD('ob.goUpg.t','Amibe beruházol','What you invest in','Worin du investierst','En qué inviertes','Ce dans quoi tu investis','In cosa investi','Aquilo em que investes','W co inwestujesz','Waarin je investeert','Neye yatırım yaparsın');
+TD('ob.goUpg.p','Nyisd meg a Fejlesztés fület.','Open the Upgrades tab.','Öffne den Reiter Ausbau.','Abre la pestaña Mejoras.','Ouvre l\'onglet Améliorations.','Apri la scheda Potenziamenti.','Abre o separador Melhorias.','Otwórz zakładkę Rozwój.','Open het tabblad Upgrades.','Geliştirme sekmesini aç.');
+TD('ob.goUpg.tap','Koppints a Fejlesztés fülre','Tap the Upgrades tab','Tippe auf den Reiter Ausbau','Toca la pestaña Mejoras','Touche l\'onglet Améliorations','Tocca la scheda Potenziamenti','Toca no separador Melhorias','Dotknij zakładki Rozwój','Tik op het tabblad Upgrades','Geliştirme sekmesine dokun');
+
+TD('ob.upg.k','Fejlesztés','Upgrades','Ausbau','Mejoras','Améliorations','Potenziamenti','Melhorias','Rozwój','Upgrades','Geliştirme');
+TD('ob.upg.t','A pénz visszaforgatása','Putting the money back in','Das Geld zurück ins Geschäft','Reinvertir el dinero','Réinjecter l\'argent','Rimettere dentro i soldi','Voltar a investir o dinheiro','Ponowne inwestowanie','Het geld terug erin','Parayı geri yatırmak');
+TD('ob.upg.p','Marketing és merch-pult a turnékra, létesítmények és stáb tartós hatással, valamint az előadóid képzése és imázsa. Mind euróból megy, és minden későbbi turnéd erősebb lesz tőle.','Marketing and a merch stand for tours, facilities and staff with lasting effects, plus training and image for your artists. It all costs euros, and every later tour gets stronger for it.','Marketing und Merch-Stand für Touren, Anlagen und Crew mit Dauerwirkung, dazu Training und Image deiner Künstler. Alles kostet Euro und macht jede spätere Tour stärker.','Marketing y puesto de merch para las giras, instalaciones y equipo con efecto duradero, más formación e imagen de tus artistas. Todo cuesta euros y hace más fuerte cada gira futura.','Marketing et stand merch pour les tournées, installations et équipe à effet durable, plus la formation et l\'image de tes artistes. Tout coûte des euros et renforce chaque tournée à venir.','Marketing e banco merch per i tour, strutture e staff con effetto duraturo, più formazione e immagine dei tuoi artisti. Tutto costa euro e rende più forte ogni tour successivo.','Marketing e banca de merch para as digressões, instalações e equipa com efeito duradouro, além de formação e imagem dos teus artistas. Tudo custa euros e reforça cada digressão futura.','Marketing i stoisko z merchem na trasy, obiekty i ekipa z trwałym efektem oraz szkolenie i wizerunek artystów. Wszystko za euro i każda kolejna trasa jest mocniejsza.','Marketing en merchstand voor tours, faciliteiten en crew met blijvend effect, plus training en imago van je artiesten. Alles kost euro\'s en maakt elke volgende tour sterker.','Turneler için pazarlama ve merch standı, kalıcı etkili tesisler ve ekip, ayrıca sanatçılarının eğitimi ve imajı. Hepsi euro ile ve sonraki her turneyi güçlendirir.');
+
+TD('ob.done.k','Kész','Done','Fertig','Listo','Terminé','Fatto','Pronto','Gotowe','Klaar','Tamam');
+TD('ob.done.t','Innen pörög a hurok','From here the loop spins','Ab hier dreht sich die Schleife','Desde aquí el bucle gira solo','À partir d\'ici, la boucle tourne','Da qui il ciclo gira','A partir daqui o ciclo roda','Stąd pętla się kręci','Vanaf hier draait de lus','Buradan döngü dönmeye başlar');
+TD('ob.done.p','Turné → hírnév és pénz → nagyobb helyszín és nagyobb név. Az Iroda fülön mindig ott a következő célod. Mostantól minden nyitva áll.','Tour → fame and money → bigger venues and bigger names. The Office tab always shows your next goal. Everything is open from here.','Tour → Ruhm und Geld → größere Venues und größere Namen. Der Reiter Büro zeigt immer dein nächstes Ziel. Ab jetzt steht alles offen.','Gira → fama y dinero → recintos y nombres mayores. La pestaña Oficina siempre muestra tu próxima meta. Desde ahora todo está abierto.','Tournée → renommée et argent → plus grandes salles et plus grands noms. L\'onglet Bureau montre toujours ton prochain objectif. Tout est ouvert.','Tour → fama e soldi → locali e nomi più grandi. La scheda Ufficio mostra sempre il prossimo obiettivo. Da ora è tutto aperto.','Digressão → fama e dinheiro → salas e nomes maiores. O separador Escritório mostra sempre a próxima meta. A partir daqui está tudo aberto.','Trasa → sława i pieniądze → większe sale i nazwiska. Zakładka Biuro zawsze pokazuje następny cel. Od teraz wszystko jest otwarte.','Tour → roem en geld → grotere zalen en namen. Het tabblad Kantoor toont altijd je volgende doel. Vanaf nu staat alles open.','Turne → ün ve para → daha büyük mekân ve isimler. Ofis sekmesi hep bir sonraki hedefini gösterir. Bundan sonra her şey açık.');
+TD('ob.done.btn','Kezdhetem!','Let\'s do it!','Kann losgehen!','¡Vamos allá!','On y va !','Si parte!','Vamos a isso!','Do dzieła!','Kom maar op!','Hadi başlayalım!');
+
 /* ============================ ÁLLAPOT ============================ */
 const KEY='turne_menedzser_v3';
 let S=migrate(load()||newGame());
@@ -1369,7 +1645,8 @@ function newGame(){return{money:60000,rep:0,week:1,roster:[],upg:{marketing:0,st
  art:{},rel:null,relLog:[],streamIncome:0,lastResult:null,toursDone:0,detail:null,studio:null,
  feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false,credits:CRED_WELCOME,themes:['lime'],theme:'lime',scout:null,
  mile:{},recs:{},hall:[],chal:null,chalDone:0,artArc:{},career:false,deal:{},fac:{},staff:{},artUp:{},venues:{},big:{},earned:0,leg:null,recsAll:{},ioOpen:false,giftWk:undefined,giftN:0,
- ob:0,obDone:false,cities:{},analyticsConsent:true,firstOpen:0,agency:'',rtView:'list'};}
+ ob:0,obDone:false,cities:{},analyticsConsent:true,firstOpen:0,agency:'',rtView:'list',
+ lang:null,hq:'bud',started:false};}
 /* régi mentések kiegészítése az új mezőkkel */
 function migrate(s){
  if(!s||typeof s!=='object'||Array.isArray(s))return newGame();
@@ -1415,6 +1692,11 @@ function migrate(s){
  if(s.earned===undefined)s.earned=0;
  if(!s.recsAll)s.recsAll={};
  if(!s.cities)s.cities={};
+ /* Nyelv / székhely / kezdőképernyő. RÉGI mentésnél a started undefined → true lesz,
+    tehát a meglévő játékos nem kapja újra a kezdőképernyőt, és megtartja a nevét. */
+ if(s.lang!==undefined&&s.lang!==null&&LANGIDS.indexOf(s.lang)<0)s.lang=null;
+ if(!s.hq||!CM[s.hq])s.hq='bud';
+ if(s.started===undefined)s.started=true;
  if(!s.venues)s.venues={};
  if(!s.big)s.big={};
  if(s.analyticsConsent===undefined)s.analyticsConsent=true;   // TODO: élesben false + consent-banner
@@ -1906,7 +2188,7 @@ function endTour(){
  const decay={};
  Object.keys(REGIONS).forEach(r=>{
   if(!L.fanGain[r]&&A.fans[r]>30){const d=Math.min(1.5,(A.fans[r]-30)*0.05);A.fans[r]-=d;decay[r]=+d.toFixed(1);}});
- const fanRows=Object.entries(L.fanGain).map(([r,g])=>({r,n:REGIONS[r],g:+g.toFixed(1),now:Math.round(A.fans[r])}))
+ const fanRows=Object.entries(L.fanGain).map(([r,g])=>({r,n:rgN(r),g:+g.toFixed(1),now:Math.round(A.fans[r])}))
    .sort((x,y)=>y.g-x.g);
  S.lastResult={artist:a.n,photo:artistPhoto(a,600,400),rows:L.rows,tRev:L.tRev,tCost:L.tCost,tPay:L.tPay,tTrav:L.tTrav,
   net,rep:L.rep,tAtt:L.tAtt,setQ:Math.round(setlistQ(a,L.setlist)),promoSpent:L.promoSpent,tEvent:L.tEvent,days:L.days,log:L.log,
@@ -2923,17 +3205,15 @@ function renderHUD(){
  hud.innerHTML=`<div class="hud-top">
    <div class="ag-av">${av?`<img src="${av}" ${imgFB()}>`:icon('star','20px')}</div>
    <div class="ag-who"><div class="nm">${esc(agencyName())}</div>
-     <div class="lv">Iroda <b>Lv.${lp.l}</b> · ${lp.need>0&&lp.l<LEVELS.length?`${lp.need} hírnév a Lv.${lp.l+1}-ig`:'max szint'}</div></div>
-   <div class="credchip" id="hudCred" role="button" title="Arany lemez — koppints a boltért">${icon('vinyl','14px')}${credits()}<span class="plus">+</span></div>
+     <div class="lv">${t('hud.office')} <b>Lv.${lp.l}</b> · ${lp.need>0&&lp.l<LEVELS.length?t('hud.toNext',{n:lp.need,l:lp.l+1}):t('hud.max')}</div></div>
+   <div class="credchip" id="hudCred" role="button" title="${esc(t('hud.credTitle'))}">${icon('vinyl','14px')}${credits()}<span class="plus">+</span></div>
  </div>
  <div class="res">
-   <div class="pill cash tap" data-hud="cash">${icon('banknote','18px')}<div><div class="k">A pénzed</div><div class="v" id="hudMoney"></div></div></div>
-   <div class="pill rep tap" data-hud="rep">${icon('star','18px')}<div><div class="k">Hírnév</div><div class="v" id="hudRep"></div></div></div>
-   <div class="pill wk tap" data-hud="wk">${icon('calendar','18px')}<div><div class="k">Hét</div><div class="v" id="hudWk"></div></div></div>
+   <div class="pill cash tap" data-hud="cash">${icon('banknote','18px')}<div><div class="k">${t('hud.money')}</div><div class="v" id="hudMoney"></div></div></div>
+   <div class="pill rep tap" data-hud="rep">${icon('star','18px')}<div><div class="k">${t('hud.rep')}</div><div class="v" id="hudRep"></div></div></div>
+   <div class="pill wk tap" data-hud="wk">${icon('calendar','18px')}<div><div class="k">${t('hud.week')}</div><div class="v" id="hudWk"></div></div></div>
  </div>`;
- const HUDTIP={cash:'Az ügynökséged pénze. Ebből fizeted a fejlesztéseket, a stábot és a leigazolásokat.',
-   rep:'Az iroda hírneve. Ez nyitja a nagyobb helyszíneket és a nagyobb neveket.',
-   wk:'Hányadik heténél tart az ügynökség. Turnék és kiadások alatt telik.'};
+ const HUDTIP={cash:t('hud.tipMoney'),rep:t('hud.tipRep'),wk:t('hud.tipWeek')};
  hud.querySelectorAll('[data-hud]').forEach(function(el){el.onclick=function(){toast(HUDTIP[el.dataset.hud]);};});
  const hc=$('#hudCred');if(hc)hc.onclick=function(){openShop();};
  /* A HUD minden renderkor újraépül, ezért a dataset üres lenne és 0-ról pörögne.
@@ -2948,100 +3228,146 @@ function renderHUD(){
  syncHudSpace();
 }
 
+/* ============================ KEZDŐKÉPERNYŐ ============================
+   Első indításkor, a bemutató ELŐTT: nyelv, ügynökség-név és székhely (HQ).
+   Beállítás után S.started=true, és többé nem jön elő. Régi mentésnél a migrate
+   eleve true-ra állítja, tehát a meglévő játékos nem találkozik vele. */
+const HQ_FAN_BONUS=8;                      // itthoni régió: kis kezdő rajongó-lökés
+function hqCity(){return CM[S.hq]||CM['bud']||CITIES[0];}
+function hqRegion(){const c=hqCity();return c?c.r:'EU';}
+function hqCities(){return CITIES.filter(function(c){return !c.leg;});}
+
+function startOpen(){return $('#start').className==='on';}
+function renderStart(){
+ const el=$('#start');
+ const nameVal=(S.agency||'');
+ const cur=S.hq||'bud';
+ let h='<div class="stwrap">';
+ h+='<div class="stlogo"><span class="eqbig"><i></i><i></i><i></i><i></i><i></i></span></div>';
+ h+='<h1 class="sttitle">Turné Menedzser</h1>';
+ h+='<p class="sttag">'+esc(t('start.tagline'))+'</p>';
+
+ h+='<div class="stsec"><div class="stlab">'+esc(t('start.langLabel'))+'</div><div class="stlangs">';
+ LANGS.forEach(function(l){
+  h+='<button class="stlang'+(l.id===lang()?' on':'')+'" data-lang="'+l.id+'">'+langFlag(l)+
+     '<span>'+esc(l.n)+'</span></button>';});
+ h+='</div></div>';
+
+ h+='<div class="stsec"><div class="stlab">'+esc(t('start.nameLabel'))+'</div>'+
+    '<input class="stinput" id="stName" type="text" maxlength="24" autocomplete="off" autocapitalize="words" '+
+    'enterkeyhint="done" placeholder="'+esc(t('start.namePh'))+'" value="'+esc(nameVal)+'"></div>';
+
+ h+='<div class="stsec"><div class="stlab">'+esc(t('start.hqLabel'))+'</div><div class="sthq">';
+ hqCities().forEach(function(c){
+  h+='<button class="sthqb'+(c.id===cur?' on':'')+'" data-hq="'+c.id+'">'+
+     '<b>'+esc(c.n)+'</b><span>'+esc(rgN(c.r))+'</span></button>';});
+ h+='</div><div class="sthint">'+icon('star','13px')+'<span>'+esc(t('start.hqHint'))+'</span></div></div>';
+
+ h+='<button class="btn lime" id="stGo">'+icon('play','18px')+' '+esc(t('start.begin'))+'</button>';
+ h+='<button class="stskip" id="stQuick">'+esc(t('start.quick'))+'</button>';
+ h+='</div>';
+ el.innerHTML=h;
+ el.className='on';
+ /* a globalis bind() a #view-ra szukit — a kezdokepernyo azon KIVUL van */
+ const sbind=function(sel,fn){el.querySelectorAll(sel).forEach(function(x){x.onclick=function(){fn(x);};});};
+ sbind('[data-lang]',function(b){setLang(b.dataset.lang);});
+ sbind('[data-hq]',function(b){
+   S.hq=b.dataset.hq;
+   const inp=$('#stName');if(inp)S.agency=inp.value.slice(0,24);
+   save();renderStart();});
+ const inp=$('#stName');
+ if(inp){inp.oninput=function(){S.agency=inp.value.slice(0,24);};
+   inp.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();inp.blur();const g=$('#stGo');if(g)g.click();}};}
+ const go=$('#stGo');if(go)go.onclick=function(){startFinish(false);};
+ const qk=$('#stQuick');if(qk)qk.onclick=function(){startFinish(true);};
+}
+function startFinish(quick){
+ const inp=$('#stName');
+ if(inp&&!quick)S.agency=(inp.value||'').trim().slice(0,24);
+ if(!S.agency)S.agency='';                        // üres → agencyName() adja az alapot
+ if(!S.hq)S.hq='bud';
+ S.started=true;
+ Analytics.track('start_completed',{lang:lang(),hq:S.hq,quick:quick?1:0,named:S.agency?1:0});
+ save();
+ $('#start').className='';$('#start').innerHTML='';
+ render();
+}
+function setLang(id){
+ if(LANGIDS.indexOf(id)<0)return;
+ S.lang=id;save();
+ Analytics.track('language_changed',{lang:id});
+ if(startOpen()){renderStart();return;}
+ render();
+ toast(t('ui.langChanged',{name:langName(id)}));
+}
+
 /* ============================ ONBOARDING ============================
    Vezetett ELSŐ KÖR valódi lépésekkel: minden lépés egy tényleges játékbeli
    művelet, nem diavetítés. A lépés akkor lép tovább, ha a művelet megtörtént. */
 const ALLTABS=['iroda','terkep','eloadok','studio','fejlesztes'];
 const OB=[
- {id:'welcome',tab:'iroda',k:'Üdv',t:'Te vagy az ügynökség',
-  p:'Előadókat igazolsz le, felépíted őket, és világ körüli turnékra viszed a csapatot. A turné nyereségéből jutalékot viszel. Először add nevet az irodádnak:',btn:'Kezdjük'},
- {id:'hud',tab:'iroda',sel:'#hud .res',k:'Műszerfal',t:'Pénz, hírnév, hét',
-  p:'A pénzedből fejlesztesz és igazolsz. A hírnév nyitja a nagyobb helyszíneket és a nagyobb neveket. A hét a turnék és kiadások alatt telik.',btn:'Tovább'},
- {id:'nav',tab:'iroda',sel:'#nav',k:'Fülek',t:'Öt hely, ahol dolgozol',
-  p:'Iroda: áttekintés és célok. Térkép: turnétervezés. Előadók: leigazolás. Stúdió: kiadások. Fejlesztés: beruházások. Mindegyiket végigvesszük.',btn:'Tovább'},
+ {id:'welcome',tab:'iroda'},
+ {id:'hud',tab:'iroda',sel:'#hud .res',btnK:'ui.next'},
+ {id:'nav',tab:'iroda',sel:'#nav',btnK:'ui.next'},
 
- {id:'goEl',tab:'iroda',sel:'#nav a[data-tab="eloadok"]',k:'Első lépés',t:'Kell egy előadó',
-  p:'Nyisd meg az Előadók fület.',tap:'Koppints az Előadók fülre',
+ {id:'goEl',tab:'iroda',sel:'#nav a[data-tab="eloadok"]',
   done:function(){return S.tab==='eloadok';},allow:['eloadok']},
- {id:'sign',tab:'eloadok',sel:'#poolwrap',ringSel:'#poolwrap .lcard',k:'Leigazolás',t:'Válassz egyet a listából',
-  p:'A felhozatal hírnév szerint NŐ: elöl a kezdők, hátul a nagy nevek. A kezdők ingyen szerződnek — bármelyiket választhatod.',
-  tap:'Koppints valamelyik Leigazolás gombra',
+ {id:'sign',tab:'eloadok',sel:'#poolwrap',ringSel:'#poolwrap .lcard',
   done:function(){return S.roster.length>0||($('#modal').className==='on'&&!!$('#dRange'));},allow:['eloadok']},
- {id:'deal',tab:'eloadok',sel:'#modal .bd',k:'Alku',t:'Így működik a tárgyalás',
-  p:'A csúszka azt állítja, MENNYI JUTALÉKOT kérsz. Feljebb tolva többet vinnél, de zuhan a sikeresély — a nagy nevek keményebben alkudnak. Az „Ügynökség / Előadó" sor a felosztás, és a jutalék alapja a turné NYERESÉGE. Az alapot bármikor elfogadhatod: az mindig sikerül.',
-  tap:'Alkudj, vagy fogadd el az alapot',onModal:1,soft:1,
+ {id:'deal',tab:'eloadok',sel:'#modal .bd',onModal:1,soft:1,
   done:function(){return S.roster.length>0;},allow:['eloadok']},
 
- {id:'goMap',tab:'eloadok',sel:'#nav a[data-tab="terkep"]',k:'Turné',t:'Megvan az előadód',
-  p:'Most jöhet az első turné.',tap:'Koppints a Térkép fülre',
+ {id:'goMap',tab:'eloadok',sel:'#nav a[data-tab="terkep"]',
   done:function(){return S.tab==='terkep';},allow:['terkep']},
- {id:'pick',tab:'terkep',sel:'#view [data-tour]',k:'Kit viszel',t:'Válaszd ki az előadót',
-  tap:'Koppints a kártyájára',done:function(){return !!S.tour;},allow:['terkep']},
+ {id:'pick',tab:'terkep',sel:'#view [data-tour]',done:function(){return !!S.tour;},allow:['terkep']},
  /* ---- TÖMÖR TERVEZŐ-LÉPÉSEK: `noring` ----
     A sűrű tervező-képernyőkön (setlist, útvonal, állomás, promó) a kiemelő keret
     óhatatlanul ELVÁGTA a tartalmat (a zóna aljánál félbe vágott sorok, árak). Ezeken
     a lépéseken ezért NINCS keret és nincs sötétítés: csak a slim sáv egymondatos
     instrukciója, a képernyő pedig szabadon használható. A keretes kiemelés a TISZTA,
     egyszerű célokon marad (HUD-csempék, fülek, előadó-kártya, eredmény). */
- {id:'set',tab:'terkep',pl:0,sel:'#songs',noring:1,slim:1,wide:1,k:'Setlist',t:'Rakd össze a teljes szetet',
-  p:'A sorrend számít: a fogantyúval húzva rendezheted át a dalokat.',
-  tap:function(){if(!S.tour)return 'Válassz dalokat a repertoárból';
+ {id:'set',tab:'terkep',pl:0,sel:'#songs',noring:1,slim:1,wide:1,
+  tap:function(){if(!S.tour)return t('ob.set.empty');
     const need=minSet(AM[S.tour.artist])-S.tour.setlist.length;
-    return need>0?('Még '+need+' dal kell a szethez'):'';},
+    return need>0?t('ob.set.need',{n:need}):'';},
   /* NINCS auto-tovabblepes: a jatekos maga lep tovabb, hogy legyen ideje rendezni */
   ready:function(){return S.tour&&S.tour.setlist.length>=minSet(AM[S.tour.artist]);},
-  btn:'Megvan a szet',allow:['terkep']},
- {id:'city',tab:'terkep',pl:1,sel:'#routebox',noring:1,slim:1,wide:1,k:'Útvonal',t:'Rakd sorba a városokat',
-  tap:'Válassz legalább egy várost',btn:'Megvan az útvonal',
+  allow:['terkep']},
+ {id:'city',tab:'terkep',pl:1,sel:'#routebox',noring:1,slim:1,wide:1,
   ready:function(){return S.tour&&S.tour.stops.length>=1;},allow:['terkep']},
- {id:'stop',tab:'terkep',pl:2,sel:'#stops',noring:1,slim:1,wide:1,k:'Állomás',t:'Helyszín és jegyár',
-  p:'Nagyobb terem = több néző, de drágább. A jegyár a várható nézőszámot szabja meg.',
-  tap:function(){return todoCount()>0?('Még '+todoCount()+' állomás beállítása'):'';},
+ {id:'stop',tab:'terkep',pl:2,sel:'#stops',noring:1,slim:1,wide:1,
+  tap:function(){return todoCount()>0?t('ob.stop.need',{n:todoCount()}):'';},
   ready:function(){return S.tour&&S.tour.stops.length>=1&&todoCount()===0;},
-  btn:'Megvan minden állomás',allow:['terkep']},
- {id:'promo',tab:'terkep',pl:3,sel:'#promo',noring:1,slim:1,wide:1,k:'Promóció',t:'Mennyit költesz rá',
-  p:'Több promó = több néző. A turné nyereségéből megy, nem előre.',btn:'Tovább',allow:['terkep']},
- {id:'go',tab:'terkep',sel:'#sticky-host .in',k:'Indulás',t:'Mehet a turné',
-  tap:'Koppints a Turné indítása gombra',done:function(){return !!S.live;},allow:['terkep']},
+  allow:['terkep']},
+ {id:'promo',tab:'terkep',pl:3,sel:'#promo',noring:1,slim:1,wide:1,btnK:'ui.next',allow:['terkep']},
+ {id:'go',tab:'terkep',sel:'#sticky-host .in',done:function(){return !!S.live;},allow:['terkep']},
 
- {id:'liveTop',tab:'terkep',sel:'#view .lvc',ringSel:'#view .lvc .bd',k:'Élő turné',t:'Ez fut most',
-  p:'Itt látod, hol tart a csapat: utazás vagy koncert, hányadik nap, mennyi a hátralévő műsoridő, és alatta az állomások eredménye élőben.',
-  btn:'Tovább',soft:1,allow:['terkep']},
- {id:'liveMini',tab:'terkep',sel:'#view #lvDrum',k:'Mini-játék',t:'Beállok — extra a show-ra',
-  p:'A nagy estéken beállhatsz dobolni vagy a fénypulthoz. Jó teljesítmény bónuszt ad a koncertre. Teljesen opcionális: ha kihagyod, semmit nem veszítesz.',
-  btn:'Tovább',soft:1,allow:['terkep']},
- {id:'liveSkip',tab:'terkep',sel:'#view #lvSkip',k:'Gyorsítás',t:'Nem kell várnod',
-  p:'Ugrás a végére: az aktuális szakasz azonnal lefut. Mind: az egész hátralévő turné lepörög. Mindkettő INGYEN, egy koppintás.',
-  btn:'Tovább',soft:1,allow:['terkep']},
- {id:'resBreak',tab:'iroda',sel:'#resBreak',opt:1,k:'Eredmény',t:'Így jön ki a pénz',
-  p:'Jegybevétel + merch a bevétel. Ebből jön le a helyszín, technika, stáb, utazás és promóció — ami marad, az a turné nyeresége. Azon osztoztok: az előadóé a nagyobb rész, a tiéd a jutalék. A kasszádba a jutalék kerül.',
-  btn:'Tovább',onRes:1,allow:ALLTABS,wait:function(){return !!S.resultPending;}},
- {id:'resStops',tab:'iroda',sel:'#resStops',ringSel:'#resStops .lcard',opt:1,k:'Állomások',t:'Mi történt esténként',
-  p:'Állomásonként látod a nézőszámot a férőhelyhez képest, hogy a vártnál többen vagy kevesebben jöttek, a merch-bevételt és az új rajongókat.',
-  btn:'Tovább',onRes:1,allow:ALLTABS},
- {id:'resX2',tab:'iroda',sel:'#resX2',opt:1,k:'Bónusz',t:'Duplázás — csak ha akarod',
-  p:'A turné végén egy rövid videóért megduplázhatod a jutalékodat. Ez az egyetlen ilyen ajánlat a játékban, turnénként egyszer — semmi más nincs reklámhoz kötve.',
-  btn:'Tovább',onRes:1,soft:1,allow:ALLTABS},
+ {id:'liveTop',tab:'terkep',sel:'#view .lvc',ringSel:'#view .lvc .bd',soft:1,btnK:'ui.next',allow:['terkep']},
+ {id:'liveMini',tab:'terkep',sel:'#view #lvDrum',soft:1,btnK:'ui.next',allow:['terkep']},
+ {id:'liveSkip',tab:'terkep',sel:'#view #lvSkip',soft:1,btnK:'ui.next',allow:['terkep']},
+ {id:'resBreak',tab:'iroda',sel:'#resBreak',opt:1,onRes:1,btnK:'ui.next',allow:ALLTABS,wait:function(){return !!S.resultPending;}},
+ {id:'resStops',tab:'iroda',sel:'#resStops',ringSel:'#resStops .lcard',opt:1,onRes:1,btnK:'ui.next',allow:ALLTABS},
+ {id:'resX2',tab:'iroda',sel:'#resX2',opt:1,onRes:1,soft:1,btnK:'ui.next',allow:ALLTABS},
 
- {id:'goStudio',tab:'iroda',sel:'#nav a[data-tab="studio"]',k:'Stúdió',t:'Zene két turné között',
-  p:'Nyisd meg a Stúdiót.',tap:'Koppints a Stúdió fülre',
+ {id:'goStudio',tab:'iroda',sel:'#nav a[data-tab="studio"]',
   done:function(){return S.tab==='studio';},allow:['studio']},
- {id:'studio',tab:'studio',k:'Stúdió',t:'Kiadás → streaming → rajongók',
-  p:'Itt adsz ki single-t, EP-t vagy albumot. A megjelenés megdobja a streaminget, az pedig régiónként hozza a rajongókat — és velük a koncertkeresletet. Két turné között ez tartja életben a pénzgépet.',
-  btn:'Értem',allow:['studio']},
- {id:'goUpg',tab:'studio',sel:'#nav a[data-tab="fejlesztes"]',k:'Fejlesztés',t:'Amibe beruházol',
-  p:'Nyisd meg a Fejlesztés fület.',tap:'Koppints a Fejlesztés fülre',
+ {id:'studio',tab:'studio',btnK:'ui.gotIt',allow:['studio']},
+ {id:'goUpg',tab:'studio',sel:'#nav a[data-tab="fejlesztes"]',
   done:function(){return S.tab==='fejlesztes';},allow:['fejlesztes']},
- {id:'upg',tab:'fejlesztes',k:'Fejlesztés',t:'A pénz visszaforgatása',
-  p:'Marketing és merch-pult a turnékra, létesítmények (stúdió, rig, iroda, busz) és stáb tartós hatással, valamint az előadóid képzése és imázsa. Mind euróból megy, és minden későbbi turnéd erősebb lesz tőle.',
-  btn:'Értem',allow:['fejlesztes']},
+ {id:'upg',tab:'fejlesztes',btnK:'ui.gotIt',allow:['fejlesztes']},
 
- {id:'done',tab:'iroda',k:'Kész',t:'Innen pörög a hurok',
-  p:'Turné → hírnév és pénz → nagyobb helyszín és nagyobb név. Az Iroda fülön mindig ott a következő célod. Mostantól minden nyitva áll.',
-  btn:'Kezdhetem!',allow:ALLTABS},
+ {id:'done',tab:'iroda',allow:ALLTABS},
 ];
 let obLast=-1, obIv=null, obShown=false, obNeedScroll=false, obNoFx=false;
-function obActive(){return !S.obDone&&S.ob!=null&&S.ob<OB.length;}
+function obActive(){return S.started&&!S.obDone&&S.ob!=null&&S.ob<OB.length;}
+/* A lépés szövegei a szótárból jönnek (kulcs: ob.<id>.<mező>); a dinamikus
+   `tap` továbbra is lehet függvény. Ami nincs a szótárban, az üres. */
+function obTx(st,f){
+ if(f==='tap'&&typeof st.tap==='function')return st.tap()||'';
+ if(f==='btn'&&st.btnK)return t(st.btnK);      /* általános gomb (Tovább / Értem) */
+ const k='ob.'+st.id+'.'+f;
+ return hasT(k)?t(k):'';
+}
 function obStep(){return obActive()?OB[S.ob]:null;}
 function obAllowedTabs(){const st=obStep();if(!st)return null;return st.allow||[st.tab];}
 function obStart(){S.obDone=false;S.ob=S.live?OB.findIndex(function(x){return x.id==='liveTop';}):0;
@@ -3065,10 +3391,10 @@ function obInline(st){
  if(cur&&cur.dataset.step===st.id)return;                 // már bent van, ne építsük újra
  if(cur)cur.remove();
  const el=document.createElement('div');el.className='obinline';el.dataset.step=st.id;
- el.innerHTML='<div class="k">'+st.k+' · '+(S.ob+1)+'/'+OB.length+'</div>'+
-   '<h4>'+st.t+'</h4>'+(st.p?'<p>'+st.p+'</p>':'')+
-   '<div class="row">'+(st.tap?'<span class="tap"><span class="d"></span>'+((typeof st.tap==='function')?st.tap():st.tap)+'</span>':'<span></span>')+
-     '<button class="skip" id="obSkipIn">Kihagyom</button></div>';
+ el.innerHTML='<div class="k">'+obTx(st,'k')+' · '+(S.ob+1)+'/'+OB.length+'</div>'+
+   '<h4>'+obTx(st,'t')+'</h4>'+(obTx(st,'p')?'<p>'+obTx(st,'p')+'</p>':'')+
+   '<div class="row">'+(obTx(st,'tap')?'<span class="tap"><span class="d"></span>'+obTx(st,'tap')+'</span>':'<span></span>')+
+     '<button class="skip" id="obSkipIn">'+t('ui.skip')+'</button></div>';
  bd.insertBefore(el,bd.firstChild);
  const sk=el.querySelector('#obSkipIn');if(sk)sk.onclick=obFinish;
  /* a panel görgessen az akciógombokhoz, hogy a magyarázat ne tolja ki őket a képből */
@@ -3141,8 +3467,9 @@ function obPaint(){
     a pozíciót írjuk át; a tartalom csak akkor cserélődik, ha tényleg változott — és
     sosem, amíg a mezőben van a fókusz. */
  const readyNow=st.ready?(st.ready()?1:0):1;
- const tapTxt=(typeof st.tap==='function')?st.tap():st.tap;   /* élő számláló a lépésben */
- const sig=st.id+'|'+readyNow+'|'+(tgt?1:0)+'|'+(onRes?1:0)+'|'+(tapTxt||'');
+ const tapTxt=obTx(st,'tap');                                /* élő számláló a lépésben */
+ const btnTxt=obTx(st,'btn');
+ const sig=st.id+'|'+lang()+'|'+readyNow+'|'+(tgt?1:0)+'|'+(onRes?1:0)+'|'+(tapTxt||'');
  if(el.dataset.sig!==sig){
   /* A fókusz-védelem CSAK a lépésen belüli frissítésre vonatkozik. Ha maga a lépés
      változott, mindig újraépítünk (előtte elengedjük a fókuszt), különben a bemutató
@@ -3166,13 +3493,11 @@ function obPaint(){
    bar.innerHTML='<div class="card">'+
      '<div class="prog"><span class="track"><i style="width:'+pct+'%"></i></span>'+
        '<span class="num">'+(S.ob+1)+' / '+OB.length+'</span></div>'+
-     '<div class="k">'+st.k+'</div>'+
-     '<h4>'+st.t+'</h4>'+(st.p?'<p>'+st.p+'</p>':'')+
-     (st.id==='welcome'?'<input class="obinput" id="obName" type="text" maxlength="24" autocomplete="off" '+
-        'autocapitalize="words" enterkeyhint="done" placeholder="Az ügynökséged neve" value="'+esc(S.agency||'')+'">':'')+
+     '<div class="k">'+obTx(st,'k')+'</div>'+
+     '<h4>'+obTx(st,'t')+'</h4>'+(obTx(st,'p')?'<p>'+obTx(st,'p')+'</p>':'')+
      ((tapTxt&&(!st.ready||!st.ready()))?'<div class="tap"><span class="d"></span>'+tapTxt+'</div>':'')+
-     '<div class="row">'+((st.btn&&readyNow)?'<button class="btn lime sm" id="obGo">'+st.btn+'</button>':'')+
-       '<button class="skip" id="obSkip">Kihagyom</button></div>'+
+     '<div class="row">'+((btnTxt&&readyNow)?'<button class="btn lime sm" id="obGo">'+btnTxt+'</button>':'')+
+       '<button class="skip" id="obSkip">'+t('ui.skip')+'</button></div>'+
    '</div>';
    obBind();
   }
@@ -3248,22 +3573,12 @@ function obPaint(){
 }
 /* a buborék belső gombjainak bekötése — csak akkor fut, ha a tartalom tényleg újraépült */
 function obBind(){
- const nmi=$('#obName');
- if(nmi){
-  nmi.oninput=function(){S.agency=nmi.value.slice(0,24);};
-  nmi.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();nmi.blur();const g=$('#obGo');if(g)g.click();}};
-  /* a fókusz sosem eshet ki alóla egy háttérben futó újrarajzolás miatt */
-  nmi.onblur=function(){S.agency=(nmi.value||'').trim().slice(0,24);save();renderHUD();};
- }
- const g=$('#obGo');if(g)g.onclick=function(){
-   const inp=$('#obName');
-   if(inp){S.agency=(inp.value||'').trim().slice(0,24);save();renderHUD();}
-   obNext();};
+ const g=$('#obGo');if(g)g.onclick=function(){obNext();};
  const sk=$('#obSkip');if(sk)sk.onclick=obFinish;
 }
 
 /* ============================ NAV ============================ */
-function renderNav(){const tabs=[['iroda','house','Iroda'],['terkep','globe','Térkép'],['eloadok','mic','Előadók'],['studio','notes','Stúdió'],['fejlesztes','upgrade','Fejlesztés']];
+function renderNav(){const tabs=[['iroda','house',t('nav.iroda')],['terkep','globe',t('nav.terkep')],['eloadok','mic',t('nav.eloadok')],['studio','notes',t('nav.studio')],['fejlesztes','upgrade',t('nav.fejlesztes')]];
  navEl.innerHTML=tabs.map(([id,ic,l])=>`<a class="${S.tab===id?'on':''}" data-tab="${id}">${icon(ic)}${l}</a>`).join('');
  const allow=obAllowedTabs();
  if(allow)navEl.querySelectorAll('[data-tab]').forEach(a=>{if(allow.indexOf(a.dataset.tab)<0)a.classList.add('off');});
@@ -3512,7 +3827,7 @@ function checkArcs(){
 function careerScreen(){
  const r=recAll(), nm=nextMile(), c=curChal();
  let h='<div class="hud-space"></div><div class="pad">'+
-  '<div class="shead"><div class="eyebrow">Karrier</div><h1>Út a csúcsra</h1></div>'+
+  '<div class="shead"><div class="eyebrow">'+t('head.careerEyebrow')+'</div><h1>'+t('head.career')+'</h1></div>'+
   '<button class="btn dark sm" id="careerBack" style="margin-bottom:12px">‹ Vissza az irodába</button>';
 
  /* következő cél */
@@ -3949,7 +4264,7 @@ function tabIroda(){
      <div class="row">
        <div class="crest">${sg.length?`<img src="${artistPhoto(sg[0],120,120)}" ${imgFB()}>`:icon('house','24px')}</div>
        <div class="who"><div class="rank"><span class="eq"><i></i><i></i><i></i><i></i></span> ${rankName(lp.l)}</div>
-         <div class="nm">${esc(agencyName())}</div>
+         <div class="nm">${esc(agencyName())}<span class="hqbadge">${esc(t('start.hqBadge',{city:hqCity().n}))}</span></div>
          ${legRank()?`<div class="legr">${icon('crown','11px')} ${legRankName()} · ${legRank()}. örökség</div>`:''}</div>
        <div class="lvb">Lv.${lp.l}</div>
      </div>
@@ -4059,10 +4374,13 @@ function tabIroda(){
  h+=`<div class="sec"><h2>Súgó</h2></div>
    <button class="btn dark sm" id="obAgain">${icon('play','15px')} Bemutató újra</button>
    <button class="btn dark sm" id="anTgl" style="margin-top:8px">${icon('cog','15px')} Névtelen játékstatisztika: <b style="color:${S.analyticsConsent!==false?'var(--cash)':'var(--faint)'}">${S.analyticsConsent!==false?'BE':'KI'}</b></button>
-   <div class="hint"><span class="i">${icon('lock','13px')}</span><span>Csak névtelen játék-események, semmilyen személyes adat.</span></div>`;
+   <div class="hint"><span class="i">${icon('lock','13px')}</span><span>Csak névtelen játék-események, semmilyen személyes adat.</span></div>
+   <div class="sec" style="margin-top:16px"><h2>${t('ui.language')}</h2></div>
+   <div class="langrow">${LANGS.map(function(l){return '<button class="stlang'+(l.id===lang()?' on':'')+'" data-setlang="'+l.id+'">'+langFlag(l)+'<span>'+esc(l.n)+'</span></button>';}).join('')}</div>`;
  h+=`</div></div>`;
 
  view.innerHTML=h;
+ bind('[data-setlang]',function(b){setLang(b.dataset.setlang);});
  const oba=$('#obAgain');if(oba)oba.onclick=obStart;
  const at=$('#anTgl');if(at)at.onclick=function(){S.analyticsConsent=(S.analyticsConsent===false);save();
    toast('Névtelen statisztika: '+(S.analyticsConsent!==false?'BE':'KI'));render();};
@@ -4087,7 +4405,7 @@ function acardHTML(a,rich){
  return `<div class="acard" data-artist="${a.id}"><div class="ph"><img src="${artistPhoto(a,300,380)}" ${imgFB()}><div class="g"></div>
    <span class="badge">${icon(a.ic,'11px')} ${esc(gLabel(a))}</span>
    <div class="info"><div class="nm">${esc(a.n)}</div>
-     <div class="gen">${rich?`${REGIONS[top[0]]} · ${Math.round(top[1])} rajongó`:`Jutalék ${dealShare(a)}%`}</div>
+     <div class="gen">${rich?`${rgN(top[0])} · ${Math.round(top[1])} rajongó`:`Jutalék ${dealShare(a)}%`}</div>
      <div class="fame"><div class="fbar"><i style="width:${af(a)}%"></i></div><span class="fn">${af(a)}</span></div>
      ${rich?`<div class="meta">${icon('headphones','11px')} ${fmtStream(A.streams)} havi hallgató</div>`:''}
    </div></div></div>`;}
@@ -4097,7 +4415,7 @@ function tabEloadok(){
  if(S.detail){detailScreen();return;}
  const mine=signed(), pool=scoutList(), locked=byFame(ARTISTS.filter(a=>a.minRep>S.rep&&!S.roster.includes(a.id)));
  let h=`<div class="hud-space"></div><div class="pad">
-   <div class="shead"><div class="eyebrow">Roster</div><h1>Előadók</h1><p>A leigazolt előadóiddal tervezhetsz turnét. Nagyobb nevek magasabb hírnévnél szerződnek.</p></div>`;
+   <div class="shead"><div class="eyebrow">${t('head.roster')}</div><h1>${t('head.artists')}</h1><p>${t('head.artistsSub')}</p></div>`;
  h+=`<div class="sec"><h2>A csapatod</h2><span class="r ${mine.length<rosterCap()?'act':''}">${mine.length}/${rosterCap()} hely</span></div>`;
  if(!mine.length)h+=`<div class="empty">Még nincs előadód.<br>Válassz lentről egy feltörekvő tehetséget – ingyen!</div>`;
  mine.forEach(a=>h+=lcardArtist(a,'mine'));
@@ -4120,7 +4438,7 @@ function tabEloadok(){
    if(!spendCredits(COST_REROLL)){openShop(`Az új felhozatal ${COST_REROLL} kredit. Minden turné után amúgy is ingyen frissül!`);return;}
    rollScout();save();render();toast('Új nevek a listán.');};
 }
-function lcardArtist(a,mode){const canPay=S.money>=a.sign, top=Object.entries(a.reg).sort((x,y)=>y[1]-x[1]).slice(0,2).map(([r])=>REGIONS[r]).join(', ');
+function lcardArtist(a,mode){const canPay=S.money>=a.sign, top=Object.entries(a.reg).sort((x,y)=>y[1]-x[1]).slice(0,2).map(([r])=>rgN(r)).join(', ');
  return `<div class="lcard"><div class="ph" data-artist="${a.id}"><img src="${artistPhoto(a,220,260)}" ${imgFB()}><span class="gi">${icon(a.ic,'13px')}</span></div>
    <div class="bd"><div class="nm" data-artist="${a.id}">${esc(a.n)}</div>
      <div class="chips"><span class="chip">${gLabel(a)}</span><span class="chip gold">Hírnév ${af(a)}</span><span class="chip">${esc(top)}</span></div>
@@ -4211,11 +4529,11 @@ function defVenue(a){const f=af(a);let want=f>=80?VM.arena:f>=50?VM.theatre:VM.c
 function tabTerkep(){
  if(S.live){liveScreen();return;}
  const sg=signed();
- if(!sg.length){view.innerHTML=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">Turné</div><h1>Térkép</h1></div>
+ if(!sg.length){view.innerHTML=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">${t('head.tour')}</div><h1>${t('head.map')}</h1></div>
    <div class="coach" data-go="eloadok"><div class="n">1</div><div class="t"><div class="h">Előbb kell egy előadó</div><div class="s">Igazolj le valakit az Előadók fülön, aztán ide visszatérve turnét tervezhetsz.</div></div><div class="go">›</div></div></div>`;
    bind('[data-go]',b=>{S.tab=b.dataset.go;save();render();});return;}
  if(!S.tour){ // előadó választó
-   let h=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">Turné · 1. lépés</div><h1>Kit viszel turnéra?</h1><p>Válaszd ki, melyik előadódnak szervezel világkörüli turnét.</p></div></div><div class="hscroll">`;
+   let h=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">${t('head.step1')}</div><h1>${t('head.pickWho')}</h1><p>${t('head.pickWhoSub')}</p></div></div><div class="hscroll">`;
    sg.forEach(a=>h+=acardHTML(a).replace('data-artist','data-tour'));
    h+=`</div>`;view.innerHTML=h;bind('[data-tour]',b=>startTour(b.dataset.tour));return;}
  plannerScreen();
@@ -4234,7 +4552,7 @@ function liveScreen(){
  const badge=travelling?`<span class="badge2">${icon('plane','13px')} Úton</span>`:`<span class="live"><span class="d"></span>Élő koncert</span>`;
 
  let h=`<div class="hud-space"></div><div class="pad">
-  <div class="shead"><div class="eyebrow">${icon(a.ic)} ${esc(a.n)} · turné folyamatban</div>
+  <div class="shead"><div class="eyebrow">${icon(a.ic)} ${esc(a.n)} · ${t('head.tourRunning')}</div>
    <h1>${L.rows.length}/${L.stops.length} állomás kész</h1></div>
   <div class="lvc"><div class="ph"><img src="${cityPhoto(cur,700,340)}" ${imgFB()}><div class="g"></div>
     <div class="top">${badge}<span class="badge2">${icon('calendar','12px')} ${L.days+1}. nap</span></div></div>
@@ -4296,7 +4614,7 @@ function liveScreen(){
    h+=`<div class="tlr ${isNow?'now':'dead'}"><div class="h"><span class="c">${i+1}. ${c.n}</span>
      <span class="p" style="color:var(--muted)">${vv.n}</span></div>
      <div class="m"><span>Várható ${k(b.lo)}–${k(b.hi)} néző</span><span>€${st.price}</span></div>
-     <div class="d">${REGIONS[c.r]} rajongótábor <b style="color:${fanCol(e.fans)}">${Math.round(e.fans)}</b></div></div>`;
+     <div class="d">${rgN(c.r)} rajongótábor <b style="color:${fanCol(e.fans)}">${Math.round(e.fans)}</b></div></div>`;
   }});
  h+=`</div>`;
 
@@ -4331,7 +4649,7 @@ function paintLive(){
 function plannerScreen(){
  const a=AM[S.tour.artist];
  let h=`<div class="hud-space"></div><div class="pad">
-   <div class="shead"><div class="eyebrow">${icon(a.ic)} ${esc(a.n)} · Világturné</div><h1>Turné tervezése</h1></div>
+   <div class="shead"><div class="eyebrow">${icon(a.ic)} ${esc(a.n)} · ${t('head.worldTour')}</div><h1>${t('head.planTour')}</h1></div>
    `;
  /* LÉPÉSES nézet: egyszerre egy szakasz — nincs hosszú, félreérthető görgetés */
  const stp=plStep();
@@ -4518,7 +4836,7 @@ function initDrag(){
 }
 function renderChips(){const A=artState(S.tour.artist);let h='';
  Object.keys(REGIONS).forEach(rg=>{const cs=cityList().filter(c=>c.r===rg);if(!cs.length)return;const f=A.fans[rg]||0;
-  h+=`<div class="grp"><div class="l">${REGIONS[rg]} · <b style="color:${fanCol(f)}">rajongótábor ${Math.round(f)}</b> <span style="color:var(--faint)">(${fanLabel(f)})</span></div><div class="cchips">`;
+  h+=`<div class="grp"><div class="l">${rgN(rg)} · <b style="color:${fanCol(f)}">rajongótábor ${Math.round(f)}</b> <span style="color:var(--faint)">(${fanLabel(f)})</span></div><div class="cchips">`;
   cs.forEach(c=>{const idx=S.tour.stops.findIndex(s=>s.city===c.id);
    const last=S.tour.stops.length?CM[S.tour.stops[S.tour.stops.length-1].city]:null;
    const km=(last&&last.id!==c.id&&idx<0)?Math.round(haversine(last,c)):0;
@@ -4577,7 +4895,7 @@ function renderStops(){const a=AM[S.tour.artist],stops=S.tour.stops,setQ=setlist
         <div class="rng" id="pr${i}">${rngHTML(b,e.att,v.cap)}</div></div>
 
       <div class="notes">
-        <div class="band" style="margin-top:0"><span>${REGIONS[city.r]} rajongótábor <b style="color:${fanCol(e.fans)}">${Math.round(e.fans)}</b></span>
+        <div class="band" style="margin-top:0"><span>${rgN(city.r)} rajongótábor <b style="color:${fanCol(e.fans)}">${Math.round(e.fans)}</b></span>
           <span id="pfit${i}" style="color:${fit.c};font-weight:700">${fit.t}</span></div>
         ${e.fresh<0.99?`<div class="band"><span style="color:var(--hot)">${icon('alert','13px')} Nemrég játszottál itt</span>
           <span style="color:var(--hot)">a közönség pihen · <b>−${Math.round((1-e.fresh)*100)}%</b></span></div>`:''}
@@ -4679,7 +4997,7 @@ function updateSticky(){const stops=S.tour.stops,cost=promoCost(stops,S.tour.pro
 /* ---------- STÚDIÓ (kiadások + streaming + rajongótábor) ---------- */
 function fanBars(A,gains){
  let h='';Object.keys(REGIONS).forEach(r=>{const f=A.fans[r],g=gains&&gains[r];
-  h+=`<div class="fanrow"><span class="n">${REGIONS[r]}</span>
+  h+=`<div class="fanrow"><span class="n">${rgN(r)}</span>
     <span class="b"><i style="width:${clamp(f,0,100)}%;background:${fanCol(f)}"></i></span>
     <span class="v" style="color:${fanCol(f)}">${Math.round(f)}</span>
     <span class="d" style="color:${g>0?'var(--cash)':'transparent'}">${g>0?'+'+dec1(g):''}</span></div>`;});
@@ -4688,7 +5006,7 @@ function fanBars(A,gains){
 function tabStudio(){
  const sg=signed();
  if(!sg.length){view.innerHTML=`<div class="hud-space"></div><div class="pad">
-   <div class="shead"><div class="eyebrow">Zene</div><h1>Stúdió</h1></div>
+   <div class="shead"><div class="eyebrow">${t('head.music')}</div><h1>${t('head.studio')}</h1></div>
    <div class="coach" data-go="eloadok"><div class="n">1</div><div class="t"><div class="h">Előbb kell egy előadó</div>
      <div class="s">Igazolj le valakit, aztán itt adhatsz ki vele single-t vagy albumot.</div></div><div class="go">›</div></div></div>`;
   bind('[data-go]',b=>{S.tab=b.dataset.go;save();render();});return;}
@@ -4697,7 +5015,7 @@ function tabStudio(){
    trend=tgt>A.streams*1.05?'Növekszik':tgt<A.streams*0.95?'Lassan csökken':'Stabil';
 
  let h=`<div class="hud-space"></div><div class="pad">
-   <div class="shead"><div class="eyebrow">Zene</div><h1>Stúdió</h1>
+   <div class="shead"><div class="eyebrow">${t('head.music')}</div><h1>${t('head.studio')}</h1>
      <p>Kiadás, streaming, rajongótábor.</p></div>`;
 
  /* folyamatban lévő felvétel */
@@ -4793,7 +5111,7 @@ const UPG={
    desc:'Nagyobb választék és profibb pult a helyszíneken. A merch a rajongótábor kamata: ahol imádnak, ott sokkal többet költenek.'}
 };
 function tabFejlesztes(){
- let h=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">Iroda</div><h1>Fejlesztés</h1><p>Fektesd vissza a bevételt: a marketing több nézőt hoz, az erős stáb csökkenti a költséget.</p></div>`;
+ let h=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">${t('head.office')}</div><h1>${t('head.upgrade')}</h1><p>${t('head.upgradeSub')}</p></div>`;
  h+=upgCard('marketing')+upgCard('staff')+upgCard('merch');
 
 
@@ -4826,7 +5144,7 @@ function tabFejlesztes(){
    h+=`<div class="lcard" style="margin-top:10px"><div class="ph" style="flex:0 0 74px;width:74px"><img src="${cityPhoto(c,220,240)}" ${imgFB()}></div>
      <div class="bd"><div class="nm" style="font-size:17px">${esc(c.n)}</div>
        <div class="chips">${own?`<span class="chip mint">${VM[own].n} · a tiéd</span><span class="chip">+${money(Math.round(venPrice(cid,own)*0.003))}/hét</span>`
-                              :`<span class="chip">${REGIONS[c.r]}</span><span class="chip">elérés ${c.reach}</span>`}</div>
+                              :`<span class="chip">${rgN(c.r)}</span><span class="chip">elérés ${c.reach}</span>`}</div>
        <div class="vgrid">${VENUES.filter(v=>venueOpen(v)).map(v=>{const pr=venPrice(cid,v.id),mine=own===v.id;
          return `<button class="vbtn ${mine?'on':''}" data-venbuy="${cid}:${v.id}" ${mine?'disabled':''}>
            <b>${v.n}</b><small>${mine?'a tiéd':money(pr)}</small></button>`;}).join('')}</div>
@@ -4922,7 +5240,7 @@ function showResult(){const r=S.lastResult,played=Array.isArray(r.rows)&&r.rows.
      <span class="v" style="color:${fanCol(f.now)}">${f.now}</span>
      <span class="d" style="color:var(--cash)">+${dec1(f.g)}</span></div>`);
   const dec=Object.entries(r.decay||{});
-  h+=`</div>${dec.length?`<div class="hint"><span class="i" style="color:var(--hot)">↓</span><span>Ahol nem jártál, ott lassan kopik a rajongótábor: ${dec.map(([rg,d])=>`${REGIONS[rg]} −${dec1(d)}`).join(' · ')}. Érdemes visszatérni.</span></div>`:''}`;
+  h+=`</div>${dec.length?`<div class="hint"><span class="i" style="color:var(--hot)">↓</span><span>Ahol nem jártál, ott lassan kopik a rajongótábor: ${dec.map(([rg,d])=>`${rgN(rg)} −${dec1(d)}`).join(' · ')}. Érdemes visszatérni.</span></div>`:''}`;
   h+=`<div class="hint"><span class="i">${icon('headphones','13px')}</span><span>Havi hallgató: <b>${fmtStream(r.streams||0)}</b></span></div>`;}
  if(r.log&&r.log.length){h+=`<div class="sec"><h2>Váratlan események</h2></div>`;
   r.log.forEach(x=>h+=`<div class="logr"><div class="i">${icon(x.ic||'star','15px')}</div>
@@ -4972,7 +5290,8 @@ render();
 /* a turné a játék bezárása alatt is véget érhetett — az eredményt akkor is meg kell mutatni */
 Analytics.init();
 /* csak EGYSZER jelezzük a bemutató indulását — újratöltésenként ne duplikálódjon */
-if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track('tutorial_started',{source:'first_open'});}
+if(!S.started){renderStart();}
+else if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track('tutorial_started',{source:'first_open'});}
 if(S.resultPending&&S.lastResult)showResult();
 if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
 if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs};

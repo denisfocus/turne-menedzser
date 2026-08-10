@@ -9,6 +9,12 @@ időben zajlik le — váratlan eseményekkel, amelyeknél döntened kell.
 Egyetlen önálló `index.html` (vanilla JS, keretrendszer nélkül). A mentés a böngésző
 `localStorage`-ában van, tehát a telefonodon folytatódik ott, ahol abbahagytad.
 
+## Nyelvek
+
+Az indítóképernyőn választasz nyelvet (később az Iroda → Súgó alatt bármikor átállítható):
+magyar, angol, német, spanyol, francia, olasz, portugál, lengyel, holland, török.
+Alapértelmezés a böngésző nyelve, ha támogatott — egyébként angol.
+
 ## Telepítés a telefonra
 
 A játék PWA, tehát appként a kezdőképernyőre tehető — saját ikonnal, böngésző-sáv nélkül.
