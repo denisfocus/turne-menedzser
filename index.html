@@ -74,10 +74,12 @@ img{display:block;max-width:100%}
 
 /* ---------- scroll view ---------- */
 #view{position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;z-index:10;
-  padding-bottom:96px}
+  padding-bottom:calc(80px + env(safe-area-inset-bottom))}   /* nav 74px + 6px levego */
 #view::-webkit-scrollbar{display:none}
 .pad{padding:0 14px}
-.hud-space{height:118px}
+/* A HUD magassága eszközfüggő (env(safe-area-inset-top) miatt notch-on jóval magasabb),
+   ezért a helykitöltő a MÉRT magasságot kapja (--hudh); a CSS-érték csak tartalék. */
+.hud-space{height:var(--hudh,calc(126px + env(safe-area-inset-top)))}
 
 /* ---------- section head ---------- */
 .sec{display:flex;align-items:center;justify-content:space-between;margin:20px 2px 12px}
@@ -2910,6 +2912,12 @@ function animateNum(el,to,fmt){if(!el)return;const from=parseFloat(el.dataset.v|
 
 /* ============================ HUD ============================ */
 const hudLast={money:null,rep:null};
+/* A helykitolto mindig a HUD tenyleges magassagat kapja (+8px levego), kulonben a
+   banner teteje — vele a rang-felirat — a fix HUD moge csuszik. */
+function syncHudSpace(){
+ const hh=hud.offsetHeight||0;
+ if(hh)$('#app').style.setProperty('--hudh',(hh+8)+'px');
+}
 function renderHUD(){
  const lp=levelProg(), av=S.roster.length?artistPhoto(AM[S.roster[0]],80,80):null;
  hud.innerHTML=`<div class="hud-top">
@@ -2937,6 +2945,7 @@ function renderHUD(){
  animateNum(hr,S.rep,v=>Math.round(v).toLocaleString('hu-HU'));
  hudLast.money=S.money;hudLast.rep=S.rep;
  $('#hudWk').textContent=String(S.week).padStart(2,'0');
+ syncHudSpace();
 }
 
 /* ============================ ONBOARDING ============================
@@ -3896,6 +3905,9 @@ function staffCard(st){
 /* ============================ RENDER ============================ */
 /* minden koppintás után újraértékeljük a lépést — ez a fő továbblépési jel */
 document.addEventListener('click',function(){if(obActive())setTimeout(obPaint,70);},true);
+window.addEventListener('resize',syncHudSpace);
+window.addEventListener('load',syncHudSpace);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(syncHudSpace);
 let obRaf=0,obFxT=0;
 view.addEventListener('scroll',function(){
  if(!obActive())return;
@@ -3906,11 +3918,12 @@ view.addEventListener('scroll',function(){
 window.addEventListener('resize',function(){if(obActive())obPaint();});
 function render(){applyTheme();checkUnlocks();chalLive();checkArcs();checkMiles();renderHUD();renderNav();
  stickyHost.innerHTML='';
- view.style.paddingBottom=(obActive()?(($('#obbar').offsetHeight||0)+96)+'px':'');
+ view.style.paddingBottom=(obActive()?(($('#obbar').offsetHeight||0)+(navEl.offsetHeight||74)+10)+'px':'');
  if(S.tab!=='terkep')teardownMap();
  if(S.tab==='iroda'&&S.career)careerScreen();
  else ({iroda:tabIroda,terkep:tabTerkep,eloadok:tabEloadok,studio:tabStudio,fejlesztes:tabFejlesztes}[S.tab]||tabIroda)();
  view.scrollTop=0;
+ syncHudSpace();
  if(S.live||S.rel)startTicker();else stopTicker();
  obPaint();
  /* félbehagyott döntés visszaállítása újratöltés után */
