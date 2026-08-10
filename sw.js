@@ -7,7 +7,7 @@
    FRISSÍTÉS: a héj HÁLÓZAT-ELSŐ, ezért új verzió azonnal érkezik, ha van net;
    offline a cache-elt példány jön. A CACHE nevét minden kiadásnál emeljük, és az
    aktiválás töröl minden korábbit — így nem ragadhat be régi build. */
-const CACHE = 'tm-shell-v3';
+const CACHE = 'tm-shell-v4';
 const SHELL = [
   './',
   './index.html',
@@ -18,7 +18,8 @@ const SHELL = [
   './icons/icon-maskable-192.png',
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
-  './icons/favicon-32.png'
+  './icons/favicon-32.png',
+  './assets/logo.webp'
 ];
 
 self.addEventListener('install', function (e) {

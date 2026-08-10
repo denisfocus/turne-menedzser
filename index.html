@@ -800,13 +800,30 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 .giftcard .go{color:var(--gold);flex:0 0 auto}
 .giftcard:active{transform:scale(.99)}
 /* ---------- KEZDŐKÉPERNYŐ ---------- */
+/* A kezdokepernyo a LOGO vilagat viszi: koncert-lila + magenta. A jatek belso
+   felulete marad lime — a valtast az teszi lehetove, hogy a --neon valtozokat
+   CSAK ezen a retegen irjuk felul. */
 #start{position:absolute;inset:0;z-index:95;display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  background:radial-gradient(620px 420px at 50% -8%,rgba(198,255,58,.13),transparent 62%),
-             radial-gradient(520px 360px at 100% 12%,rgba(255,61,132,.09),transparent 60%),var(--bg)}
+  --neon:#C77DFF;--neon-d:#9D4EDD;--neon-dd:#6A1FA2;--neonglow:rgba(199,125,255,.55);
+  background:radial-gradient(640px 460px at 50% -6%,rgba(157,78,221,.24),transparent 64%),
+             radial-gradient(540px 380px at 100% 14%,rgba(255,61,180,.14),transparent 62%),
+             radial-gradient(480px 340px at 0% 30%,rgba(90,60,200,.14),transparent 60%),var(--bg)}
 #start.on{display:block}
 #start::-webkit-scrollbar{display:none}
 .stwrap{padding:calc(26px + env(safe-area-inset-top)) 18px calc(26px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto}
-.stlogo{display:flex;justify-content:center;margin-bottom:14px}
+.stlogo{display:flex;justify-content:center;margin:0 0 6px;position:relative}
+.stlogo::before{content:"";position:absolute;left:50%;top:48%;width:78%;height:62%;transform:translate(-50%,-50%);
+  border-radius:50%;background:radial-gradient(closest-side,rgba(157,78,221,.55),transparent 72%);
+  filter:blur(26px);pointer-events:none;animation:heroglow 5s ease-in-out infinite}
+@keyframes heroglow{0%,100%{opacity:.62;transform:translate(-50%,-50%) scale(1)}
+                    50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}
+/* A logo negyzetes fekete hattere lagyan elhal, hogy ne latszodjon a doboz-el */
+.stlogo img{width:min(300px,80%);height:auto;position:relative;z-index:1;
+  -webkit-mask-image:radial-gradient(closest-side,#000 68%,rgba(0,0,0,.55) 84%,transparent 97%);
+  mask-image:radial-gradient(closest-side,#000 68%,rgba(0,0,0,.55) 84%,transparent 97%);
+  animation:herorise .7s cubic-bezier(.2,.9,.25,1) both}
+@keyframes herorise{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.stlogo img,.stlogo::before{animation:none}}
 .eqbig{display:flex;align-items:flex-end;gap:6px;height:66px}
 .eqbig i{width:11px;border-radius:6px;background:linear-gradient(180deg,var(--neon),var(--neon-dd));
   box-shadow:0 0 18px rgba(198,255,58,.35);animation:eqb 1.5s ease-in-out infinite}
@@ -3243,8 +3260,8 @@ function renderStart(){
  const nameVal=(S.agency||'');
  const cur=S.hq||'bud';
  let h='<div class="stwrap">';
- h+='<div class="stlogo"><span class="eqbig"><i></i><i></i><i></i><i></i><i></i></span></div>';
- h+='<h1 class="sttitle">Turné Menedzser</h1>';
+ h+='<div class="stlogo"><img src="assets/logo.webp" alt="Tour Manager" width="720" height="720" '+
+    'decoding="async" fetchpriority="high"></div>';
  h+='<p class="sttag">'+esc(t('start.tagline'))+'</p>';
 
  h+='<div class="stsec"><div class="stlab">'+esc(t('start.langLabel'))+'</div><div class="stlangs">';
