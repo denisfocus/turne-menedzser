@@ -27,7 +27,7 @@ img{display:block;max-width:100%}
 .disp{font-family:var(--disp);font-weight:700;letter-spacing:.005em}
 
 /* ---------- app frame ---------- */
-#app{height:100vh;max-width:480px;height:100dvh;margin:0 auto;position:relative;background:var(--bg);overflow:hidden;
+#app{--obbar:0px;height:100vh;max-width:480px;height:100dvh;margin:0 auto;position:relative;background:var(--bg);overflow:hidden;
   box-shadow:0 0 60px rgba(0,0,0,.6)}
 
 /* ambient light */
@@ -320,7 +320,7 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 .fbar2 i{display:block;height:100%;transition:width .25s}
 
 /* ---------- sticky action ---------- */
-.sticky{position:absolute;left:0;right:0;bottom:calc(74px + env(safe-area-inset-bottom));z-index:25;padding:12px 14px 8px;
+.sticky{position:absolute;left:0;right:0;bottom:calc(74px + env(safe-area-inset-bottom) + var(--obbar,0px));z-index:25;padding:12px 14px 8px;
   background:linear-gradient(180deg,transparent,var(--bg) 40%);pointer-events:none}
 .sticky .in{pointer-events:auto}
 
@@ -792,6 +792,20 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 .obring{position:absolute;border-radius:16px;box-shadow:0 0 0 3px var(--neon),0 0 0 9999px rgba(4,6,10,.76);
   transition:top .2s,left .2s,width .2s,height .2s}
 .obdim{position:absolute;inset:0;background:rgba(4,6,10,.76)}
+/* DOKKOLT tutorial-sáv: saját helyet foglal, a görgethető tartalom fölé SOHA nem ér rá.
+   A kiemelő gyűrű továbbra is a célelemen van, a szöveg viszont itt, fix helyen. */
+#obbar{position:absolute;left:0;right:0;bottom:calc(74px + env(safe-area-inset-bottom));z-index:69;
+  display:none;padding:11px 13px calc(11px);background:linear-gradient(180deg,rgba(9,11,14,.97),rgba(9,11,14,1));
+  border-top:1px solid rgba(198,255,58,.45);box-shadow:0 -14px 34px rgba(0,0,0,.55)}
+#obbar.on{display:block}
+#obbar .k{font-size:9.5px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;color:var(--neon)}
+#obbar h4{font-family:var(--disp);font-weight:700;font-size:15px;margin-top:3px;line-height:1.15;word-spacing:.13em}
+#obbar p{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4;max-height:74px;overflow:auto}
+#obbar .row{display:flex;gap:10px;align-items:center;margin-top:9px}
+#obbar .row .btn{flex:1;width:auto;min-width:0}
+#obbar .skip{font-size:11px;color:var(--faint);font-weight:700;text-decoration:underline;flex:0 0 auto;padding:8px 2px}
+#obbar .tap{font-size:12px;font-weight:700;color:var(--neon);display:flex;align-items:center;gap:7px;margin-top:8px}
+#obbar .tap .d{width:8px;height:8px;border-radius:50%;background:var(--neon);animation:pulse 1.1s infinite}
 .obbub{position:absolute;left:12px;right:12px;pointer-events:auto;background:var(--panel);
   border:1px solid rgba(198,255,58,.42);border-radius:18px;padding:15px 16px;box-shadow:0 20px 54px rgba(0,0,0,.66)}
 .obbub .k{font-size:9.5px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;color:var(--neon)}
@@ -834,6 +848,11 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
   border:1px solid rgba(198,255,58,.4);color:var(--text);font-family:var(--disp);font-weight:700;font-size:15px}
 .obinput::placeholder{color:var(--faint);font-weight:700}
 .obinput:focus{outline:none;border-color:var(--neon);background:rgba(198,255,58,.08)}
+.tiltrow{display:flex;align-items:center;gap:10px;padding:0 14px 8px}
+.tiltb{flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:9px 13px;border-radius:12px;
+  background:var(--panel2);border:1px solid var(--line2);color:var(--muted);font-weight:700;font-size:12.5px}
+.tiltb.on{border-color:var(--neon);color:var(--neon);background:rgba(198,255,58,.1)}
+.tilthint{font-size:11px;color:var(--faint);line-height:1.3;min-width:0}
 </style>
 </head>
 <body>
@@ -847,6 +866,7 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
   <div id="mini"></div>
   <div id="adv"></div>
   <div id="ob"></div>
+  <div id="obbar"></div>
 </div>
 
 <svg width="0" height="0" style="position:absolute"><defs id="icondefs"></defs></svg>
@@ -1711,7 +1731,7 @@ function runShow(i){
  const L=S.live,a=AM[L.artist],st=L.stops[i],city=CM[st.city],v=VM[st.venue];
  const dr=(L.mini&&L.mini[i])||null;
  /* a dobos mini-játék a KÉSZ setlist-ív rendszeren át hat: a show-pontszámhoz adódik */
- const setQ=clamp(setlistQ(a,L.setlist)+(dr?dr.pts:0),0,100);
+ const setQ=clamp(setlistQ(a,L.setlist)+(dr?dr.pts:0),0,114);
  const A=artState(a.id),reg=city.r,fansBefore=A.fans[reg];
  const e=estimate(a,city,v,st.price,setQ,L.mom,L.promo), sig=sigmaFor(a,L.promo);
  let att,fill,rev,cost,profit,repD,merch=0,fanG=0,cancelled=false;
@@ -2035,7 +2055,9 @@ const KIT=[
 /* Rövidebb, de sűrűbb menet: gyorsabb tempó, szűkülő időablakok, a végén szimultán padok. */
 /* Egyszerre EGY pad villan — a szimultán padok túl kaotikusak voltak.
    Cserébe feszesebb tempó és rövidebb ablak, de az alap-átvitel könnyű marad. */
-const RG={win:560,winHard:360,perfectFrac:0.20,bars:16000,bpm:120};
+/* Kényelmes, teljesíthető szint: széles időablakok, nyugodt tempó. A max elérhető,
+   az alap-átvitel könnyű. */
+const RG={win:900,winHard:680,perfectFrac:0.26,bars:15000,bpm:96};
 let M=null;
 
 /* apró WebAudio visszajelzés — a találat legyen kielégítő */
@@ -2101,13 +2123,13 @@ function buildPattern(){
     és az időablak folyamatosan szűkül. A maxolás így valódi kihívás. */
  const beat=60000/RG.bpm, notes=[]; let pad=-1, k=0;
  for(let b=4;b*beat<RG.bars-700;b++){
-  if(b%8===3)continue;                                  // egy levegővétel ütemenként
+  if(b%4===3)continue;                                  // egy levegővétel ütemenként
   const prog=(b*beat)/RG.bars;                          // 0 → 1
-  const shrink=1-prog*0.42;                             // a vége felé feszesebb ablak
+  const shrink=1-prog*0.14;                             // a vége felé feszesebb ablak
   const hard=(k%4===3);k++;
   let q,g=0;do{q=Math.floor(Math.random()*KIT.length);}while(q===pad&&g++<24);
   pad=q;
-  notes.push({t:b*beat,dur:Math.max(240,Math.round((hard?RG.winHard:RG.win)*shrink)),hard:hard,pad:q,done:false});
+  notes.push({t:b*beat,dur:Math.max(520,Math.round((hard?RG.winHard:RG.win)*shrink)),hard:hard,pad:q,done:false});
  }
  return notes;
 }
@@ -2225,7 +2247,8 @@ function miniDraw(){
 }
 /* pontszám → a show-értékeléshez adott pont (a setlist-ív rendszeren keresztül) */
 /* mindkét mini-játék ugyanezt a skálát használja: max +14 bónusz, max −8 visszahúzás */
-function miniPoints(acc){return Math.round(clamp((acc-0.55)*30,-8,14));}
+/* Megengedőbb pontozás: az átlagos játék is pluszban van, a büntetés enyhe. */
+function miniPoints(acc){return Math.round(clamp((acc-0.38)*26,-4,14));}
 /* közös eredmény-képernyő mindkét mini-játéknak */
 function miniResult(kind,acc,detail){
  const pts=miniPoints(acc);
@@ -2253,10 +2276,10 @@ function endMini(){
    (WebAudio, licencmentes), és a fények, a cue-k és a pontozás a ZENE ÜTEMÉRE mennek.
    Skill: irány + intenzitás húzással, szín-illesztés, és a dropra elsütött cue. */
 /* Rövidebb és feszesebb: több drop, szűkebb cue-ablak. */
-const LT={dur:17000,bpm:132,nBack:9,nFront:11,
+const LT={dur:16000,bpm:112,nBack:9,nFront:11,
   cols:[{id:'ice',n:'Kék',c:[110,215,255]},{id:'white',n:'Fehér',c:[235,245,255]},{id:'amber',n:'Arany',c:[255,180,70]}],
-  drops:[5,9,13,17,21,25,29,33],
-  cueWin:290};
+  drops:[6,12,18,24,29],
+  cueWin:520};
 function countdown(done){
  let c=3;const cd=$('#mCount');
  const step=function(){ if(!M||M.ended)return;
@@ -2320,6 +2343,8 @@ function openLights(stopIdx){
       '<button class="x" id="mSound" style="color:'+(S.sound===false?'var(--faint)':'var(--neon)')+'">HANG</button></div>'+
     '<div class="mbar"><i id="mCrowd" style="width:46%"></i><b>KÖZÖNSÉG</b></div>'+
   '</div>'+
+  '<div class="tiltrow"><button class="tiltb" id="tiltBtn">'+icon('globe','15px')+' Dőlés KI</button>'+
+    '<span class="tilthint">A kezed felszabadul — csak a CUE-t kell nyomni.</span></div>'+
   '<div class="rig" id="rig">'+
     '<canvas id="rigC"></canvas>'+
     '<div class="hint3" id="rigHint">HÚZD AZ UJJAD — IRÁNY ÉS INTENZITÁS<br>KÖVESD A FEHÉR JELET</div>'+
@@ -2334,19 +2359,53 @@ function openLights(stopIdx){
   '<div class="mready" id="mReady">'+
     '<div class="mcount" id="mCount">3</div>'+
     '<h3>Tiéd a fénypult</h3>'+
-    '<p>Húzd az ujjad: <b>vízszintesen az irány</b>, <b>függőlegesen az intenzitás</b>. '+
+    '<p>Húzd az ujjad — vagy kapcsold be a <b>Dőlést</b>, és a telefon döntésével irányíts. '+
        'Kövesd a fehér jelet, tartsd a <b>kért színt</b>, és a <b style="color:var(--hot)">DROP</b>-ra nyomd a CUE-t.</p>'+
   '</div>';
  $('#mini').className='on';
  $('#mSound').onclick=function(){S.sound=(S.sound===false);save();$('#mSound').style.color=S.sound===false?'var(--faint)':'var(--neon)';};
  $('#mQuit').onclick=function(){closeMini(false);};
+ /* ---- DŐLÉSSEL IRÁNYÍTÁS ----
+    A csúszka húzása közben a CUE-t nyomni kényelmetlen, ezért a reflektor iránya a
+    telefon dőléséből is jöhet: a kéz felszabadul, csak koppintani kell a dropokra.
+    iOS-en engedélyt kell kérni, felhasználói gesztusra. Ha nincs, marad az érintés. */
  const rig=$('#rig'),cv=$('#rigC');
+ M.tilt=false;M.tiltBase=null;
+ const tiltHandler=function(ev){
+   if(!M||M.kind!=='lights'||!M.tilt)return;
+   const g=(ev.gamma==null?0:ev.gamma), b=(ev.beta==null?45:ev.beta);
+   if(M.tiltBase===null)M.tiltBase={g:g,b:b};
+   M.aimX=clamp(0.5+(g-M.tiltBase.g)/50,0,1);          // balra-jobbra döntés → irány
+   M.aimY=clamp(0.5+(M.tiltBase.b-b)/56,0,1);          // előre-hátra → intenzitás
+   const h=$('#rigHint');if(h)h.style.display='none';};
+ M.tiltHandler=tiltHandler;
+ const setTilt=function(on){
+   M.tilt=on;M.tiltBase=null;
+   const tb=$('#tiltBtn');if(tb){tb.classList.toggle('on',on);tb.innerHTML=icon('globe','15px')+(on?' Dőlés BE':' Dőlés KI');}
+   const h=$('#rigHint');if(h)h.innerHTML=on?'DÖNTSD A TELEFONT — IRÁNY ÉS INTENZITÁS<br>KÖVESD A FEHÉR JELET'
+                                            :'HÚZD AZ UJJAD — IRÁNY ÉS INTENZITÁS<br>KÖVESD A FEHÉR JELET';
+   S.tilt=on;save();};
+ const askTilt=function(){
+   const DOE=window.DeviceOrientationEvent;
+   if(!DOE){toast('Ez az eszköz nem támogatja a dőlés-érzékelést.');return;}
+   if(typeof DOE.requestPermission==='function'){
+     DOE.requestPermission().then(function(r){
+       if(r==='granted'){window.addEventListener('deviceorientation',tiltHandler);setTilt(true);}
+       else toast('Nincs engedély — marad az ujjas irányítás.');
+     }).catch(function(){toast('Nincs engedély — marad az ujjas irányítás.');});
+   }else{window.addEventListener('deviceorientation',tiltHandler);setTilt(true);}
+ };
+ M.tiltOff=function(){try{window.removeEventListener('deviceorientation',tiltHandler);}catch(e){}};
+ const tb=$('#tiltBtn');
+ if(tb)tb.onclick=function(){ if(M.tilt){M.tiltOff();setTilt(false);} else askTilt(); };
+ if(S.tilt&&window.DeviceOrientationEvent&&typeof window.DeviceOrientationEvent.requestPermission!=='function'){
+   window.addEventListener('deviceorientation',tiltHandler);setTilt(true);}
  const put=function(e){const r=rig.getBoundingClientRect();
    M.aimX=clamp((e.clientX-r.left)/r.width,0,1);
    M.aimY=clamp(1-(e.clientY-r.top)/r.height,0,1);
    const h=$('#rigHint');if(h)h.style.display='none';};
- rig.onpointerdown=function(e){e.preventDefault();M.down=true;try{rig.setPointerCapture(e.pointerId);}catch(x){}put(e);};
- rig.onpointermove=function(e){if(M&&M.down)put(e);};
+ rig.onpointerdown=function(e){if(M&&M.tilt)return;e.preventDefault();M.down=true;try{rig.setPointerCapture(e.pointerId);}catch(x){}put(e);};
+ rig.onpointermove=function(e){if(M&&M.down&&!M.tilt)put(e);};
  rig.onpointerup=rig.onpointercancel=function(){if(M)M.down=false;};
  $('#mini').querySelectorAll('[data-col]').forEach(function(b){b.onclick=function(){M.col=+b.dataset.col;
    $('#mini').querySelectorAll('[data-col]').forEach(function(x){x.classList.toggle('on',+x.dataset.col===M.col);});};});
@@ -2400,7 +2459,7 @@ function lightTick(){
  M.tgtY=0.55+0.35*Math.sin(ph*1.5+1.1);
  M.trackAll++;
  const d=Math.hypot((M.aimX-M.tgtX),(M.aimY-M.tgtY)*0.8);
- if(d<=0.19){M.trackOn++;M.crowd=clamp(M.crowd+0.22,0,100);}else M.crowd=clamp(M.crowd-0.16,0,100);
+ if(d<=0.30){M.trackOn++;M.crowd=clamp(M.crowd+0.22,0,100);}else M.crowd=clamp(M.crowd-0.16,0,100);
  M.colAll++;if(M.col===M.wantCol)M.colOn++;
  M.cues.forEach(function(c){if(!c.done&&now>c.t+LT.cueWin){c.done=true;M.cueMiss++;M.combo=0;
    M.crowd=clamp(M.crowd-7,0,100);judgeL('miss');}});
@@ -2479,7 +2538,7 @@ function endLights(){
 function miniKindFor(i){return (((S.toursDone||0)+i)%2===0)?'drum':'lights';}
 function closeMini(played){
  const L=S.live;
- if(M){if(M.raf)cancelAnimationFrame(M.raf);if(M.iv)clearInterval(M.iv);}
+ if(M){if(M.raf)cancelAnimationFrame(M.raf);if(M.iv)clearInterval(M.iv);if(M.tiltOff)M.tiltOff();}
  if(M&&!M.ended&&!played){                       // kiszállt: legyen tiszta auto, ne fél-eredmény
   M.ended=true;if(L){L.miniSkip=L.miniSkip||{};L.miniSkip[M.stop]=true;}
  }
@@ -2682,7 +2741,7 @@ function obAllowedTabs(){const st=obStep();if(!st)return null;return st.allow||[
 function obStart(){S.obDone=false;S.ob=S.live?OB.findIndex(function(x){return x.id==='liveTop';}):0;
  if(S.ob<0)S.ob=0;obLast=-1;S.tab=S.live?'terkep':'iroda';S.career=false;S.detail=null;S.obStarted=1;
  Analytics.track('tutorial_started',{source:'replay'});save();render();}
-function obFinish(){obInlineClear();
+function obFinish(){obInlineClear();obBarClear();
  Analytics.track('tutorial_completed',{step:Math.min(OB.length,(S.ob||0)+1),total:OB.length,skipped:(S.ob<OB.length-1)?1:0});
  S.obDone=true;S.ob=null;obLast=-1;obShown=false;if(obIv){clearInterval(obIv);obIv=null;}
  $('#ob').className='';$('#ob').innerHTML='';save();render();}
@@ -2712,12 +2771,14 @@ function obInline(st){
    if(ch&&ch.getBoundingClientRect().bottom>window.innerHeight-6)ev.scrollTop=ev.scrollHeight;}catch(e){}},60);
 }
 function obInlineClear(){const e=document.querySelector('.obinline');if(e)e.remove();}
-function obHide(){obShown=false;const e=$('#ob');e.className='';e.innerHTML='';e.dataset.sig='';}
+function obBarClear(){const b=$('#obbar');b.className='';b.innerHTML='';b.dataset.sig='';
+ $('#app').style.setProperty('--obbar','0px');}
+function obHide(){obShown=false;const e=$('#ob');e.className='';e.innerHTML='';e.dataset.sig='';obBarClear();}
 /* MODÁLIS: amíg a bemutató látszik, a háttérben semmi nem kattintható —
    csak a kiemelt cél-elem és maga a buborék. A görgetés viszont szabad marad. */
 document.addEventListener('click',function(e){
  if(!obActive()||!obShown)return;
- if(e.target.closest&&e.target.closest('.obbub'))return;
+ if(e.target.closest&&e.target.closest('.obbub,#obbar,.obinline'))return;
  /* beviteli mezőt sosem blokkolunk — különben a mobil billentyűzet nem nyílna meg */
  if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName||''))return;
  /* a kilépés/visszalépés sosem blokkolódik */
@@ -2759,8 +2820,9 @@ function obPaint(){
  /* A kiemelés és a buborék a FIX sávok közé szorul: nem lóghat a HUD-ra, a lenti
     navra, sem az indító sticky sávra. */
  const sb=stickyHost.querySelector('.sticky');
+ const barEl=$('#obbar');
  const safeTop=onRes?8:(hud.offsetHeight||0)+6;
- const safeBot=app.height-(onRes?8:((navEl.offsetHeight||0)+(sb?sb.offsetHeight:0)+6));
+ const safeBot=app.height-(onRes?8:((navEl.offsetHeight||0)+(barEl.offsetHeight||0)+(sb?sb.offsetHeight:0)+6));
  /* ---- A RÉTEG NEM ÉPÜL ÚJRA MINDEN TICKNÉL ----
     Korábban az innerHTML minden 450 ms-os tickre (és minden koppintás után) újraépült,
     ami a beviteli mezőt megsemmisítette: elveszett a fókusz, a mobil billentyűzet
@@ -2778,22 +2840,34 @@ function obPaint(){
   if(!sameStep&&el.contains(document.activeElement)&&document.activeElement.blur)document.activeElement.blur();
   if(!focused){
    el.dataset.sig=sig;
-   el.innerHTML=(tgt?'<div class="obring"></div>':'<div class="obdim"></div>')+
-    '<div class="obbub">'+
-      '<div class="k">'+st.k+' · '+(S.ob+1)+'/'+OB.length+'</div>'+
-      '<h4>'+st.t+'</h4>'+(st.p?'<p>'+st.p+'</p>':'')+
-      (st.id==='welcome'?'<input class="obinput" id="obName" type="text" maxlength="24" autocomplete="off" '+
-         'autocapitalize="words" enterkeyhint="done" placeholder="Az ügynökséged neve" value="'+esc(S.agency||'')+'">':'')+
-      ((st.tap&&(!st.ready||!st.ready()))?'<div class="tap"><span class="d"></span>'+st.tap+'</div>':'')+
-      '<div class="row">'+((st.btn&&readyNow)?'<button class="btn lime sm" id="obGo">'+st.btn+'</button>':'')+
-        '<button class="skip" id="obSkip">Kihagyom</button></div>'+
-    '</div>';
+   el.innerHTML=(tgt?'<div class="obring"></div>':'<div class="obdim"></div>');
+  }
+ }
+ /* A SZÖVEG mindig a dokkolt sávban van — így semmit nem takarhat. */
+ const bar=$('#obbar');
+ if(bar.dataset.sig!==sig){
+  const foc=bar.contains(document.activeElement)&&/INPUT|TEXTAREA/.test((document.activeElement||{}).tagName||'');
+  if(!foc||(bar.dataset.sig||'').split('|')[0]!==st.id){
+   if((bar.dataset.sig||'').split('|')[0]!==st.id&&bar.contains(document.activeElement)&&document.activeElement.blur)document.activeElement.blur();
+   bar.dataset.sig=sig;
+   bar.innerHTML='<div class="k">'+st.k+' · '+(S.ob+1)+'/'+OB.length+'</div>'+
+     '<h4>'+st.t+'</h4>'+(st.p?'<p>'+st.p+'</p>':'')+
+     (st.id==='welcome'?'<input class="obinput" id="obName" type="text" maxlength="24" autocomplete="off" '+
+        'autocapitalize="words" enterkeyhint="done" placeholder="Az ügynökséged neve" value="'+esc(S.agency||'')+'">':'')+
+     ((st.tap&&(!st.ready||!st.ready()))?'<div class="tap"><span class="d"></span>'+st.tap+'</div>':'')+
+     '<div class="row">'+((st.btn&&readyNow)?'<button class="btn lime sm" id="obGo">'+st.btn+'</button>':'')+
+       '<button class="skip" id="obSkip">Kihagyom</button></div>';
    obBind();
   }
  }
+ bar.className='on';
+ const barH=bar.offsetHeight||0;
+ $('#app').style.setProperty('--obbar',barH+'px');
+ /* a görgethető tartalom hagyjon helyet a sávnak — így SEMMI nem kerül alá */
+ if(!onRes)view.style.paddingBottom=((navEl.offsetHeight||0)+barH+(sb?sb.offsetHeight:0)+22)+'px';
  /* pozicionálás — ez minden ticken frissülhet, mert nem érinti a DOM-fát */
- const ringEl=el.querySelector('.obring'), bubEl=el.querySelector('.obbub');
- if(bubEl){
+ const ringEl=el.querySelector('.obring');
+ {
   if(tgt){const r=tgt.getBoundingClientRect(),pad=7;
    /* A biztonságos sáv a GÖRGETHETŐ tartalomra vonatkozik. Ha maga a cél egy FIX sávban
       van (lenti nav, HUD, sticky), akkor a valódi helyére kell a gyűrű — különben a
@@ -2803,20 +2877,6 @@ function obPaint(){
    if(!inFixed){t=clamp(t,safeTop,safeBot-24); bm=clamp(bm,safeTop+24,safeBot);}
    if(ringEl){ringEl.style.cssText='top:'+t+'px;left:'+(r.left-app.left-pad)+'px;'+
      'width:'+(r.width+pad*2)+'px;height:'+Math.max(24,bm-t)+'px';}
-   /* A buborék SOSEM takarhatja a célt: a nagyobb szabad oldalra kerül, és a
-      rendelkezésre álló helyre zsugorodik (belül görgethető). Csak akkor fekszik rá,
-      ha egyik oldalon sincs értelmes hely — ilyenkor a cél úgyis a képernyő nagy része. */
-   const roomBelow=(inFixed?app.height:safeBot)-bm, roomAbove=t-safeTop, MIN=96;
-   if(roomBelow>=MIN&&roomBelow>=roomAbove)
-     bubEl.style.cssText='top:'+(bm+12)+'px;max-height:'+(roomBelow-18)+'px;overflow:auto';
-   else if(roomAbove>=MIN)
-     bubEl.style.cssText='bottom:'+(app.height-t+12)+'px;max-height:'+(roomAbove-18)+'px;overflow:auto';
-   else if(roomBelow>=MIN)
-     bubEl.style.cssText='top:'+(bm+12)+'px;max-height:'+(roomBelow-18)+'px;overflow:auto';
-   else bubEl.style.cssText='bottom:'+(app.height-safeBot+10)+'px;max-height:'+(safeBot-safeTop-16)+'px;overflow:auto';
-  }else{
-   bubEl.style.cssText='top:'+safeTop+'px;bottom:'+(app.height-safeBot)+'px;'+
-     'display:flex;flex-direction:column;justify-content:center;overflow:auto';
   }
  }
  el.className='on'+(st.onModal?' overmodal':'');obShown=true;
@@ -3425,7 +3485,8 @@ document.addEventListener('click',function(){if(obActive())setTimeout(obPaint,70
 view.addEventListener('scroll',function(){if(obActive())obPaint();},{passive:true});
 window.addEventListener('resize',function(){if(obActive())obPaint();});
 function render(){applyTheme();checkUnlocks();chalLive();checkArcs();checkMiles();renderHUD();renderNav();
- stickyHost.innerHTML='';view.style.paddingBottom='';   // az updateSticky() állítja be, ha kell
+ stickyHost.innerHTML='';
+ view.style.paddingBottom=(obActive()?(($('#obbar').offsetHeight||0)+96)+'px':'');
  if(S.tab!=='terkep')teardownMap();
  if(S.tab==='iroda'&&S.career)careerScreen();
  else ({iroda:tabIroda,terkep:tabTerkep,eloadok:tabEloadok,studio:tabStudio,fejlesztes:tabFejlesztes}[S.tab]||tabIroda)();
@@ -4128,7 +4189,7 @@ function updateSticky(){const stops=S.tour.stops,cost=promoCost(stops,S.tour.pro
  /* A sticky gomb magassága változó (hint + 2 gomb). Enélkül a lap alja — épp a
     promóció-választó — a gomb alá csúszik, és webnézetben nem lehet elérni. */
  const sb=stickyHost.querySelector('.sticky');
- view.style.paddingBottom=(sb?sb.offsetHeight+90:96)+'px';
+ view.style.paddingBottom=((sb?sb.offsetHeight:0)+($('#obbar').offsetHeight||0)+96)+'px';
  const sim=$('#sim');if(sim)sim.onclick=launchTour;
  const gt=$('#goTodo');if(gt)gt.onclick=gotoNextTodo;
  const gc=$('#goCity');if(gc)gc.onclick=()=>{const el=view.querySelector('#routebox');
@@ -4376,7 +4437,7 @@ Analytics.init();
 /* csak EGYSZER jelezzük a bemutató indulását — újratöltésenként ne duplikálódjon */
 if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track('tutorial_started',{source:'first_open'});}
 if(S.resultPending&&S.lastResult)showResult();
-if(Analytics.debug)window.Analytics=Analytics;   // fejlesztői mód: konzolból is vizsgálható
+if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
 if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs};
 })();
 </script>
