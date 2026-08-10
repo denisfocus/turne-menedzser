@@ -800,27 +800,33 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 .giftcard .go{color:var(--gold);flex:0 0 auto}
 .giftcard:active{transform:scale(.99)}
 /* ---------- KEZDŐKÉPERNYŐ ---------- */
-/* A kezdokepernyo a LOGO vilagat viszi: koncert-lila + magenta. A jatek belso
-   felulete marad lime — a valtast az teszi lehetove, hogy a --neon valtozokat
-   CSAK ezen a retegen irjuk felul. */
+/* A kezdokepernyo a LOGO vilagat viszi: fekete + BOROSTYAN. A jatek belso felulete
+   marad lime — a valtast az teszi lehetove, hogy a --neon valtozokat CSAK ezen a
+   retegen irjuk felul.
+   A hatterkep MAGAN a #start elemen ul (nem kulon retegen): igy a logo
+   mix-blend-mode:screen tenylegesen a KEPPEL keveredik — kulon retegnel a #start
+   sajat rétegzési kontextusa elvágná. background-attachment:scroll miatt a kep
+   a dobozhoz rogzul, tehat gorgeteskor NEM csuszik el. */
 #start{position:absolute;inset:0;z-index:95;display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  --neon:#C77DFF;--neon-d:#9D4EDD;--neon-dd:#6A1FA2;--neonglow:rgba(199,125,255,.55);
-  background:radial-gradient(640px 460px at 50% -6%,rgba(157,78,221,.24),transparent 64%),
-             radial-gradient(540px 380px at 100% 14%,rgba(255,61,180,.14),transparent 62%),
-             radial-gradient(480px 340px at 0% 30%,rgba(90,60,200,.14),transparent 60%),var(--bg)}
+  --neon:#F2A81C;--neon-d:#C9860F;--neon-dd:#8A5B06;--neonglow:rgba(242,168,28,.55);
+  background-image:linear-gradient(180deg,rgba(5,6,8,.78) 0%,rgba(5,6,8,.50) 28%,
+                   rgba(5,6,8,.70) 60%,rgba(5,6,8,.93) 88%,rgba(5,6,8,.97) 100%),
+                   url('assets/bg-start.webp');
+  background-size:cover,cover;background-position:center top,center top;
+  background-repeat:no-repeat,no-repeat;background-color:var(--bg)}
 #start.on{display:block}
 #start::-webkit-scrollbar{display:none}
 .stwrap{padding:calc(26px + env(safe-area-inset-top)) 18px calc(26px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto}
 .stlogo{display:flex;justify-content:center;margin:0 0 6px;position:relative}
-.stlogo::before{content:"";position:absolute;left:50%;top:48%;width:78%;height:62%;transform:translate(-50%,-50%);
-  border-radius:50%;background:radial-gradient(closest-side,rgba(157,78,221,.55),transparent 72%);
-  filter:blur(26px);pointer-events:none;animation:heroglow 5s ease-in-out infinite}
+.stlogo::before{content:"";position:absolute;left:50%;top:50%;width:84%;height:66%;transform:translate(-50%,-50%);
+  border-radius:50%;background:radial-gradient(closest-side,rgba(242,168,28,.34),transparent 72%);
+  filter:blur(30px);pointer-events:none;animation:heroglow 5s ease-in-out infinite}
 @keyframes heroglow{0%,100%{opacity:.62;transform:translate(-50%,-50%) scale(1)}
                     50%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}}
-/* A logo negyzetes fekete hattere lagyan elhal, hogy ne latszodjon a doboz-el */
-.stlogo img{width:min(300px,80%);height:auto;position:relative;z-index:1;
-  -webkit-mask-image:radial-gradient(closest-side,#000 68%,rgba(0,0,0,.55) 84%,transparent 97%);
-  mask-image:radial-gradient(closest-side,#000 68%,rgba(0,0,0,.55) 84%,transparent 97%);
+/* A logo alapja tiszta fekete: SCREEN keveressel nyomtalanul beleolvad a sotet
+   hatterkepbe — igy nincs latható negyzet-el, es a fenyek is jobban izzanak. */
+.stlogo img{width:min(330px,88%);height:auto;position:relative;z-index:1;
+  mix-blend-mode:screen;filter:drop-shadow(0 10px 26px rgba(0,0,0,.55));
   animation:herorise .7s cubic-bezier(.2,.9,.25,1) both}
 @keyframes herorise{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.stlogo img,.stlogo::before{animation:none}}
@@ -3260,7 +3266,7 @@ function renderStart(){
  const nameVal=(S.agency||'');
  const cur=S.hq||'bud';
  let h='<div class="stwrap">';
- h+='<div class="stlogo"><img src="assets/logo.webp" alt="Tour Manager" width="720" height="720" '+
+ h+='<div class="stlogo"><img src="assets/logo-empire.webp" alt="Tour Empire" width="760" height="760" '+
     'decoding="async" fetchpriority="high"></div>';
  h+='<p class="sttag">'+esc(t('start.tagline'))+'</p>';
 
