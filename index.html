@@ -4459,9 +4459,9 @@ function tabIroda(){
    <button class="btn dark sm" id="obAgain">${icon('play','15px')} Bemutató újra</button>
    <button class="btn dark sm" id="anTgl" style="margin-top:8px">${icon('cog','15px')} Névtelen játékstatisztika: <b style="color:${S.analyticsConsent!==false?'var(--cash)':'var(--faint)'}">${S.analyticsConsent!==false?'BE':'KI'}</b></button>
    <div class="hint"><span class="i">${icon('lock','13px')}</span><span>Csak névtelen játék-események, semmilyen személyes adat.</span></div>
-   <div class="sec" style="margin-top:16px"><h2>Kijelző</h2></div>
+   ${Analytics.debug?`<div class="sec" style="margin-top:16px"><h2>Kijelző</h2></div>
    <div class="hint" style="font-family:var(--disp);font-size:11.5px;color:var(--muted);line-height:1.7">
-     <span class="i">${icon('cog','13px')}</span><span id="diagBox">—</span></div>
+     <span class="i">${icon('cog','13px')}</span><span id="diagBox">—</span></div>`:''}
    <div class="sec" style="margin-top:16px"><h2>${t('ui.language')}</h2></div>
    <div class="langrow">${LANGS.map(function(l){return '<button class="stlang'+(l.id===lang()?' on':'')+'" data-setlang="'+l.id+'">'+langFlag(l)+'<span>'+esc(l.n)+'</span></button>';}).join('')}</div>`;
  h+=`</div></div>`;
@@ -4478,7 +4478,17 @@ function tabIroda(){
   const sat=Math.round(probe.getBoundingClientRect().height);
   probe.remove();
   const mode=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone?'app':'böngésző';
-  d.innerHTML='mód '+mode+' · inner '+window.innerWidth+'×'+window.innerHeight+
+  /* A DONTO szam: a webnezet magassaga vs. a kijelzo magassaga. Ha a nezet kisebb,
+     a kulonbseg olyan sav, ahova a lap NEM tud rajzolni (iOS statuszsav-mod). */
+  const scr=Math.round((window.screen&&window.screen.height)||0);
+  const viewH=window.innerHeight;
+  const lost=scr>0?Math.max(0,scr-viewH):0;
+  const bar=(document.querySelector('meta[name=apple-mobile-web-app-status-bar-style]')||{}).content||'—';
+  d.innerHTML='<b style="color:'+(lost>8?'var(--hot)':'var(--cash)')+'">'+
+   (lost>8?('NEM RAJZOLHATÓ SÁV: '+lost+' px'):'a nézet kitölti a kijelzőt')+'</b>'+
+   '<br>nézet '+viewH+' · kijelző '+scr+' · avail '+Math.round((window.screen&&window.screen.availHeight)||0)+
+   '<br>mód '+mode+' · státuszsáv-stílus '+bar+
+   '<br>inner '+window.innerWidth+'×'+window.innerHeight+
    ' · visual '+(vv?Math.round(vv.width)+'×'+Math.round(vv.height):'—')+
    ' · client '+document.documentElement.clientHeight+
    '<br>safe-area top '+sat+' / bottom '+sab+
