@@ -3267,7 +3267,9 @@ const hudLast={money:null,rep:null};
    merete alapjan allitjuk be. Minden valtozasnal (forgatas, sav-megjelenes) frissul. */
 function syncFrame(){
  const vv=window.visualViewport;
- const h=Math.round(vv?vv.height:window.innerHeight);
+ /* a LEGNAGYOBB ertek nyer: igy a keret sosem maradhat el a lathato terulettol */
+ const h=Math.round(Math.max(vv?vv.height:0,window.innerHeight||0,
+                             document.documentElement.clientHeight||0));
  if(h>0)document.documentElement.style.setProperty('--vph',h+'px');
 }
 function syncHudSpace(){
@@ -4455,11 +4457,33 @@ function tabIroda(){
    <button class="btn dark sm" id="obAgain">${icon('play','15px')} Bemutató újra</button>
    <button class="btn dark sm" id="anTgl" style="margin-top:8px">${icon('cog','15px')} Névtelen játékstatisztika: <b style="color:${S.analyticsConsent!==false?'var(--cash)':'var(--faint)'}">${S.analyticsConsent!==false?'BE':'KI'}</b></button>
    <div class="hint"><span class="i">${icon('lock','13px')}</span><span>Csak névtelen játék-események, semmilyen személyes adat.</span></div>
+   <div class="sec" style="margin-top:16px"><h2>Kijelző</h2></div>
+   <div class="hint" style="font-family:var(--disp);font-size:11.5px;color:var(--muted);line-height:1.7">
+     <span class="i">${icon('cog','13px')}</span><span id="diagBox">—</span></div>
    <div class="sec" style="margin-top:16px"><h2>${t('ui.language')}</h2></div>
    <div class="langrow">${LANGS.map(function(l){return '<button class="stlang'+(l.id===lang()?' on':'')+'" data-setlang="'+l.id+'">'+langFlag(l)+'<span>'+esc(l.n)+'</span></button>';}).join('')}</div>`;
  h+=`</div></div>`;
 
  view.innerHTML=h;
+ /* Kijelző-diagnosztika: a telepített appban is látszik, mit mér a böngésző. */
+ (function(){const d=$('#diagBox');if(!d)return;
+  const vv=window.visualViewport, app=$('#app').getBoundingClientRect(), nv=navEl.getBoundingClientRect();
+  const probe=document.createElement('div');
+  probe.style.cssText='position:fixed;left:0;bottom:0;width:0;height:env(safe-area-inset-bottom);';
+  document.body.appendChild(probe);
+  const sab=Math.round(probe.getBoundingClientRect().height);
+  probe.style.height='env(safe-area-inset-top)';
+  const sat=Math.round(probe.getBoundingClientRect().height);
+  probe.remove();
+  const mode=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone?'app':'böngésző';
+  d.innerHTML='mód '+mode+' · inner '+window.innerWidth+'×'+window.innerHeight+
+   ' · visual '+(vv?Math.round(vv.width)+'×'+Math.round(vv.height):'—')+
+   ' · client '+document.documentElement.clientHeight+
+   '<br>safe-area top '+sat+' / bottom '+sab+
+   ' · keret '+Math.round(app.height)+' (alja '+Math.round(app.bottom)+')'+
+   '<br>nav '+Math.round(nv.height)+' · nav alja '+Math.round(nv.bottom)+
+   ' · nav alatt '+Math.round(window.innerHeight-nv.bottom)+' px';
+ })();
  bind('[data-setlang]',function(b){setLang(b.dataset.setlang);});
  const oba=$('#obAgain');if(oba)oba.onclick=obStart;
  const at=$('#anTgl');if(at)at.onclick=function(){S.analyticsConsent=(S.analyticsConsent===false);save();
