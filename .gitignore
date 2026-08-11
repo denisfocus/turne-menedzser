@@ -5,3 +5,12 @@ mock1.html
 mock3.html
 mock3app.html
 compare.html
+
+# Natív build (a CI generalja, nem kerul a repoba)
+node_modules/
+www/
+android/
+ios/
+*.keystore
+*.p12
+*.mobileprovision

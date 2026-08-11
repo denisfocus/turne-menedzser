@@ -2396,9 +2396,9 @@ function confirmBox(title,text,okLabel,fn){
    ÉLESÍTÉS: csak a Store.buy() belsejét kell kicserélni a bolt fizetésére
    (Google Play Billing / App Store IAP) — a játék többi része nem tud róla. */
 const PACKS=[
- {c:100,  eur:'1,99 €'},
- {c:550,  eur:'7,99 €',  tag:'+10%'},
- {c:1200, eur:'14,99 €', tag:'+20%', best:1},
+ {c:100,  eur:'1,99 €',  id:'tourempire.credits.100'},
+ {c:550,  eur:'7,99 €',  tag:'+10%', id:'tourempire.credits.550'},
+ {c:1200, eur:'14,99 €', tag:'+20%', best:1, id:'tourempire.credits.1200'},
 ];
 /* KREDIT-SINKEK — mind kényelem/kozmetika, az ingyenes út végig teljes értékű.
    Árazás: egy 100-as csomag néhány értelmes vásárlásra elég, nem tucatnyira. */
@@ -2459,11 +2459,31 @@ const Analytics={
  }
 };
 const AD_TOUR_BONUS=0.50;   // a turné végi flagship reklám: +50% a jutalékra
+/* Natív platformon (App Store / Google Play) a vásárlásnak a RENDSZER boltján kell
+   mennie — ezt a bolti szabályzat kötelezővé teszi. A `native` ág akkor lép életbe,
+   ha a natív burokban elérhető a vásárlás-plugin; addig (és weben) a fejlesztői ág fut.
+   Termékazonosítók: lásd STORE.md (tourempire.credits.100 / .550 / .1200). */
+function isNative(){return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());}
+function nativeBilling(){
+ const P=window.Capacitor&&window.Capacitor.Plugins;
+ return (P&&(P.InAppPurchase2||P.Purchases||P.InAppPurchases))||null;
+}
 const Store={
  buy(pack,onOk){
-  Analytics.track('iap_started',{pack:pack.c,price:pack.eur});
-  /* PLACEHOLDER: itt hívná a bolt fizetését. Most azonnal jóváír, hogy a folyamat tesztelhető legyen. */
-  Analytics.track('iap_completed',{pack:pack.c,price:pack.eur});
+  Analytics.track('iap_started',{pack:pack.c,price:pack.eur,native:isNative()?1:0});
+  const bill=isNative()?nativeBilling():null;
+  if(bill&&typeof bill.purchase==='function'){
+   bill.purchase({productId:pack.id}).then(function(res){
+     if(res&&res.cancelled){Analytics.track('iap_cancelled',{pack:pack.c});return;}
+     Analytics.track('iap_completed',{pack:pack.c,price:pack.eur,native:1});
+     S.credits=credits()+pack.c;save();renderHUD();
+     toast(`+${pack.c} kredit jóváírva.`);
+     if(onOk)onOk();
+   }).catch(function(){toast('A vásárlás nem sikerült.');});
+   return;
+  }
+  /* fejlesztői / webes ág: azonnal jóváír, hogy a folyamat tesztelhető legyen */
+  Analytics.track('iap_completed',{pack:pack.c,price:pack.eur,native:0});
   S.credits=credits()+pack.c;save();renderHUD();
   toast(`+${pack.c} kredit jóváírva.`);
   if(onOk)onOk();
@@ -5452,7 +5472,8 @@ if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPri
    Relatív útvonal → a hatókör automatikusan a /turne-menedzser/ al-útvonal.
    A regisztráció sosem blokkolja a játékot: hiba esetén némán elmarad
    (pl. file:// megnyitás vagy nem biztonságos kapcsolat). */
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+var NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+if (!NATIVE && 'serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('sw.js').then(function (reg) {
       /* Ha a háttérben új verzió készül el, a következő indításnál már az fut:

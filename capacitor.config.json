@@ -1,0 +1,30 @@
+{
+  "appId": "com.denisfocus.tourempire",
+  "appName": "Tour Empire",
+  "webDir": "www",
+  "backgroundColor": "#06070a",
+  "android": {
+    "backgroundColor": "#06070a",
+    "allowMixedContent": false
+  },
+  "ios": {
+    "backgroundColor": "#06070a",
+    "contentInset": "never",
+    "scrollEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#06070a",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#06070a",
+      "overlaysWebView": false
+    }
+  }
+}

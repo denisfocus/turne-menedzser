@@ -1,0 +1,105 @@
+name: iOS csomag
+
+# macOS futtatón épül (Xcode kell hozzá, Windowsról nem megy) — a GitHub biztosítja.
+# Titkok nélkül is lefut: ilyenkor csak ELLENŐRZI, hogy a projekt lefordul (szimulátor
+# build, aláírás nélkül). Ha az Apple-titkok be vannak állítva, aláírt IPA készül,
+# és feltölthető a TestFlightbe.
+on:
+  workflow_dispatch:
+    inputs:
+      upload_testflight:
+        description: 'Feltöltés TestFlightbe (kell hozzá minden Apple-titok)'
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: macos-14
+    env:
+      CERT_P12: ${{ secrets.IOS_CERT_P12_BASE64 }}
+      CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+      PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+      TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Függőségek
+        run: npm install
+
+      - name: Webes fájlok összeállítása (www/)
+        run: npm run build
+
+      - name: iOS projekt létrehozása
+        run: npx cap add ios
+
+      - name: Ikonok és indítókép generálása
+        run: >
+          npx capacitor-assets generate --ios --assetPath store-assets
+          --iconBackgroundColor '#06070a' --iconBackgroundColorDark '#06070a'
+          --splashBackgroundColor '#06070a' --splashBackgroundColorDark '#06070a'
+
+      - name: Szinkron
+        run: npx cap sync ios
+
+      - name: Fordítási próba (aláírás nélkül)
+        if: env.CERT_P12 == ''
+        working-directory: ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace -scheme App \
+            -sdk iphonesimulator -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO build | tail -30
+
+      - name: Aláíró tanúsítvány és profil telepítése
+        if: env.CERT_P12 != ''
+        run: |
+          security create-keychain -p ci build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p ci build.keychain
+          echo "$CERT_P12" | base64 -d > cert.p12
+          security import cert.p12 -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ci build.keychain
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROFILE" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/app.mobileprovision
+
+      - name: Archiválás és IPA
+        if: env.CERT_P12 != ''
+        working-directory: ios/App
+        run: |
+          xcodebuild -workspace App.xcworkspace -scheme App \
+            -configuration Release -archivePath $PWD/App.xcarchive \
+            DEVELOPMENT_TEAM="$TEAM_ID" archive
+          cat > ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath $PWD/App.xcarchive \
+            -exportOptionsPlist ExportOptions.plist -exportPath $PWD/output
+
+      - name: Feltöltés TestFlightbe
+        if: ${{ inputs.upload_testflight && env.ASC_KEY_P8 != '' }}
+        working-directory: ios/App
+        run: |
+          mkdir -p ~/private_keys
+          echo "$ASC_KEY_P8" | base64 -d > ~/private_keys/AuthKey_$ASC_KEY_ID.p8
+          xcrun altool --upload-app -f output/App.ipa -t ios \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+
+      - name: IPA feltöltése artifactként
+        if: env.CERT_P12 != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: tour-empire-ios
+          path: ios/App/output/*.ipa
+          if-no-files-found: warn

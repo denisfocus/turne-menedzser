@@ -1,0 +1,28 @@
+{
+  "name": "tour-empire",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tour Empire — zenei turnémenedzser-szimulátor (natív burok a webes játék köré)",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-www.mjs",
+    "sync": "npm run build && cap sync",
+    "add:android": "cap add android",
+    "add:ios": "cap add ios",
+    "assets": "capacitor-assets generate --assetPath store-assets --iconBackgroundColor '#06070a' --iconBackgroundColorDark '#06070a' --splashBackgroundColor '#06070a' --splashBackgroundColorDark '#06070a'",
+    "open:android": "cap open android",
+    "open:ios": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/app": "^6.0.2",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/ios": "^6.2.0",
+    "@capacitor/splash-screen": "^6.0.3",
+    "@capacitor/status-bar": "^6.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^6.2.0"
+  }
+}
