@@ -41,7 +41,8 @@ img{display:block;max-width:100%}
 .disp{font-family:var(--disp);font-weight:700;letter-spacing:.005em}
 
 /* ---------- app frame ---------- */
-#app{--obbar:0px;position:fixed;inset:0;max-width:480px;margin:0 auto;background:var(--bg);overflow:hidden;
+#app{--obbar:0px;position:fixed;top:0;left:0;right:0;max-width:480px;margin:0 auto;background:var(--bg);
+  height:100%;height:100dvh;height:var(--vph,100dvh);overflow:hidden;
   box-shadow:0 0 60px rgba(0,0,0,.6)}
 
 /* ambient light */
@@ -3261,6 +3262,14 @@ function animateNum(el,to,fmt){if(!el)return;const from=parseFloat(el.dataset.v|
 const hudLast={money:null,rep:null};
 /* A helykitolto mindig a HUD tenyleges magassagat kapja (+8px levego), kulonben a
    banner teteje — vele a rang-felirat — a fix HUD moge csuszik. */
+/* A LATHATO magassag rogzitese: iOS standalone modban a CSS-viewport egysegek
+   elterhetnek a tenylegesen lathato terulettol, ezert a keretet a visualViewport
+   merete alapjan allitjuk be. Minden valtozasnal (forgatas, sav-megjelenes) frissul. */
+function syncFrame(){
+ const vv=window.visualViewport;
+ const h=Math.round(vv?vv.height:window.innerHeight);
+ if(h>0)document.documentElement.style.setProperty('--vph',h+'px');
+}
 function syncHudSpace(){
  const hh=hud.offsetHeight||0;
  if(hh)$('#app').style.setProperty('--hudh',(hh+8)+'px');
@@ -4285,8 +4294,14 @@ function staffCard(st){
 /* ============================ RENDER ============================ */
 /* minden koppintás után újraértékeljük a lépést — ez a fő továbblépési jel */
 document.addEventListener('click',function(){if(obActive())setTimeout(obPaint,70);},true);
-window.addEventListener('resize',syncHudSpace);
-window.addEventListener('load',syncHudSpace);
+syncFrame();
+window.addEventListener('resize',function(){syncFrame();syncHudSpace();});
+window.addEventListener('orientationchange',function(){setTimeout(function(){syncFrame();syncHudSpace();},120);});
+if(window.visualViewport){
+ window.visualViewport.addEventListener('resize',function(){syncFrame();syncHudSpace();});
+}
+window.addEventListener('pageshow',syncFrame);
+window.addEventListener('load',function(){syncFrame();syncHudSpace();});
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(syncHudSpace);
 let obRaf=0,obFxT=0;
 view.addEventListener('scroll',function(){
