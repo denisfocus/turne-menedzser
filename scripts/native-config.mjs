@@ -48,9 +48,7 @@ const GP = 'android/gradle.properties';
 if (existsSync(GP)) {
   let g = await readFile(GP, 'utf8');
   if (!g.includes('suppressUnsupportedCompileSdk')) {
-    await writeFile(GP, g + '
-android.suppressUnsupportedCompileSdk=35
-');
+    await writeFile(GP, g + '\nandroid.suppressUnsupportedCompileSdk=35\n');
     console.log('Android: compileSdk figyelmeztetés elnémítva');
   }
 }
