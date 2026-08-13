@@ -14,3 +14,5 @@ ios/
 *.keystore
 *.p12
 *.mobileprovision
+*.p8
+AuthKey_*
