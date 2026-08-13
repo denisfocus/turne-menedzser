@@ -44,6 +44,9 @@ jobs:
       - name: iOS projekt létrehozása
         run: npx cap add ios
 
+      - name: Natív beállítások (AdMob azonosítók)
+        run: node scripts/native-config.mjs
+
       - name: Ikonok és indítókép generálása
         run: >
           npx capacitor-assets generate --ios --assetPath store-assets

@@ -2464,24 +2464,11 @@ const AD_TOUR_BONUS=0.50;   // a turné végi flagship reklám: +50% a jutalékr
    ha a natív burokban elérhető a vásárlás-plugin; addig (és weben) a fejlesztői ág fut.
    Termékazonosítók: lásd STORE.md (tourempire.credits.100 / .550 / .1200). */
 function isNative(){return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());}
-function nativeBilling(){
- const P=window.Capacitor&&window.Capacitor.Plugins;
- return (P&&(P.InAppPurchase2||P.Purchases||P.InAppPurchases))||null;
-}
 const Store={
  buy(pack,onOk){
   Analytics.track('iap_started',{pack:pack.c,price:pack.eur,native:isNative()?1:0});
-  const bill=isNative()?nativeBilling():null;
-  if(bill&&typeof bill.purchase==='function'){
-   bill.purchase({productId:pack.id}).then(function(res){
-     if(res&&res.cancelled){Analytics.track('iap_cancelled',{pack:pack.c});return;}
-     Analytics.track('iap_completed',{pack:pack.c,price:pack.eur,native:1});
-     S.credits=credits()+pack.c;save();renderHUD();
-     toast(`+${pack.c} kredit jóváírva.`);
-     if(onOk)onOk();
-   }).catch(function(){toast('A vásárlás nem sikerült.');});
-   return;
-  }
+  /* Natív burokban a bolt fizet; a jóváírás a nyugta ellenőrzése UTÁN történik. */
+  if(isNative()&&IAP.buy(pack,onOk)){toast('Vásárlás indítása…');return;}
   /* fejlesztői / webes ág: azonnal jóváír, hogy a folyamat tesztelhető legyen */
   Analytics.track('iap_completed',{pack:pack.c,price:pack.eur,native:0});
   S.credits=credits()+pack.c;save();renderHUD();
@@ -3211,9 +3198,65 @@ function closeMini(played){
    ÉLESBEN: a show() belsejét kell kicserélni a valódi SDK hívására, pl.
      AdMob:  rewardedAd.show(); reward eseményre -> onReward(); bezárásra -> onFail();
    A játék többi része nem tud a hirdetésről — csak ezt a két visszahívást várja. */
+/* ============================ BOLTI SZOLGÁLTATÁSOK ============================
+   Reklám (AdMob) és vásárlás (App Store / Google Play). Mindkettő CSAK a natív
+   burokban aktív; weben a beépített szimulált változat fut, hogy a folyamat
+   tesztelhető maradjon.
+
+   A hirdetés-azonosítók MOST a Google hivatalos TESZT-azonosítói: a natív buildben
+   azonnal működnek, és nem sértik az AdMob szabályzatát. Éles kiadás előtt csak ezt
+   a blokkot kell átírni a saját AdMob-azonosítóidra (lásd STORE.md). */
+const STORE_CFG={
+ admob:{
+  test:true,                                              /* éles kiadáskor: false */
+  appIdAndroid:'ca-app-pub-3940256099942544~3347511713',
+  appIdIos:    'ca-app-pub-3940256099942544~1458002511',
+  rewardedAndroid:'ca-app-pub-3940256099942544/5224354917',
+  rewardedIos:    'ca-app-pub-3940256099942544/1712485313'
+ }
+};
+function nativePlatform(){
+ try{return (window.Capacitor&&window.Capacitor.getPlatform&&window.Capacitor.getPlatform())||'web';}
+ catch(e){return 'web';}
+}
+function plug(name){
+ const P=window.Capacitor&&window.Capacitor.Plugins;
+ return (P&&P[name])||null;
+}
+
+/* ---------- REKLÁM: AdMob jutalmazott videó ---------- */
+const AdMobUnit={
+ rewarded(){return nativePlatform()==='ios'?STORE_CFG.admob.rewardedIos:STORE_CFG.admob.rewardedAndroid;}
+};
+let admobReady=false;
+function admobInit(){
+ const A=plug('AdMob');
+ if(!A||admobReady)return Promise.resolve(!!A);
+ return A.initialize({initializeForTesting:!!STORE_CFG.admob.test})
+   .then(function(){admobReady=true;return true;})
+   .catch(function(){return false;});
+}
 const Ads={
  available(){return true;},
  show(onReward,onFail){
+  const A=(isNative()?plug('AdMob'):null);
+  if(A){
+   /* Nem személyre szabott hirdetést kérünk: így nincs szükség iOS követés-engedélyre. */
+   admobInit().then(function(){
+    return A.prepareRewardVideoAd({adId:AdMobUnit.rewarded(),isTesting:!!STORE_CFG.admob.test,npa:true});
+   }).then(function(){
+    return A.showRewardVideoAd();
+   }).then(function(r){
+    if(r&&(r.type||r.amount!==undefined))onReward();else onFail();
+   }).catch(function(){
+    /* nincs hirdetés vagy megszakadt — a játékos ne járjon rosszul: essünk vissza */
+    Ads.simulate(onReward,onFail);
+   });
+   return;
+  }
+  Ads.simulate(onReward,onFail);
+ },
+ simulate(onReward,onFail){
   const el=$('#adv');let left=5,done=false,iv=null;
   const paint=()=>{el.innerHTML=`<div class="adbox"><div class="adscreen">
      <span class="adx" id="advX">✕</span>
@@ -3229,6 +3272,61 @@ const Ads={
   const fin=(rew)=>{if(iv)clearInterval(iv);el.className='';el.innerHTML='';rew?onReward():onFail();};
   el.className='on';paint();
   iv=setInterval(()=>{left--;if(left<=0){done=true;clearInterval(iv);iv=null;}paint();},1000);
+ }
+};
+
+/* ---------- VÁSÁRLÁS: App Store / Google Play ----------
+   A cordova-plugin-purchase globális objektumát használjuk (CdvPurchase). A termékek
+   azonosítói a PACKS tömbben vannak; ugyanezekkel kell létrehozni őket a boltokban.
+   Ha a plugin nincs jelen (web), minden hívás csendben visszaesik a fejlesztői ágra. */
+const IAP={
+ ready:false, pending:null,
+ init(){
+  const CP=window.CdvPurchase;
+  if(!CP||!isNative()||IAP.ready)return;
+  try{
+   const store=CP.store, PT=CP.ProductType, PF=CP.Platform;
+   const platform=(nativePlatform()==='ios')?PF.APPLE_APPSTORE:PF.GOOGLE_PLAY;
+   PACKS.forEach(function(pk){
+    store.register({id:pk.id,type:PT.CONSUMABLE,platform:platform});
+   });
+   store.when()
+    .approved(function(tr){tr.verify();})
+    .verified(function(receipt){
+      (receipt.collection||[]).forEach(function(item){IAP.grant(item.id);});
+      receipt.finish();
+    })
+    .receiptUpdated(function(){})
+    .productUpdated(function(){});
+   store.error(function(){ if(IAP.pending){IAP.pending=null;toast('A vásárlás nem sikerült.');} });
+   store.initialize([platform]);
+   IAP.ready=true;
+   Analytics.track('iap_ready',{platform:nativePlatform()});
+  }catch(e){IAP.ready=false;}
+ },
+ grant(productId){
+  const pk=PACKS.find(function(p){return p.id===productId;});
+  if(!pk)return;
+  S.credits=credits()+pk.c;save();renderHUD();
+  Analytics.track('iap_completed',{pack:pk.c,price:pk.eur,native:1});
+  toast(`+${pk.c} kredit jóváírva.`);
+  const cb=IAP.pending;IAP.pending=null;if(cb)cb();
+ },
+ buy(pack,onOk){
+  const CP=window.CdvPurchase;
+  if(!CP||!IAP.ready)return false;
+  try{
+   const prod=CP.store.get(pack.id);
+   const offer=prod&&prod.getOffer&&prod.getOffer();
+   if(!offer)return false;
+   IAP.pending=onOk||null;
+   offer.order();
+   return true;
+  }catch(e){return false;}
+ },
+ restore(){
+  const CP=window.CdvPurchase;
+  if(CP&&IAP.ready){try{CP.store.restorePurchases();}catch(e){}}
  }
 };
 
@@ -5425,6 +5523,8 @@ function showResult(){const r=S.lastResult,played=Array.isArray(r.rows)&&r.rows.
 render();
 /* a turné a játék bezárása alatt is véget érhetett — az eredményt akkor is meg kell mutatni */
 Analytics.init();
+/* natív burokban: bolt előkészítése és reklám-motor indítása (weben nem csinál semmit) */
+try{IAP.init();if(isNative())admobInit();}catch(e){}
 /* csak EGYSZER jelezzük a bemutató indulását — újratöltésenként ne duplikálódjon */
 /* ---------- BETÖLTŐ: 0 → 100%, csak utána a kezdőképernyő/játék ----------
    Időzítővel és NEM requestAnimationFrame-mel megy: háttérbe tett fülnél a rAF

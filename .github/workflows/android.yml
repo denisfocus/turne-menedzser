@@ -46,6 +46,9 @@ jobs:
       - name: Android projekt létrehozása
         run: npx cap add android
 
+      - name: Natív beállítások (AdMob azonosítók)
+        run: node scripts/native-config.mjs
+
       - name: Ikonok és indítókép generálása
         run: >
           npx capacitor-assets generate --android --assetPath store-assets
