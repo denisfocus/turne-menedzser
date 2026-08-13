@@ -60,19 +60,38 @@ Actions → **iOS csomag** → Run workflow. Titkok nélkül csak azt ellenőrzi
 lefordul. Ez jelzi, ha valami elromlott a kódban.
 
 ### 2.2 Aláírt build + TestFlight
-Az Apple Developer fiók után az **App Store Connect**-ben hozd létre az appot
-(`com.denisfocus.tourempire`), majd:
 
-| titok neve | honnan |
+Csak **egy dolgot** kell létrehoznod: egy App Store Connect API-kulcsot. A tanúsítványt
+és a provisioning profilt az Xcode a felhőben magától elintézi.
+
+**a) App létrehozása** — App Store Connect → My Apps → **+** → New App
+- Platform: iOS · Név: **Tour Empire** · Nyelv: magyar
+- Bundle ID: **com.denisfocus.tourempire**
+  (ha nincs a listában: developer.apple.com → Certificates, Identifiers & Profiles →
+  Identifiers → **+** → App IDs → App → explicit bundle ID ugyanezzel a névvel)
+- SKU: bármi, pl. `tourempire-1`
+
+**b) API-kulcs** — App Store Connect → **Users and Access** → **Integrations** fül →
+App Store Connect API → **+**
+- Név: `GitHub CI` · Access: **App Manager**
+- Létrehozás után **töltsd le a `.p8` fájlt** (CSAK EGYSZER tölthető le!),
+  és jegyezd fel a **Key ID**-t és az **Issuer ID**-t.
+
+**c) Titkok a GitHubon** — a repó → **Settings** → **Secrets and variables** →
+**Actions** → **New repository secret**. Négy darab:
+
+| titok neve | értéke |
 |---|---|
-| `IOS_CERT_P12_BASE64` | Apple Distribution tanúsítvány `.p12`-ként, base64-ben |
-| `IOS_CERT_PASSWORD` | a `.p12` jelszava |
-| `IOS_PROVISIONING_PROFILE_BASE64` | App Store provisioning profil, base64-ben |
-| `IOS_TEAM_ID` | 10 karakteres Team ID (Membership oldal) |
-| `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_BASE64` | App Store Connect API-kulcs (Users and Access → Integrations) |
+| `IOS_TEAM_ID` | a 10 karakteres Team ID (developer.apple.com → Membership) |
+| `ASC_KEY_ID` | a kulcs azonosítója (pl. `2X9ABC3DEF`) |
+| `ASC_ISSUER_ID` | az Issuer ID (hosszú, kötőjeles azonosító) |
+| `ASC_KEY_P8` | a letöltött `.p8` fájl **teljes tartalma**, a `-----BEGIN PRIVATE KEY-----` sorral együtt (nyisd meg Jegyzettömbbel, jelöld ki mindet, másold be) |
 
-Ezután Actions → iOS csomag → **upload_testflight: true** → a build felkerül a
-TestFlightbe, ahonnan a telefonodra telepítheted, és onnan indítható a review.
+> A titkokat a GitHub felületén add meg — soha ne küldd el őket üzenetben.
+
+**d) Build** — Actions → **iOS csomag** → Run workflow (a *Feltöltés TestFlightbe*
+maradjon bekapcsolva). Sikeres futás után az App Store Connect → TestFlight fülön
+megjelenik a build; a telefonodra a TestFlight appal telepítheted.
 
 ---
 
