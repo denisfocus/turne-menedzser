@@ -98,8 +98,10 @@ megjelenik a build; a telefonodra a TestFlight appal telepítheted.
 ## 3. Vásárlások (kötelező mindkét boltban)
 
 A boltok szabályzata szerint digitális tartalmat **csak a saját fizetési rendszerükön**
-lehet eladni. A kreditcsomagokat ezért ezekkel az azonosítókkal kell létrehozni
-(App Store Connect → In-App Purchases, Play Console → Monetize → Products):
+lehet eladni. A kódban ez már be van kötve (`cordova-plugin-purchase`): a natív appban a
+bolt fizet, és a kredit **csak a nyugta ellenőrzése után** íródik jóvá.
+
+Neked ennyi a dolgod: hozd létre a termékeket **pontosan ezekkel az azonosítókkal**.
 
 | termék | típus | ár |
 |---|---|---|
@@ -107,9 +109,34 @@ lehet eladni. A kreditcsomagokat ezért ezekkel az azonosítókkal kell létreho
 | `tourempire.credits.550` | fogyasztható | 7,99 € |
 | `tourempire.credits.1200` | fogyasztható | 14,99 € |
 
-A kódban a `Store.buy()` már natív-tudatos: ha a burokban van vásárlás-plugin, azon
-keresztül fizet; addig a fejlesztői ág fut. A plugin bekötése az utolsó lépés, amikor
-a termékek már léteznek a boltokban.
+- **App Store Connect** → az app → **In-App Purchases** → **+** → Consumable
+- **Play Console** → az app → **Monetize** → **Products** → **In-app products**
+
+> Az iOS-nél az első IAP-hoz ki kell tölteni a banki és adóadatokat (Agreements, Tax,
+> and Banking), különben a termékek nem lesznek elérhetők a tesztben sem.
+
+---
+
+## 3b. Reklám (AdMob)
+
+A jutalmazott videó is be van kötve (`@capacitor-community/admob`), **most a Google
+hivatalos teszt-hirdetéseivel** — a natív buildben azonnal működik, és ez nem sérti az
+AdMob szabályzatát. Így ki tudod próbálni, mielőtt bármit létrehozol.
+
+Éles hirdetésekhez:
+1. admob.google.com → fiók (ingyenes) → **Apps** → Add app → külön az iOS-hez és az
+   Androidhoz (mindkettő ugyanaz a játék).
+2. Mindkét apphoz **Ad unit** → **Rewarded** típus.
+3. Az `index.html` tetején keresd meg a `STORE_CFG` blokkot, és írd át:
+   - `appIdAndroid`, `appIdIos` — az app-azonosítók (`ca-app-pub-…~…`)
+   - `rewardedAndroid`, `rewardedIos` — a hirdetéshely-azonosítók (`ca-app-pub-…/…`)
+   - `test: false`
+4. Push → a következő build már éles hirdetést szolgál ki.
+
+A játék **nem személyre szabott** hirdetést kér, ezért nincs szükség iOS
+követés-engedélyre (ATT), és az adatvédelmi kérdőív is egyszerű marad. Ha nincs
+betölthető hirdetés, a játék a beépített szimulált videóra esik vissza — a játékos
+sosem marad jutalom nélkül egy hálózati hiba miatt.
 
 ---
 
