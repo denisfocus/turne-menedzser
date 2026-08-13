@@ -33,10 +33,25 @@ if (existsSync(VARS)) {
   let v = await readFile(VARS, 'utf8');
   const before = v;
   v = v.replace(/compileSdkVersion\s*=\s*\d+/, 'compileSdkVersion = 35')
-       .replace(/targetSdkVersion\s*=\s*\d+/, 'targetSdkVersion = 35');
+       .replace(/targetSdkVersion\s*=\s*\d+/, 'targetSdkVersion = 35')
+       /* a vásárlás-könyvtár (billing 9) legalább 23-at vár; 24 = Android 7, a mai
+          készülékek ~99%-a — bőven biztonságos alsó határ */
+       .replace(/minSdkVersion\s*=\s*\d+/, 'minSdkVersion = 24');
   if (v !== before) {
     await writeFile(VARS, v);
-    console.log('Android: compileSdk/targetSdk 35');
+    console.log('Android: minSdk 24, compileSdk/targetSdk 35');
+  }
+}
+
+/* Az AGP 8.2 még csak 34-ig van tesztelve — a 35 működik, csak jelezni kell neki. */
+const GP = 'android/gradle.properties';
+if (existsSync(GP)) {
+  let g = await readFile(GP, 'utf8');
+  if (!g.includes('suppressUnsupportedCompileSdk')) {
+    await writeFile(GP, g + '
+android.suppressUnsupportedCompileSdk=35
+');
+    console.log('Android: compileSdk figyelmeztetés elnémítva');
   }
 }
 
