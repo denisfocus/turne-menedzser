@@ -26,6 +26,20 @@ if (existsSync(MANIFEST)) {
   }
 }
 
+/* Az AdMob (Google Play Services) compileSdk 35-öt követel, a Capacitor 34-et
+   generál — ezért itt emeljük. A Play amúgy is targetSdk 35-öt vár az új appoktól. */
+const VARS = 'android/variables.gradle';
+if (existsSync(VARS)) {
+  let v = await readFile(VARS, 'utf8');
+  const before = v;
+  v = v.replace(/compileSdkVersion\s*=\s*\d+/, 'compileSdkVersion = 35')
+       .replace(/targetSdkVersion\s*=\s*\d+/, 'targetSdkVersion = 35');
+  if (v !== before) {
+    await writeFile(VARS, v);
+    console.log('Android: compileSdk/targetSdk 35');
+  }
+}
+
 /* ---------- iOS ---------- */
 const PLIST = 'ios/App/App/Info.plist';
 if (existsSync(PLIST)) {
