@@ -3208,11 +3208,14 @@ function closeMini(played){
    a blokkot kell átírni a saját AdMob-azonosítóidra (lásd STORE.md). */
 const STORE_CFG={
  admob:{
-  test:true,                                              /* éles kiadáskor: false */
-  appIdAndroid:'ca-app-pub-3940256099942544~3347511713',
-  appIdIos:    'ca-app-pub-3940256099942544~1458002511',
-  rewardedAndroid:'ca-app-pub-3940256099942544/5224354917',
-  rewardedIos:    'ca-app-pub-3940256099942544/1712485313'
+  /* A SAJÁT AdMob-azonosítóink. A `test` mindaddig maradjon true, amíg az app nincs
+     kint a boltokban: fejlesztés közben a saját éles hirdetésed megnyitása szabályt sért,
+     és a fiók letiltását vonhatja maga után. Kiadáskor az UTOLSÓ lépés: test:false. */
+  test:true,
+  appIdAndroid:'ca-app-pub-3564456843298058~4921967806',
+  appIdIos:    'ca-app-pub-3564456843298058~2076312612',
+  rewardedAndroid:'ca-app-pub-3564456843298058/7137067609',
+  rewardedIos:    'ca-app-pub-3564456843298058/5823985931'
  }
 };
 function nativePlatform(){

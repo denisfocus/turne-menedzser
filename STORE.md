@@ -119,24 +119,28 @@ Neked ennyi a dolgod: hozd létre a termékeket **pontosan ezekkel az azonosít�
 
 ## 3b. Reklám (AdMob)
 
-A jutalmazott videó is be van kötve (`@capacitor-community/admob`), **most a Google
-hivatalos teszt-hirdetéseivel** — a natív buildben azonnal működik, és ez nem sérti az
-AdMob szabályzatát. Így ki tudod próbálni, mielőtt bármit létrehozol.
+**Kész van.** Az AdMob-fiókban létrejött a két app és mindkettőhöz a jutalmazott
+hirdetéshely, és az azonosítók már a kódban vannak (`index.html` → `STORE_CFG`):
 
-Éles hirdetésekhez:
-1. admob.google.com → fiók (ingyenes) → **Apps** → Add app → külön az iOS-hez és az
-   Androidhoz (mindkettő ugyanaz a játék).
-2. Mindkét apphoz **Ad unit** → **Rewarded** típus.
-3. Az `index.html` tetején keresd meg a `STORE_CFG` blokkot, és írd át:
-   - `appIdAndroid`, `appIdIos` — az app-azonosítók (`ca-app-pub-…~…`)
-   - `rewardedAndroid`, `rewardedIos` — a hirdetéshely-azonosítók (`ca-app-pub-…/…`)
-   - `test: false`
-4. Push → a következő build már éles hirdetést szolgál ki.
+| | app-azonosító | jutalmazott hirdetéshely |
+|---|---|---|
+| Android | `ca-app-pub-3564456843298058~4921967806` | `…/7137067609` |
+| iOS | `ca-app-pub-3564456843298058~2076312612` | `…/5823985931` |
 
-A játék **nem személyre szabott** hirdetést kér, ezért nincs szükség iOS
-követés-engedélyre (ATT), és az adatvédelmi kérdőív is egyszerű marad. Ha nincs
-betölthető hirdetés, a játék a beépített szimulált videóra esik vissza — a játékos
-sosem marad jutalom nélkül egy hálózati hiba miatt.
+**A `test: true` szándékosan maradt bekapcsolva.** Fejlesztés közben a saját ÉLES
+hirdetésed megnyitása szabálysértés, és a fiók letiltását vonhatja maga után — ezért a
+teszt-mód marad, amíg az app ki nem kerül a boltokba. A kiadás **utolsó lépése**:
+`test: false`, push, új build.
+
+Két dolog, amit az AdMob még kér, és csak a bolti megjelenés után tudsz megtenni:
+- **„Véleményezést igényel"** — az AdMob átnézi az appot, miután összekötötted a bolti
+  megjelenéssel. Néhány nap.
+- **„Korlátozott hirdetésmegjelenítés — adjon hozzá üzletet"** — amint az app fent van a
+  Playen / App Store-ban, az AdMobban az appnál kösd hozzá az üzleti megjelenést
+  (Alkalmazás → Üzlet hozzáadása). Ezután indul a teljes hirdetés-kiszolgálás.
+
+Kifizetéshez majd az AdMob → **Kifizetések** alatt kell megadni a banki és adóadatokat
+(ezt neked kell, személyes adat).
 
 ---
 
