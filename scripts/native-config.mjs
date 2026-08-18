@@ -67,3 +67,29 @@ if (existsSync(PLIST)) {
     console.log('iOS: AdMob azonosító beírva');
   }
 }
+
+/* Az Apple 2027 tavaszától legalább iOS 15-öt követel (ITMS-90068). A Capacitor 7
+   alapból iOS 14-et generál — itt emeljük 15-re a Podfile-ban és az Xcode-projektben.
+   Az iOS 15 ugyanazokon a készülékeken fut, mint a 14 (iPhone 6s-től), így nincs
+   veszteség. */
+const IOS_MIN = '15.0';
+const PODFILE = 'ios/App/Podfile';
+if (existsSync(PODFILE)) {
+  let pf = await readFile(PODFILE, 'utf8');
+  const before = pf;
+  pf = pf.replace(/platform :ios, '[\d.]+'/, `platform :ios, '${IOS_MIN}'`);
+  if (pf !== before) {
+    await writeFile(PODFILE, pf);
+    console.log('iOS: Podfile platform → ' + IOS_MIN);
+  }
+}
+const PBXPROJ = 'ios/App/App.xcodeproj/project.pbxproj';
+if (existsSync(PBXPROJ)) {
+  let xp = await readFile(PBXPROJ, 'utf8');
+  const before = xp;
+  xp = xp.replace(/IPHONEOS_DEPLOYMENT_TARGET = [\d.]+;/g, `IPHONEOS_DEPLOYMENT_TARGET = ${IOS_MIN};`);
+  if (xp !== before) {
+    await writeFile(PBXPROJ, xp);
+    console.log('iOS: deployment target → ' + IOS_MIN);
+  }
+}
