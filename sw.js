@@ -7,7 +7,7 @@
    FRISSÍTÉS: a héj HÁLÓZAT-ELSŐ, ezért új verzió azonnal érkezik, ha van net;
    offline a cache-elt példány jön. A CACHE nevét minden kiadásnál emeljük, és az
    aktiválás töröl minden korábbit — így nem ragadhat be régi build. */
-const CACHE = 'tm-shell-v17';
+const CACHE = 'tm-shell-v18';
 const SHELL = [
   './',
   './index.html',
