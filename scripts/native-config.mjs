@@ -53,6 +53,21 @@ if (existsSync(GP)) {
   }
 }
 
+/* Az @capacitor-community/admob 6.x a Google Mobile Ads SDK 11-es API-jára épül
+   (UMPConsentStatus stb.). A CocoaPods alapból a legújabb (12+) SDK-t húzná be, ahol
+   ezeket átnevezték → fordítási hiba. Ezért a Podfile-ban 11-es sorozatra rögzítjük. */
+const PODFILE = 'ios/App/Podfile';
+if (existsSync(PODFILE)) {
+  let pf = await readFile(PODFILE, 'utf8');
+  if (!pf.includes('Google-Mobile-Ads-SDK')) {
+    const NL = String.fromCharCode(10);
+    const inject = ['capacitor_pods', "  pod 'Google-Mobile-Ads-SDK', '~> 11.13'"].join(NL);
+    pf = pf.replace('capacitor_pods', inject);
+    await writeFile(PODFILE, pf);
+    console.log('iOS: Google Mobile Ads SDK 11.13-ra rogzitve');
+  }
+}
+
 /* ---------- iOS ---------- */
 const PLIST = 'ios/App/App/Info.plist';
 if (existsSync(PLIST)) {
