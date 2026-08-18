@@ -5528,6 +5528,9 @@ render();
 Analytics.init();
 /* natív burokban: bolt előkészítése és reklám-motor indítása (weben nem csinál semmit) */
 try{IAP.init();if(isNative())admobInit();}catch(e){}
+/* natív indítókép elrejtése, amint a webnézet fut — a saját #splash úgyis takar,
+   így nincs villanás. A config launchAutoHide-ja a biztosíték, ez a gyors, tiszta átadás. */
+try{if(isNative()){var _SP=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.SplashScreen;if(_SP&&_SP.hide)_SP.hide();}}catch(e){}
 /* csak EGYSZER jelezzük a bemutató indulását — újratöltésenként ne duplikálódjon */
 /* ---------- BETÖLTŐ: 0 → 100%, csak utána a kezdőképernyő/játék ----------
    Időzítővel és NEM requestAnimationFrame-mel megy: háttérbe tett fülnél a rAF
