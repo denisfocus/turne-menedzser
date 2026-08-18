@@ -168,3 +168,18 @@ Kifizetéshez majd az AdMob → **Kifizetések** alatt kell megadni a banki és 
 | `.github/workflows/ios.yml` | iOS build + TestFlight |
 
 A `www/`, `android/`, `ios/` mappákat a CI hozza létre, ezért nincsenek a repóban.
+
+## 6. Amit menet közben megtanultunk (buktatók)
+
+Az iOS TestFlight-feltöltés több lépésben állt össze — ha újra kell csinálni, ezekre figyelj:
+- **Aláírás**: az archívum `CODE_SIGNING_ALLOWED=NO` mellett készül, az App Store aláírás
+  az exportnál történik (`signingStyle: automatic` + `-allowProvisioningUpdates`).
+- **API-kulcs**: az első terjesztési tanúsítványt a felhő-aláírás hozza létre → a kulcs
+  **Admin** szerepű legyen (App Manager nem elég).
+- **App-rekord**: a bundle ID-hoz kézzel létre kell hozni az appot az App Store
+  Connectben, különben a feltöltés „No suitable application records" hibát ad.
+- **AdMob a Capacitor 6-on törött** (UMP API-ütközés) → a projekt **Capacitor 7**-en van.
+- **SDK**: az Apple iOS 26 SDK-t követel → a build a **`macos-26`** futtatón megy
+  (Xcode 26). A `macos-15` (Xcode 16) feltöltéskor elbukik.
+- Android: `compileSdk/targetSdk 35`, `minSdk 24`, a Google Ads app-azonosító a natív
+  manifestbe kerül (`scripts/native-config.mjs`).
