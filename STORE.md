@@ -13,7 +13,7 @@ sem Node, sem Xcode, sem Android Studio.
 | Apple Developer Program | **99 USD / év** | developer.apple.com/programs |
 | Google Play Developer | **25 USD egyszer** | play.google.com/console |
 
-Az appazonosító mindkét boltban: **`com.denisfocus.tourempire`**
+Az appazonosító mindkét boltban: **`io.github.tourempire.tourempire`**
 (ha mást szeretnél, írd át a `capacitor.config.json`-ban, mielőtt először feltöltesz —
 utólag már nem cserélhető).
 
@@ -66,7 +66,7 @@ Csak **egy dolgot** kell létrehoznod: egy App Store Connect API-kulcsot. A tan�
 
 **a) App létrehozása** — App Store Connect → My Apps → **+** → New App
 - Platform: iOS · Név: **Tour Empire** · Nyelv: magyar
-- Bundle ID: **com.denisfocus.tourempire**
+- Bundle ID: **io.github.tourempire.tourempire**
   (ha nincs a listában: developer.apple.com → Certificates, Identifiers & Profiles →
   Identifiers → **+** → App IDs → App → explicit bundle ID ugyanezzel a névvel)
 - SKU: bármi, pl. `tourempire-1`
