@@ -61,10 +61,12 @@ if (existsSync(PODFILE)) {
   let pf = await readFile(PODFILE, 'utf8');
   if (!pf.includes('Google-Mobile-Ads-SDK')) {
     const NL = String.fromCharCode(10);
-    const inject = ['capacitor_pods', "  pod 'Google-Mobile-Ads-SDK', '~> 11.13'", "  pod 'GoogleUserMessagingPlatform', '~> 2.3'"].join(NL);
-    pf = pf.replace('capacitor_pods', inject);
+    // A `target 'App' do` sor UTAN szurjuk be — a `capacitor_pods` ket helyen is
+    // szerepel (definicio + hivas), ezert azt nem szabad cserelni.
+    const inject = ["target 'App' do", "  pod 'Google-Mobile-Ads-SDK', '~> 11.13'", "  pod 'GoogleUserMessagingPlatform', '~> 2.3'"].join(NL);
+    pf = pf.replace("target 'App' do", inject);
     await writeFile(PODFILE, pf);
-    console.log('iOS: Google Mobile Ads SDK 11.13-ra rogzitve');
+    console.log('iOS: Ads SDK 11.13 + UMP 2.3 rogzitve a Podfile-ban');
   }
 }
 
