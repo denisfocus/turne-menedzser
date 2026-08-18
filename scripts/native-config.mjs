@@ -61,7 +61,7 @@ if (existsSync(PODFILE)) {
   let pf = await readFile(PODFILE, 'utf8');
   if (!pf.includes('Google-Mobile-Ads-SDK')) {
     const NL = String.fromCharCode(10);
-    const inject = ['capacitor_pods', "  pod 'Google-Mobile-Ads-SDK', '~> 11.13'"].join(NL);
+    const inject = ['capacitor_pods', "  pod 'Google-Mobile-Ads-SDK', '~> 11.13'", "  pod 'GoogleUserMessagingPlatform', '~> 2.3'"].join(NL);
     pf = pf.replace('capacitor_pods', inject);
     await writeFile(PODFILE, pf);
     console.log('iOS: Google Mobile Ads SDK 11.13-ra rogzitve');
