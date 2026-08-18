@@ -14,17 +14,17 @@
     "open:ios": "cap open ios"
   },
   "dependencies": {
-    "@capacitor/android": "^6.2.0",
-    "@capacitor/app": "^6.0.2",
-    "@capacitor/core": "^6.2.0",
-    "@capacitor/ios": "^6.2.0",
-    "@capacitor/splash-screen": "^6.0.3",
-    "@capacitor/status-bar": "^6.0.2",
-    "@capacitor-community/admob": "^6.2.0",
-    "cordova-plugin-purchase": "^13.11.1"
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
+    "@capacitor/splash-screen": "^7.0.0",
+    "@capacitor/status-bar": "^7.0.0",
+    "@capacitor-community/admob": "^7.0.0",
+    "cordova-plugin-purchase": "^13.12.1"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "^6.2.0"
+    "@capacitor/cli": "^7.0.0"
   }
 }

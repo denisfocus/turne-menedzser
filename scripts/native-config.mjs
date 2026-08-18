@@ -53,23 +53,8 @@ if (existsSync(GP)) {
   }
 }
 
-/* Az @capacitor-community/admob 6.x a Google Mobile Ads SDK 11-es API-jára épül
-   (UMPConsentStatus stb.). A CocoaPods alapból a legújabb (12+) SDK-t húzná be, ahol
-   ezeket átnevezték → fordítási hiba. Ezért a Podfile-ban 11-es sorozatra rögzítjük. */
-const PODFILE = 'ios/App/Podfile';
-if (existsSync(PODFILE)) {
-  let pf = await readFile(PODFILE, 'utf8');
-  if (!pf.includes('GoogleUserMessagingPlatform')) {
-    const NL = String.fromCharCode(10);
-    // A plugin maga rogziti a Google-Mobile-Ads-SDK-t (= 11.3.0), azt nem piszkaljuk.
-    // A gond a KULON GoogleUserMessagingPlatform pod: a 3.0 atnevezte a beleegyezes-
-    // API-t, a plugin viszont a 2.x-et varja. A `target 'App' do` utan rogzitjuk.
-    const inject = ["target 'App' do", "  pod 'GoogleUserMessagingPlatform', '~> 2.3'"].join(NL);
-    pf = pf.replace("target 'App' do", inject);
-    await writeFile(PODFILE, pf);
-    console.log('iOS: GoogleUserMessagingPlatform 2.3-ra rogzitve');
-  }
-}
+// (Capacitor 7 + @capacitor-community/admob 7.x: az uj UMP API-t hasznalja,
+//  ezert nincs szukseg pod-verzio rogzitesre.)
 
 /* ---------- iOS ---------- */
 const PLIST = 'ios/App/App/Info.plist';
