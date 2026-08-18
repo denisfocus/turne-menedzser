@@ -59,14 +59,15 @@ if (existsSync(GP)) {
 const PODFILE = 'ios/App/Podfile';
 if (existsSync(PODFILE)) {
   let pf = await readFile(PODFILE, 'utf8');
-  if (!pf.includes('Google-Mobile-Ads-SDK')) {
+  if (!pf.includes('GoogleUserMessagingPlatform')) {
     const NL = String.fromCharCode(10);
-    // A `target 'App' do` sor UTAN szurjuk be — a `capacitor_pods` ket helyen is
-    // szerepel (definicio + hivas), ezert azt nem szabad cserelni.
-    const inject = ["target 'App' do", "  pod 'Google-Mobile-Ads-SDK', '~> 11.13'", "  pod 'GoogleUserMessagingPlatform', '~> 2.3'"].join(NL);
+    // A plugin maga rogziti a Google-Mobile-Ads-SDK-t (= 11.3.0), azt nem piszkaljuk.
+    // A gond a KULON GoogleUserMessagingPlatform pod: a 3.0 atnevezte a beleegyezes-
+    // API-t, a plugin viszont a 2.x-et varja. A `target 'App' do` utan rogzitjuk.
+    const inject = ["target 'App' do", "  pod 'GoogleUserMessagingPlatform', '~> 2.3'"].join(NL);
     pf = pf.replace("target 'App' do", inject);
     await writeFile(PODFILE, pf);
-    console.log('iOS: Ads SDK 11.13 + UMP 2.3 rogzitve a Podfile-ban');
+    console.log('iOS: GoogleUserMessagingPlatform 2.3-ra rogzitve');
   }
 }
 
