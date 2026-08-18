@@ -66,6 +66,16 @@ if (existsSync(PLIST)) {
     await writeFile(PLIST, p);
     console.log('iOS: AdMob azonosító beírva');
   }
+  /* Export-megfelelőség: a játék csak a rendszer HTTPS-ét használja (nincs saját
+     titkosítás) → mentesül. E kulcs nélkül minden feltöltésnél kézzel kellene a
+     TestFlightben a „Missing Compliance"-t megválaszolni. */
+  p = await readFile(PLIST, 'utf8');
+  if (!p.includes('ITSAppUsesNonExemptEncryption')) {
+    p = p.replace('</dict>\n</plist>',
+      `\t<key>ITSAppUsesNonExemptEncryption</key>\n\t<false/>\n</dict>\n</plist>`);
+    await writeFile(PLIST, p);
+    console.log('iOS: export-megfelelőség (nem-mentes titkosítás = false) beírva');
+  }
 }
 
 /* Az Apple 2027 tavaszától legalább iOS 15-öt követel (ITMS-90068). A Capacitor 7
