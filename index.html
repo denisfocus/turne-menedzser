@@ -5578,7 +5578,9 @@ function curveSVG(sim){
 }
 function renderSongs(){
  const a=AM[S.tour.artist],list=S.tour.setlist,sim=crowdSim(a,list),gr=showGrade(sim.score);
- let h=`<div class="curve">
+ /* A rating-görbe a szet EREDMÉNYE — ezért ALULRA kerül: előbb VÁLASSZ dalt
+    (Repertoár), aztán RENDEZD (szet sorrendje), és a végén látod az értékelést. */
+ const curveBlock=`<div class="curve">
    <div class="top"><div><div class="grade" style="color:${gr.c}">${gr.g}</div><div class="sc">Show-értékelés</div></div>
      <div class="lbl">Közönség-pontszám <b class="num" style="color:${gr.c};font-size:15px">${sim.score}</b>/100<br>
        Átlagos energia <b class="num" style="color:${eCol(sim.avgE)}">${Math.round(sim.avgE)}</b></div></div>
@@ -5587,6 +5589,7 @@ function renderSongs(){
    ${sim.notes.length?`<div class="note"><span class="i">${icon('alert','13px')}</span><span>${esc(sim.notes[0])}</span></div>`:
      (list.length>=4?`<div class="note" style="color:var(--cash)"><span class="i">${icon('star','13px')}</span><span>Szép ív — a közönség végig veled marad.</span></div>`:'')}
  </div>`;
+ let h='';
 
  /* A REPERTOÁR (választható dalok) MINDIG ugyanott áll: közvetlenül a görbe alatt,
     a szet sorrendje FÖLÖTT. Korábban üres szetnél elöl, az első dal után hátul volt —
@@ -5620,6 +5623,7 @@ function renderSongs(){
  h+=`<button class="btn dark sm" id="slAuto" style="margin-top:10px">${icon('vinyl','15px')} Auto-rendez · ${COST_AUTOSET} kredit
    <span style="opacity:.7;font-size:11px">(${credits()})</span></button>`;
  h+=`<div class="hint"><span class="i">${icon('alert','13px')}</span><span>Húzd a <b>fogantyút</b> az átrendezéshez.</span></div>`;
+ h+=curveBlock;   /* az értékelő görbe a szet UTÁN — előbb választ, aztán rendez, majd látja az eredményt */
 
  /* rizikó: kiadatlan szám bemutatása */
  h+=`<div class="risk ${S.tour.risk?'on':''}" id="riskBox"><div class="t">
