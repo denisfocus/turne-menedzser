@@ -2976,9 +2976,10 @@ function loadTrk(key){
 }
 function trkBuf(key){return XBUF[key]||null;}
 /* ütemtérkép → játék-nóták */
-function drumNotesFrom(map){return map.map(function(p,i){var hard=(i%4===3),dur=hard?600:820;
- // a pad az ütés KÖZEPÉN legyen tökéletes → az ablakot a valós hangra CENTRÁLJUK (t = onset - dur/2)
- return {t:Math.max(0,p[0]-Math.round(dur/2)),pad:p[1],dur:dur,hard:hard,done:false};});}
+function drumNotesFrom(map){return map.map(function(p,i){var hard=(i%4===3),dur=hard?720:960;
+ // a pad az ütés KÖZEPÉN legyen tökéletes → az ablakot a valós hangra CENTRÁLJUK (t = onset - dur/2).
+ // negatív is lehet: a lead-in alatt (mnow<0) így az első pad is időben felgyullad.
+ return {t:p[0]-Math.round(dur/2),pad:p[1],dur:dur,hard:hard,done:false};});}
 function pianoNotesFrom(map){return map.map(function(p){
  return {t:p[0],key:p[1],dur:(p[2]||220),done:false,held:0,hit:false};});}
 function cuesFrom(arr){return (arr||[]).map(function(t){return {t:t,done:false,hit:false};});}
@@ -3037,7 +3038,7 @@ function openMini(stopIdx){
  L.pausedLeft=remainMs();       // csak memóriában: ha újratöltenek játék közben, a turné magától folytatódik
  const dkey=nextTrk('drum'), dtrk=TRX[dkey]; loadTrk(dkey);   // rotáció: valós onset-térkép
  M={notes:drumNotesFrom(dtrk.drum),t0:0,raf:0,iv:0,sched:-1,stop:stopIdx,crowd:46,combo:0,best:0,
-    perfect:0,good:0,miss:0,total:0,started:false,ended:false,trkKey:dkey,
+    perfect:0,good:0,miss:0,total:0,started:false,ended:false,trkKey:dkey,lead:1200,
     useTrack:true, buf:trkBuf(dkey), dur:dtrk.dur, audioSrc:null, audioStart:null, trackGain:null};
  M.total=M.notes.length;
  const el=$('#mini');
@@ -3098,9 +3099,10 @@ function startConcertAudio(){
    const src=AC.createBufferSource(); src.buffer=M.buf;
    const g=AC.createGain(); g.gain.value=(S.sound===false?0:0.9);
    src.connect(g); g.connect(AC.destination);
-   const t=AC.currentTime+0.02;
+   const lead=(M.lead||20)/1000;                      // LEAD-IN: a hang később indul, mint a vizuál
+   const t=AC.currentTime+lead;
    src.start(t);                                      // 1-argumentumos, a sáv elejéről
-   M.audioSrc=src; M.trackGain=g; M.audioStart=t;     // mnow = (AC.now - audioStart), 0-ról
+   M.audioSrc=src; M.trackGain=g; M.audioStart=t;     // mnow = (AC.now - audioStart) → a lead-in alatt NEGATÍV
   }catch(e){ M.audioSrc=null; }                       // hiba esetén marad a perf-óra, a játék FUT
  }
  /* A DOB az ELSŐ mini → iOS-en az AC ilyenkor még lehet suspended/interrupted, és a
@@ -3318,7 +3320,7 @@ function openLights(stopIdx){
     move:'sweep',moveSm:0,                              // aktív mozgás + simított átmenet
     moves:buildLightMoves(bpm,dur),moveWant:null,moveOk:0,moveMiss:0,moveTotal:0,moveFlash:0,
     bpm:bpm,phase:ltrk.phase||0,
-    useTrack:true, buf:trkBuf(lkey), dur:dur, audioSrc:null,audioStart:null,trackGain:null,
+    useTrack:true, buf:trkBuf(lkey), dur:dur, audioSrc:null,audioStart:null,trackGain:null,lead:1000,
     t0:0,started:false,ended:false,raf:0,iv:0,W:1,H:1,nBeats:nBeats};
  M.moveTotal=M.moves.length;
  const moveBtns=[['left','◄','BAL'],['circle','◯','KÖR'],['right','►','JOBB'],['laser','⚡','LÉZER']];
@@ -3657,7 +3659,7 @@ function openPiano(stopIdx){
  const pkey=nextTrk('piano'), ptrk=TRX[pkey]; loadTrk(pkey);   // rotáció: valós zongora-térkép
  M={kind:'piano',stop:stopIdx,notes:pianoNotesFrom(ptrk.piano),crowd:46,combo:0,best:0,trkKey:pkey,
     perfect:0,good:0,miss:0,holdOn:0,holdAll:0,down:{},
-    t0:0,started:false,ended:false,raf:0,iv:0,sched:-1,nBeats:Math.ceil(ptrk.dur/(60000/PN.bpm)),
+    t0:0,started:false,ended:false,raf:0,iv:0,sched:-1,nBeats:Math.ceil(ptrk.dur/(60000/PN.bpm)),lead:1800,
     useTrack:true, buf:trkBuf(pkey), dur:ptrk.dur,
     audioSrc:null, audioStart:null, trackGain:null};
  M.total=M.notes.length;
