@@ -7,7 +7,7 @@
    FRISSÍTÉS: a héj HÁLÓZAT-ELSŐ, ezért új verzió azonnal érkezik, ha van net;
    offline a cache-elt példány jön. A CACHE nevét minden kiadásnál emeljük, és az
    aktiválás töröl minden korábbit — így nem ragadhat be régi build. */
-const CACHE = 'tm-shell-v28';
+const CACHE = 'tm-shell-v29';
 const SHELL = [
   './',
   './index.html',
@@ -27,9 +27,13 @@ const SHELL = [
 ];
 
 self.addEventListener('install', function (e) {
+  // Egyenkénti cache-elés: EGY hiányzó/404-es fájl NE buktassa az egész előtöltést
+  // (az addAll atomikus — egyetlen hiba az összeset eldobná).
   e.waitUntil(
     caches.open(CACHE)
-      .then(function (c) { return c.addAll(SHELL); })
+      .then(function (c) {
+        return Promise.allSettled(SHELL.map(function (u) { return c.add(u); }));
+      })
       .then(function () { return self.skipWaiting(); })
       .catch(function () { return self.skipWaiting(); })
   );

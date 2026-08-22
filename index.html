@@ -2677,6 +2677,22 @@ let M=null;
 
 /* apró WebAudio visszajelzés — a találat legyen kielégítő */
 let AC=null;
+/* ---------- HANG-FELOLDÁS (mobil) ----------
+   Mobil böngészőkben az AudioContext SUSPENDED állapotban indul, és CSAK valódi
+   felhasználói gesztuson belül resume-olható. Ezért az ELSŐ koppintásnál/érintésnél
+   létrehozzuk és feloldjuk (+egy néma buffer az iOS teljes feloldásához). Enélkül a
+   mini-játékok zenéje (a countdown setTimeout-jában indul) néma maradhat. */
+let _audioUnlocked=false;
+function unlockAudio(){
+ if(_audioUnlocked)return;
+ try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
+ try{ if(AC.state==='suspended')AC.resume(); }catch(e){}
+ try{ const b=AC.createBuffer(1,1,22050),s=AC.createBufferSource();s.buffer=b;s.connect(AC.destination);s.start(0); }catch(e){}
+ _audioUnlocked=true;
+}
+['pointerdown','touchend','click'].forEach(function(ev){
+ document.addEventListener(ev,unlockAudio,{capture:true,passive:true});
+});
 function blip(freq,dur,type,vol){
  if(S.sound===false)return;
  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
@@ -3313,14 +3329,15 @@ function lightDraw(){
 
  const N=7, yT=H*0.085;
  const bx=function(i){return W*(0.11+0.78*i/(N-1));};
- /* célpont a padlón — GYORS mozgás az aktuális parancs szerint */
+ /* célpont a padlón — FOLYAMATOS, élénk mozgás az aktuális parancs szerint.
+    (bal/jobb: az adott oldalon söpör, de sosem áll meg — utazó hullám) */
  const aim=function(i){
-  const fr=i/(N-1);
-  if(M.move==='left')  return {x:W*(0.02+0.34*fr)- W*0.10*(0.5+0.5*Math.sin(t*3.4)), y:yFloor};
-  if(M.move==='right') return {x:W*(0.64+0.34*fr)+ W*0.10*(0.5+0.5*Math.sin(t*3.4)), y:yFloor};
-  if(M.move==='circle'){const a=t*4.2+i*(6.283/N);return {x:W*(0.5+0.34*Math.cos(a)), y:H*(0.66+0.20*Math.sin(a))};}
-  if(laser)            return {x:bx(i), y:yFloor};
-  return {x:W*(0.5+0.44*Math.sin(t*2.6+i*0.7)), y:yFloor};   // sweep — gyors legyező
+  const fr=i/(N-1), bob=Math.sin(t*7+i*1.3)*0.018;
+  if(M.move==='left')  return {x:W*(0.33+0.31*Math.sin(t*3.4+fr*3.4)), y:yFloor-H*bob};
+  if(M.move==='right') return {x:W*(0.67+0.31*Math.sin(t*3.4-fr*3.4)), y:yFloor-H*bob};
+  if(M.move==='circle'){const a=t*5.2+i*(6.283/N);return {x:W*(0.5+0.37*Math.cos(a)), y:H*(0.6+0.26*Math.sin(a))};}
+  if(laser)            return {x:W*(0.5+0.30*Math.sin(t*2.2+i*0.6)), y:yFloor};   // a lézer-legyező tövét is mozgatjuk
+  return {x:W*(0.5+0.46*Math.sin(t*3.1+i*0.85)), y:yFloor-H*bob};                 // sweep — élénk legyező
  };
 
  /* éles, színes fénycsík fényglóriával — a valódi lézer/nyaláb-look */
