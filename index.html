@@ -3002,7 +3002,12 @@ function openMini(stopIdx){
  let c=3;const cd=$('#mCount');
  const tick2=()=>{ if(!M||M.ended)return;
    if(c>0){cd.textContent=c;blip(520+(3-c)*90,0.07,'sine',0.12);c--;setTimeout(tick2,620);}
-   else{$('#mReady').style.display='none';M.t0=performance.now();M.started=true;
+   else{$('#mReady').style.display='none';
+    /* ha az openMini pillanatában még nem tolt be a concert1.mp3 (a dob az ELSO
+       mini-jatek, gyakran a betoltes elott nyilik) — a visszaszamlalas VEGEN ujra
+       ellenorizzuk: ha mar kesz, atvaltunk a valodi trackre (kulonben marad a minta). */
+    if(!M.useTrack&&CBUF){M.useTrack=true;M.buf=CBUF;M.dur=CTRACK.dur;M.notes=buildConcertPattern();M.total=M.notes.length;}
+    M.t0=performance.now();M.started=true;
     startConcertAudio();
     M.iv=setInterval(miniTick,25);M.raf=requestAnimationFrame(miniDraw);}};
  tick2();
@@ -3262,6 +3267,10 @@ function openLights(stopIdx){
    b.onpointerdown=function(e){e.preventDefault();pressMove(b.dataset.move,b);};});
  $('#cueBtn').onpointerdown=function(e){e.preventDefault();fireCue();};
  countdown(function(){
+   /* ha a lights1.mp3 az openLights ota tolt be: atvaltunk a valodi trackre */
+   if(!M.useTrack&&LBUF){M.useTrack=true;M.buf=LBUF;M.dur=LTRACK.dur;M.bpm=LTRACK.bpm;M.phase=LTRACK.phase;
+     M.cues=LTRACK.cues.map(function(t){return{t:Math.round(t),done:false,hit:false};});
+     M.moves=buildLightMoves(M.bpm,M.dur);M.moveTotal=M.moves.length;M.beat=-1;}
    M.t0=performance.now();M.started=true;
    startConcertAudio();
    M.iv=setInterval(lightTick,25);M.raf=requestAnimationFrame(lightDraw);
@@ -3617,6 +3626,8 @@ function openPiano(stopIdx){
   b.onpointerleave=function(){if(M&&M.down[ki])pianoUp(ki,b);};
  });
  countdown(function(){
+   /* ha a piano1.mp3 az openPiano ota tolt be: atvaltunk a valodi trackre */
+   if(!M.useTrack&&PBUF){M.useTrack=true;M.buf=PBUF;M.dur=PTRACK.dur;M.notes=pianoTrackNotes();M.total=M.notes.length;}
    M.t0=performance.now();M.started=true;
    startConcertAudio();
    M.iv=setInterval(pianoTick,25);M.raf=requestAnimationFrame(pianoDraw);
