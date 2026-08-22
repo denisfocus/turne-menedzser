@@ -4912,8 +4912,10 @@ function dealRound(){
  /* A nehézség SZOROSAN a sikeresélyhez kötött, két tengelyen egyszerre:
     a zóna négyzetesen szűkül, a jelölő pedig gyorsul. Egy mohó ajánlat így valódi
     kockázat: 90% → fél sáv és lassú inga, 5% → hajszálcsík és villámgyors inga. */
- D.zw=clamp(0.05+ch*ch*0.52,0.05,0.60);
- D.spd=0.014+(1-ch)*0.024;
+ /* MINIMUM sáv 15% + fair max sebesség: nagy sztárnál is elérhető ügyességgel (kihívás igen,
+    lehetetlen nem). A tradeoff marad: mohóbb ajánlat = szűkebb sáv + gyorsabb inga, de a padlón is fogható. */
+ D.zw=clamp(0.15+ch*ch*0.45,0.15,0.60);          // 15%…60% sáv
+ D.spd=0.012+(1-ch)*0.014;                        // 0.012…0.026 / 16ms (a sávot ~0.6s alatt söpri a legnehezebben)
  D.zone=D.zw/2+Math.random()*(1-D.zw);           // a zóna végig a sávon belül marad
  D.pos=0;D.dir=1;D.locked=false;
  const h='<div class="ev"><div class="bd">'+
@@ -4925,7 +4927,11 @@ function dealRound(){
   '</div></div>';
  const m=$('#modal');m.innerHTML=h;m.className='on';
  const z=$('#dZone');z.style.left=((D.zone-D.zw/2)*100).toFixed(1)+'%';z.style.width=(D.zw*100).toFixed(1)+'%';
- $('#dStop').onclick=dealStop;
+ /* FONTOS: pointerdown, NEM click! A long-press loupe-fix (GAME_INPUT_SEL touchstart→preventDefault)
+    a .cuebtn-en iOS-en elnyeli a szintetizált click-et → a stop nem sülne el. A pointerdown tüzel. */
+ const stopBtn=$('#dStop');
+ stopBtn.onpointerdown=function(e){e.preventDefault();dealStop();};
+ stopBtn.onclick=function(e){e.preventDefault();dealStop();};   // desktop fallback (D.locked véd a dupla ellen)
  /* időzítőn fut, nem rAF-on: akkor is helyesen mozog, ha a rajzolás akadozik */
  const step=function(){
   if(!D||D.locked)return;
