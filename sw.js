@@ -7,7 +7,7 @@
    FRISSÍTÉS: a héj HÁLÓZAT-ELSŐ, ezért új verzió azonnal érkezik, ha van net;
    offline a cache-elt példány jön. A CACHE nevét minden kiadásnál emeljük, és az
    aktiválás töröl minden korábbit — így nem ragadhat be régi build. */
-const CACHE = 'tm-shell-v27';
+const CACHE = 'tm-shell-v28';
 const SHELL = [
   './',
   './index.html',
@@ -22,7 +22,8 @@ const SHELL = [
   './assets/logo-empire-v2.webp',
   './assets/bg-start.webp',
   './assets/concert1.mp3',
-  './assets/piano1.mp3'
+  './assets/piano1.mp3',
+  './assets/lights1.mp3'
 ];
 
 self.addEventListener('install', function (e) {
