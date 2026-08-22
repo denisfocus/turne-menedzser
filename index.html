@@ -2718,10 +2718,16 @@ function ensureAudio(){
  if(!_audioUnlocked){
   try{ const b=AC.createBuffer(1,1,22050),s=AC.createBufferSource();s.buffer=b;s.connect(AC.destination);s.start(0); }catch(e){}
   _audioUnlocked=true;
+  /* AGRESSZÍV ELŐTÖLTÉS: a 3 user-sáv máris tölteni kezd (az első gesztuson), hogy a
+     mini-játék indulásakor GARANTÁLTAN kész legyen — így mindig 1-argumentumos, elejéről
+     induló, szinkronban lévő lejátszás lesz (nem kell menet közbeni becsatolás). */
+  try{ if(typeof loadConcert==='function')loadConcert(); }catch(e){}
+  try{ if(typeof loadPiano==='function')loadPiano(); }catch(e){}
+  try{ if(typeof loadLights==='function')loadLights(); }catch(e){}
  }
- try{ if(AC.state==='suspended')AC.resume(); }catch(e){}   // MINDEN hívásnál, nem csak egyszer
+ try{ if(AC.state!=='running')AC.resume(); }catch(e){}     // suspended ÉS interrupted (iOS) is
 }
-function resumeAudio(){ try{ if(AC&&AC.state==='suspended')AC.resume(); }catch(e){} }
+function resumeAudio(){ try{ if(AC&&AC.state!=='running')AC.resume(); }catch(e){} }
 /* a Leaflet-térkép újraméretezése, amikor a konténer láthatóvá válik / a képernyő
    átméreteződik/forog — enélkül üres/rossz méretű marad (főleg tableten). */
 function refreshMap(){ try{ if(typeof G!=='undefined'&&G&&G.map){ G.map.invalidateSize(); } }catch(e){} }
@@ -3022,23 +3028,21 @@ function openMini(stopIdx){
 /* A user sávjának indítása. Ha a JÁTÉK MÁR FUT (menet közbeni csatlakozás, mert a
    sáv később töltött be), az AKTUÁLIS pozíciótól (offset) indítjuk, és az audioStart-ot
    úgy állítjuk, hogy a mnow() óra FOLYTONOS maradjon → nincs ugrás, marad a szinkron. */
+/* A user sávjának indítása — MINDIG 1-argumentumos, a sáv ELEJÉRŐL. Ez a WKWebView/iOS-en
+   bizonyítottan stabil út (a 2-argumentumos offset-forma dobhatott kivételt → nincs hang,
+   sőt a countdown-callbackben befagyás). A játék-óra a track kezdetéhez igazodik. AC.resume
+   MINDIG (suspended ÉS interrupted esetén is), a lejátszás ELŐTT. */
 function startConcertAudio(){
  if(!M||!M.useTrack||!M.buf||!AC||M.audioSrc)return;
+ try{ if(AC.state!=='running')AC.resume(); }catch(e){}
  try{
-  if(AC.state==='suspended'){try{AC.resume();}catch(e){}}
-  let off=0;
-  const offMs=M.started?Math.max(0,mnow()):0; if(isFinite(offMs))off=offMs/1000;
-  if(off>=M.buf.duration)return;                    // már túllógtunk a sáv végén — ne indítsuk
   const src=AC.createBufferSource(); src.buffer=M.buf;
   const g=AC.createGain(); g.gain.value=(S.sound===false?0:0.9);
   src.connect(g); g.connect(AC.destination);
-  const t=AC.currentTime+0.03;
-  /* NORMÁL indulás (off≈0): 1-argumentumos start — ez a bizonyítottan stabil út iOS-en.
-     A 2-argumentumos (offset) forma CSAK valódi menet közbeni becsatolásnál (off>0.05). */
-  if(off>0.05){ src.start(t,off); M.audioStart=t-off; }
-  else { src.start(t); M.audioStart=t; }
-  M.audioSrc=src; M.trackGain=g;
- }catch(e){ M.audioSrc=null; }                        // ha bármi hiba: marad a perf-óra, a játék FUT
+  const t=AC.currentTime+0.02;
+  src.start(t);                                       // 1-argumentumos, a sáv elejéről
+  M.audioSrc=src; M.trackGain=g; M.audioStart=t;      // mnow = (AC.now - audioStart), 0-ról
+ }catch(e){ M.audioSrc=null; }                        // hiba esetén marad a perf-óra, a játék FUT
 }
 function stopConcertAudio(){
  if(M&&M.audioSrc){try{M.audioSrc.stop();}catch(e){}M.audioSrc=null;}
@@ -3052,8 +3056,8 @@ function attachTrackWhenReady(getBuf, loadFn){
   let b=null; try{ b=getBuf(); }catch(e){}
   if(b){ M.buf=b; try{startConcertAudio();}catch(e){} return; }
   try{ loadFn(); }catch(e){}                          // idempotens; hibánál újrapróbál
-  if(++n>150)return;                                  // ~30s után feladjuk (a játék némán FUT tovább)
-  setTimeout(poll,200);
+  if(++n>8)return;                                    // ~1.6s után feladjuk (a becsatolás a sáv elejéről
+  setTimeout(poll,200);                               //   indul → korán kell, ne resetelje mélyen az órát)
  }
  setTimeout(poll,0);                                  // SOHA ne fusson szinkronban a countdown-callbackben
 }
