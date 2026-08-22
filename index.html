@@ -2677,22 +2677,28 @@ let M=null;
 
 /* apró WebAudio visszajelzés — a találat legyen kielégítő */
 let AC=null;
-/* ---------- HANG-FELOLDÁS (mobil) ----------
-   Mobil böngészőkben az AudioContext SUSPENDED állapotban indul, és CSAK valódi
-   felhasználói gesztuson belül resume-olható. Ezért az ELSŐ koppintásnál/érintésnél
-   létrehozzuk és feloldjuk (+egy néma buffer az iOS teljes feloldásához). Enélkül a
-   mini-játékok zenéje (a countdown setTimeout-jában indul) néma maradhat. */
+/* ---------- HANG-FELOLDÁS + HÁTTÉR-VISSZATÉRÉS (mobil) ----------
+   Mobil böngészőkben az AudioContext SUSPENDED-ként indul, és CSAK valódi gesztuson
+   belül oldható fel. RÁADÁSUL amikor az app/lap háttérbe kerül, a context ismét
+   SUSPENDED lesz, és visszatéréskor magától NEM indul újra → néma marad reloadig.
+   Ezért: (1) az ELSŐ gesztuson feloldjuk (néma buffer az iOS-hez), (2) MINDEN
+   gesztuson újra resume-oljuk, ha kell, (3) visibilitychange/focus/pageshow-ra is. */
 let _audioUnlocked=false;
-function unlockAudio(){
- if(_audioUnlocked)return;
+function ensureAudio(){
  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
- try{ if(AC.state==='suspended')AC.resume(); }catch(e){}
- try{ const b=AC.createBuffer(1,1,22050),s=AC.createBufferSource();s.buffer=b;s.connect(AC.destination);s.start(0); }catch(e){}
- _audioUnlocked=true;
+ if(!_audioUnlocked){
+  try{ const b=AC.createBuffer(1,1,22050),s=AC.createBufferSource();s.buffer=b;s.connect(AC.destination);s.start(0); }catch(e){}
+  _audioUnlocked=true;
+ }
+ try{ if(AC.state==='suspended')AC.resume(); }catch(e){}   // MINDEN hívásnál, nem csak egyszer
 }
+function resumeAudio(){ try{ if(AC&&AC.state==='suspended')AC.resume(); }catch(e){} }
 ['pointerdown','touchend','click'].forEach(function(ev){
- document.addEventListener(ev,unlockAudio,{capture:true,passive:true});
+ document.addEventListener(ev,ensureAudio,{capture:true,passive:true});
 });
+document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible')resumeAudio(); });
+window.addEventListener('focus',resumeAudio);
+window.addEventListener('pageshow',resumeAudio);
 function blip(freq,dur,type,vol){
  if(S.sound===false)return;
  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
@@ -6088,6 +6094,7 @@ if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M
 if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,
   _mus:function(){return{cbuf:!!CBUF,cbufDur:CBUF?+CBUF.duration.toFixed(1):0,pbuf:!!PBUF,pbufDur:PBUF?+PBUF.duration.toFixed(1):0,lbuf:!!LBUF,lbufDur:LBUF?+LBUF.duration.toFixed(1):0,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
+  _ac:function(){return (typeof AC!=='undefined')?AC:null;},
   _trStr:typeof _trStr!=='undefined'?_trStr:null};
 })();
 </script>
