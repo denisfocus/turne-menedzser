@@ -1191,6 +1191,31 @@ const CITIES=[
  {id:'ams',n:'Amszterdam',r:'EU',lat:52.37,lon:4.9,reach:95,aff:{Pop:1.1,Rock:1.05,Rap:1.0,Elektro:1.3},eLike:85,photo:'amsterdam,canal,night',lk:34,leg:1},
  {id:'lag',n:'Lagos',r:'AF',lat:6.52,lon:3.37,reach:100,aff:{Pop:1.15,Rock:0.85,Rap:1.3,Elektro:1.1},eLike:86,photo:'lagos,nigeria,city',lk:35,leg:1},
  {id:'cai',n:'Kairó',r:'AF',lat:30.04,lon:31.24,reach:85,aff:{Pop:1.1,Rock:0.85,Rap:1.0,Elektro:1.0},eLike:74,photo:'cairo,pyramids',lk:62},
+ /* ---- BŐVÍTÉS: több VALÓDI város, hogy MINDEN régió-alapú cél teljesíthető legyen
+        (pl. „8 európai város", „3 klubshow Dél-Amerikában"). Mind nyitott (nem leg),
+        így örökség-perk nélkül is elérhetők. ---- */
+ /* Európa → 8-as mérföldkőhöz bőven elég (10 nyitott EU) */
+ {id:'rom',n:'Róma',r:'EU',lat:41.9,lon:12.5,reach:100,aff:{Pop:1.15,Rock:1.0,Rap:1.0,Elektro:1.05},eLike:82,photo:'rome,colosseum',lk:101},
+ {id:'vie',n:'Bécs',r:'EU',lat:48.21,lon:16.37,reach:80,aff:{Pop:1.05,Rock:1.05,Rap:0.95,Elektro:1.1},eLike:76,photo:'vienna,city',lk:102},
+ {id:'bcn',n:'Barcelona',r:'EU',lat:41.39,lon:2.17,reach:95,aff:{Pop:1.2,Rock:1.0,Rap:1.05,Elektro:1.2},eLike:88,photo:'barcelona,city',lk:103},
+ {id:'dbl',n:'Dublin',r:'EU',lat:53.35,lon:-6.26,reach:70,aff:{Pop:1.1,Rock:1.15,Rap:1.0,Elektro:1.0},eLike:80,photo:'dublin,ireland',lk:104},
+ /* Dél-Amerika → 5 nyitott SA, hogy a klub-kihívás egy turnén is menjen */
+ {id:'bog',n:'Bogotá',r:'SA',lat:4.61,lon:-74.08,reach:90,aff:{Pop:1.2,Rock:0.95,Rap:1.1,Elektro:1.05},eLike:85,photo:'bogota,colombia',lk:111},
+ {id:'lim',n:'Lima',r:'SA',lat:-12.05,lon:-77.04,reach:80,aff:{Pop:1.15,Rock:0.95,Rap:1.05,Elektro:1.0},eLike:83,photo:'lima,peru',lk:112},
+ {id:'scl',n:'Santiago',r:'SA',lat:-33.45,lon:-70.67,reach:78,aff:{Pop:1.15,Rock:1.05,Rap:1.0,Elektro:1.1},eLike:82,photo:'santiago,chile',lk:113},
+ /* Észak-Amerika (tartalék + változatosság) */
+ {id:'van',n:'Vancouver',r:'NA',lat:49.28,lon:-123.12,reach:80,aff:{Pop:1.1,Rock:1.1,Rap:1.0,Elektro:1.05},eLike:78,photo:'vancouver,canada',lk:121},
+ {id:'atl',n:'Atlanta',r:'NA',lat:33.75,lon:-84.39,reach:95,aff:{Pop:1.1,Rock:0.95,Rap:1.35,Elektro:1.0},eLike:84,photo:'atlanta,skyline',lk:122},
+ /* Ázsia (tartalék) */
+ {id:'sin',n:'Szingapúr',r:'AS',lat:1.35,lon:103.82,reach:100,aff:{Pop:1.2,Rock:0.95,Rap:1.0,Elektro:1.2},eLike:80,photo:'singapore,skyline',lk:131},
+ {id:'man',n:'Manila',r:'AS',lat:14.6,lon:120.98,reach:95,aff:{Pop:1.25,Rock:0.95,Rap:1.05,Elektro:1.1},eLike:87,photo:'manila,philippines',lk:132},
+ /* Óceánia (eddig csak Sydney volt!) */
+ {id:'mel',n:'Melbourne',r:'OC',lat:-37.81,lon:144.96,reach:85,aff:{Pop:1.15,Rock:1.2,Rap:1.0,Elektro:1.1},eLike:82,photo:'melbourne,city',lk:141},
+ {id:'akl',n:'Auckland',r:'OC',lat:-36.85,lon:174.76,reach:60,aff:{Pop:1.1,Rock:1.1,Rap:1.0,Elektro:1.0},eLike:76,photo:'auckland,newzealand',lk:142},
+ /* Afrika (tartalék) */
+ {id:'nai',n:'Nairobi',r:'AF',lat:-1.29,lon:36.82,reach:75,aff:{Pop:1.1,Rock:0.85,Rap:1.2,Elektro:1.05},eLike:84,photo:'nairobi,kenya',lk:151},
+ {id:'cas',n:'Casablanca',r:'AF',lat:33.57,lon:-7.59,reach:70,aff:{Pop:1.1,Rock:0.9,Rap:1.1,Elektro:1.05},eLike:78,photo:'casablanca,morocco',lk:152},
+ {id:'acc',n:'Accra',r:'AF',lat:5.6,lon:-0.19,reach:72,aff:{Pop:1.15,Rock:0.85,Rap:1.25,Elektro:1.1},eLike:85,photo:'accra,ghana',lk:153},
 ];
 const CM=Object.fromEntries(CITIES.map(c=>[c.id,c]));
 /* A választható városok listája — az örökség-perk nélkül a zárt piacok nem jelennek meg. */
