@@ -2918,22 +2918,30 @@ let CBUF=null, CBUF_TRY=false;
 /* ROBUSZTUS audio-betöltő — a natív iOS/Android WebView (capacitor:// séma) alatt a
    fetch() bináris letöltése gyakran elhasal; az XHR(arraybuffer) megbízhatóbb. A
    decodeAudioData-t promise- ÉS callback-formában is kezeljük (régebbi WebView-k). */
+function decodeAudio(arrbuf){
+ return new Promise(function(resolve,reject){
+  if(!arrbuf||!arrbuf.byteLength)return reject(new Error('empty'));
+  try{ var p=AC.decodeAudioData(arrbuf, resolve, reject); if(p&&p.then)p.then(resolve,reject); }
+  catch(e){ reject(e); }
+ });
+}
 function fetchAudioBuf(src){
+ // 1) XHR(arraybuffer) — a capacitor:// sémán ez a legmegbízhatóbb bináris letöltés
  return new Promise(function(resolve,reject){
   var xhr;
   try{ xhr=new XMLHttpRequest(); xhr.open('GET',src,true); xhr.responseType='arraybuffer'; }
   catch(e){ return reject(e); }
   xhr.onload=function(){
-   // capacitor:// és file:// esetén a status 0 is siker lehet
-   if(!((xhr.status>=200&&xhr.status<300)||xhr.status===0)||!xhr.response){ return reject(new Error('HTTP '+xhr.status)); }
-   try{
-    var p=AC.decodeAudioData(xhr.response, resolve, reject);
-    if(p&&p.then)p.then(resolve,reject);
-   }catch(e){ reject(e); }
+   if(((xhr.status>=200&&xhr.status<300)||xhr.status===0)&&xhr.response) resolve(xhr.response);
+   else reject(new Error('HTTP '+xhr.status));
   };
   xhr.onerror=function(){ reject(new Error('xhr error')); };
   try{ xhr.send(); }catch(e){ reject(e); }
- });
+ })
+ .catch(function(){ /* 2) fallback: fetch — ha az XHR elhasalt a WebView-ban */
+  return fetch(src).then(function(r){ if(!r.ok&&r.status!==0)throw new Error('HTTP '+r.status); return r.arrayBuffer(); });
+ })
+ .then(decodeAudio);
 }
 function loadConcert(){
  if(CBUF||CBUF_TRY)return;
@@ -3002,43 +3010,46 @@ function openMini(stopIdx){
  const tick2=()=>{ if(!M||M.ended)return;
    if(c>0){cd.textContent=c;blip(520+(3-c)*90,0.07,'sine',0.12);c--;setTimeout(tick2,620);}
    else{$('#mReady').style.display='none';
-    /* Megvárjuk a user sávját (concert1.mp3) — SOHA nincs procedurális helyette. */
-    waitTrackThen(function(){return CBUF;}, loadConcert, function(){
-     M.t0=performance.now();M.started=true;
-     startConcertAudio();
-     M.iv=setInterval(miniTick,25);M.raf=requestAnimationFrame(miniDraw);});}};
+    /* A JÁTÉK AZONNAL indul — az audio betöltésétől FÜGGETLENÜL (sose fagy). A user
+       sávja (concert1.mp3) háttérben csatlakozik, amint kész (offset-tel, szinkronban). */
+    M.t0=performance.now();M.started=true;
+    startConcertAudio();
+    attachTrackWhenReady(function(){return CBUF;}, loadConcert);
+    M.iv=setInterval(miniTick,25);M.raf=requestAnimationFrame(miniDraw);}};
  tick2();
 }
 /* a valódi track (M.buf) elindítása a visszaszámlálás végén — dob ÉS zongora is ezt hívja */
+/* A user sávjának indítása. Ha a JÁTÉK MÁR FUT (menet közbeni csatlakozás, mert a
+   sáv később töltött be), az AKTUÁLIS pozíciótól (offset) indítjuk, és az audioStart-ot
+   úgy állítjuk, hogy a mnow() óra FOLYTONOS maradjon → nincs ugrás, marad a szinkron. */
 function startConcertAudio(){
- if(!M||!M.useTrack||!M.buf||!AC)return;
+ if(!M||!M.useTrack||!M.buf||!AC||M.audioSrc)return;
  try{
+  if(AC.state==='suspended'){try{AC.resume();}catch(e){}}
+  const offMs=M.started?Math.max(0,mnow()):0, off=offMs/1000;
+  if(off>=M.buf.duration)return;                    // már túllógtunk a sáv végén — ne indítsuk
   const src=AC.createBufferSource(); src.buffer=M.buf;
   const g=AC.createGain(); g.gain.value=(S.sound===false?0:0.9);
   src.connect(g); g.connect(AC.destination);
   const t=AC.currentTime+0.03;
-  src.start(t);
-  M.audioSrc=src; M.trackGain=g; M.audioStart=t;
-  if(AC.state==='suspended'){try{AC.resume();}catch(e){}}
- }catch(e){ M.audioSrc=null; M.audioStart=null; }   // ha bármi hiba: marad a perf-óra
+  src.start(t,off);
+  M.audioSrc=src; M.trackGain=g; M.audioStart=t-off;  // mnow = (AC.now - audioStart) folytonos
+ }catch(e){ M.audioSrc=null; }                        // ha bármi hiba: marad a perf-óra, a játék FUT
 }
 function stopConcertAudio(){
  if(M&&M.audioSrc){try{M.audioSrc.stop();}catch(e){}M.audioSrc=null;}
 }
-/* Megvárja, míg a mini-játék VALÓDI zenéje (a user sávja) betölt — retry-jal.
-   NINCS procedurális zene: a 3 saját sáv (concert1/piano1/lights1) az EGYETLEN
-   zene. Amíg tölt, "♪" jelzés a visszaszámláló helyén. */
-function waitTrackThen(getBuf, loadFn, cb){
+/* HÁTTÉRBEN várja a user sávját és becsatolja, amint kész — retry-jal. A JÁTÉK NEM
+   vár rá: a game-start ettől FÜGGETLEN. Sose fagy, sose procedurális. */
+function attachTrackWhenReady(getBuf, loadFn){
  let n=0;
  (function poll(){
-  if(!M||M.ended)return;
+  if(!M||M.ended||M.audioSrc)return;                 // vége / már szól
   const b=getBuf();
-  if(b){ M.buf=b; cb(); return; }
-  try{ loadFn(); }catch(e){}
-  n++;
-  const cd=$('#mCount'); if(cd){cd.textContent='♪';cd.style.opacity=(n%2?'0.5':'1');}
-  if(n>240){ cb(); return; }   // ~36s vészhelyzet: inkább csend, mint procedurális zene
-  setTimeout(poll,150);
+  if(b){ M.buf=b; startConcertAudio(); return; }
+  try{ loadFn(); }catch(e){}                          // idempotens; hibánál újrapróbál
+  if(++n>150)return;                                  // ~30s után feladjuk (a játék némán FUT tovább)
+  setTimeout(poll,200);
  })();
 }
 function peakSong(a,list){
@@ -3265,11 +3276,11 @@ function openLights(stopIdx){
    b.onpointerdown=function(e){e.preventDefault();pressMove(b.dataset.move,b);};});
  $('#cueBtn').onpointerdown=function(e){e.preventDefault();fireCue();};
  countdown(function(){
-   /* Megvárjuk a user sávját (lights1.mp3) — SOHA nincs procedurális helyette. */
-   waitTrackThen(function(){return LBUF;}, loadLights, function(){
-     M.t0=performance.now();M.started=true;
-     startConcertAudio();
-     M.iv=setInterval(lightTick,25);M.raf=requestAnimationFrame(lightDraw);});
+   /* A JÁTÉK AZONNAL indul; a user sávja (lights1.mp3) háttérben csatlakozik. */
+   M.t0=performance.now();M.started=true;
+   startConcertAudio();
+   attachTrackWhenReady(function(){return LBUF;}, loadLights);
+   M.iv=setInterval(lightTick,25);M.raf=requestAnimationFrame(lightDraw);
  });
 }
 /* mozgás-gomb: azonnal átállítja a nyalábok mozgását + pontozza a parancsot */
@@ -3613,11 +3624,11 @@ function openPiano(stopIdx){
   b.onpointerleave=function(){if(M&&M.down[ki])pianoUp(ki,b);};
  });
  countdown(function(){
-   /* Megvárjuk a user sávját (piano1.mp3) — SOHA nincs procedurális helyette. */
-   waitTrackThen(function(){return PBUF;}, loadPiano, function(){
-     M.t0=performance.now();M.started=true;
-     startConcertAudio();
-     M.iv=setInterval(pianoTick,25);M.raf=requestAnimationFrame(pianoDraw);});
+   /* A JÁTÉK AZONNAL indul; a user sávja (piano1.mp3) háttérben csatlakozik. */
+   M.t0=performance.now();M.started=true;
+   startConcertAudio();
+   attachTrackWhenReady(function(){return PBUF;}, loadPiano);
+   M.iv=setInterval(pianoTick,25);M.raf=requestAnimationFrame(pianoDraw);
  });
 }
 function pianoDown(ki,el){
@@ -3896,6 +3907,16 @@ function initMap(){if(!HAS_MAP)return;teardownMap();
     tableten az ellen-zoom + iOS WebKit miatt) — enélkül üres/félig-rajzolt a térkép. */
  [40,200,450,900].forEach(function(ms){setTimeout(function(){if(G.map){try{G.map.invalidateSize();fitRoute();}catch(e){}}},ms);});
  try{requestAnimationFrame(function(){if(G.map){try{G.map.invalidateSize();}catch(e){}}});}catch(e){}}
+/* A live-turné (és tervező) képernyő minden fázisváltásnál ÚJRARENDEREL (innerHTML) →
+   ÚJ, ÜRES #lmap jön létre, de a régi G.map a LESZAKADT konténerhez van kötve. Ezért:
+   ha a G.map NEM a JELENLEGI #lmap-hez tartozik, ÚJRA inicializálunk (különben fekete). */
+function ensureLiveMap(){
+ if(!HAS_MAP)return;
+ const lm=document.getElementById('lmap'); if(!lm)return;
+ let ok=false; try{ ok = G.map && G.map.getContainer()===lm && document.body.contains(lm); }catch(e){ ok=false; }
+ if(ok){ refreshMarkers();drawRoute();try{G.map.invalidateSize();}catch(e){} }
+ else { initMap(); }                                  // initMap maga teardownMap-el kezd
+}
 function refreshMarkers(){if(!G.map)return;const st=actStops(),dc=doneCount();
  cityList().forEach(c=>{const ord=st.findIndex(s=>s.city===c.id)+1;G.markers[c.id]&&G.markers[c.id].setIcon(pinIcon(c,ord,ord>0&&ord<=dc));});}
 function drawRoute(){if(!G.map)return;
@@ -5422,7 +5443,7 @@ function liveScreen(){
 
  h+=`<div class="divider"></div><button class="btn dark sm" id="lvStop">Turné megszakítása</button><div style="height:10px"></div></div>`;
  view.innerHTML=h;view.scrollTop=sc;
- if(HAS_MAP){if(G.map){refreshMarkers();drawRoute();try{G.map.invalidateSize();}catch(e){}}else initMap();}
+ ensureLiveMap();                                     // fázisváltáskor is: új #lmap → újra-init, ne maradjon fekete
  $('#lvSkip').onclick=skipPhase;
  $('#lvSkipAll').onclick=skipAll;
  const dbtn=$('#lvDrum');if(dbtn)dbtn.onclick=()=>{const i2=curPhase().i;
@@ -6246,6 +6267,7 @@ if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPri
   _mus:function(){return{cbuf:!!CBUF,cbufDur:CBUF?+CBUF.duration.toFixed(1):0,pbuf:!!PBUF,pbufDur:PBUF?+PBUF.duration.toFixed(1):0,lbuf:!!LBUF,lbufDur:LBUF?+LBUF.duration.toFixed(1):0,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
+  ensureLiveMap:typeof ensureLiveMap!=='undefined'?ensureLiveMap:null,initMap:typeof initMap!=='undefined'?initMap:null,teardownMap:typeof teardownMap!=='undefined'?teardownMap:null,G:typeof G!=='undefined'?G:null,
   buildShareCard:typeof buildShareCard!=='undefined'?buildShareCard:null,shareResult:typeof shareResult!=='undefined'?shareResult:null,
   _trStr:typeof _trStr!=='undefined'?_trStr:null};
 })();
