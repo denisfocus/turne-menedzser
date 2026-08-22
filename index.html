@@ -68,12 +68,20 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;
    min-height-ot kikapcsoljuk, mert zoommal túlméretezne (inset:0 úgyis kitölt). */
 @media (min-width:768px){
   #app{ min-height:0; zoom:1.4 }
+  /* A Leaflet NEM boldogul a CSS-zoommal (clientWidth != getBoundingClientRect →
+     üres/rossz térkép, főleg iOS WebKit-en). A térkép-konténerre ELLEN-zoomot
+     teszünk, így a Leaflet net 1.0 koordináta-térben dolgozik (tiszta, kitölt). */
+  .mapz{ zoom:0.7143 }
+  .livemapz #lmap{ height:420px }
 }
 @media (min-width:834px){
   #app{ zoom:1.55 }
+  .mapz{ zoom:0.6452 }
 }
 @media (min-width:1000px){
   #app{ zoom:1.9 }
+  .mapz{ zoom:0.5263 }
+  .livemapz #lmap{ height:520px }
 }
 
 /* ---------- HUD ---------- */
@@ -2714,12 +2722,17 @@ function ensureAudio(){
  try{ if(AC.state==='suspended')AC.resume(); }catch(e){}   // MINDEN hívásnál, nem csak egyszer
 }
 function resumeAudio(){ try{ if(AC&&AC.state==='suspended')AC.resume(); }catch(e){} }
+/* a Leaflet-térkép újraméretezése, amikor a konténer láthatóvá válik / a képernyő
+   átméreteződik/forog — enélkül üres/rossz méretű marad (főleg tableten). */
+function refreshMap(){ try{ if(typeof G!=='undefined'&&G&&G.map){ G.map.invalidateSize(); } }catch(e){} }
 ['pointerdown','touchend','click'].forEach(function(ev){
  document.addEventListener(ev,ensureAudio,{capture:true,passive:true});
 });
-document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible')resumeAudio(); });
-window.addEventListener('focus',resumeAudio);
-window.addEventListener('pageshow',resumeAudio);
+document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible'){resumeAudio();setTimeout(refreshMap,60);} });
+window.addEventListener('focus',function(){resumeAudio();setTimeout(refreshMap,60);});
+window.addEventListener('pageshow',function(){resumeAudio();setTimeout(refreshMap,60);});
+window.addEventListener('resize',function(){setTimeout(refreshMap,80);});
+window.addEventListener('orientationchange',function(){setTimeout(refreshMap,250);});
 function blip(freq,dur,type,vol){
  if(S.sound===false)return;
  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
@@ -3890,7 +3903,11 @@ function initMap(){if(!HAS_MAP)return;teardownMap();
   const m=L.marker([c.lat,c.lon],{icon:pinIcon(c,ord,ord>0&&ord<=dc),title:c.n}).addTo(G.map);
   if(!S.live)m.on('click',()=>toggleCity(c.id));
   m.bindTooltip(c.n,{direction:'top',offset:[0,-8]});G.markers[c.id]=m;});
- drawRoute();setTimeout(()=>{try{G.map.invalidateSize();}catch(e){}},80);}
+ drawRoute();
+ /* Több időzítésben frissítjük a méretet: a konténer/zoom-layout később ül le (főleg
+    tableten az ellen-zoom + iOS WebKit miatt) — enélkül üres/félig-rajzolt a térkép. */
+ [40,200,450,900].forEach(function(ms){setTimeout(function(){if(G.map){try{G.map.invalidateSize();fitRoute();}catch(e){}}},ms);});
+ try{requestAnimationFrame(function(){if(G.map){try{G.map.invalidateSize();}catch(e){}}});}catch(e){}}
 function refreshMarkers(){if(!G.map)return;const st=actStops(),dc=doneCount();
  cityList().forEach(c=>{const ord=st.findIndex(s=>s.city===c.id)+1;G.markers[c.id]&&G.markers[c.id].setIcon(pinIcon(c,ord,ord>0&&ord<=dc));});}
 function drawRoute(){if(!G.map)return;
@@ -5389,7 +5406,7 @@ function liveScreen(){
 
  /* térkép a haladással */
  if(HAS_MAP){h+=`<div class="sec"><h2>Az útvonal</h2><span class="r act">${icon('plane','11px')} élő</span></div>
-   <div style="border-radius:14px;overflow:hidden;border:1px solid var(--line)"><div id="lmap"></div></div>`;}
+   <div class="mapz livemapz" style="border-radius:14px;overflow:hidden;border:1px solid var(--line)"><div id="lmap"></div></div>`;}
 
  /* állomás-idővonal */
  h+=`<div class="sec"><h2>Állomások</h2></div><div class="tl">`;
@@ -5462,7 +5479,7 @@ function plannerScreen(){
  h+=`<div class="rtseg"><button class="${S.rtView==='map'?'on':''}" data-rtv="map">${icon('globe','14px')} Térkép</button>
       <button class="${S.rtView!=='map'?'on':''}" data-rtv="list">${icon('pin','14px')} Városlista</button></div>`;
  h+=`<div class="rtbody">
-      <div id="rtMap" style="${S.rtView==='map'?'':'display:none'}">${HAS_MAP?`<div id="lmap"></div>`:`<div class="empty">A térkép nem tölthető be.</div>`}</div>
+      <div id="rtMap" class="mapz" style="${S.rtView==='map'?'':'display:none'}">${HAS_MAP?`<div id="lmap"></div>`:`<div class="empty">A térkép nem tölthető be.</div>`}</div>
       <div id="chips" class="rtscroll" style="${S.rtView==='map'?'display:none':''}"></div>
       <div class="rtfade"></div>
     </div>`;
