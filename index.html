@@ -214,9 +214,9 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;
 .lcard .ph .gi{position:absolute;left:8px;top:8px;font-size:14px;color:#141a03;background:var(--neon);border-radius:8px;padding:3px;line-height:0}
 .lcard .bd{flex:1;min-width:0;padding:12px 13px;display:flex;flex-direction:column;justify-content:center}
 .lcard .nm{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:.01em;word-spacing:.05em;line-height:1.02}
-.lcard .chips{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.chips{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;align-items:flex-start}
 .chip{font-size:10.5px;font-weight:700;color:var(--muted);background:var(--panel2);border:1px solid var(--line);
-  padding:3px 9px;border-radius:8px;letter-spacing:.02em}
+  padding:3px 9px;border-radius:8px;letter-spacing:.02em;white-space:nowrap}
 .chip.mint{color:var(--cash);border-color:rgba(47,227,155,.3)}
 .chip.gold{color:var(--gold);border-color:rgba(255,194,75,.3)}
 .chip.lime{color:var(--neon);border-color:rgba(198,255,58,.3)}
@@ -2335,7 +2335,7 @@ function launchTour(){
   tRev:0,tCost:0,tPay:0,tTrav:0,tAtt:0,tEvent:0,tMerch:0,tArtist:0,tTake:0,pool:0,rep:0};
  S.tour=null;S.tab='terkep';teardownMap();save();render();
  sfx('plane');                                       // repülő elhúzás — indul a világ körüli út
- loadConcert();loadPiano();loadLights();             // mini-játékok zenéjének előtöltése
+ loadTrk('concert1');loadTrk('piano1');loadTrk('lights1');   // mini-játékok alap-sávjai
 }
 function curPhase(){return S.live?S.live.ph[S.live.i]:null;}
 function remainMs(){const L=S.live;if(!L)return 0;return L.pausedLeft!=null?L.pausedLeft:Math.max(0,L.ends-Date.now());}
@@ -2736,9 +2736,10 @@ function ensureAudio(){
   /* AGRESSZÍV ELŐTÖLTÉS: a 3 user-sáv máris tölteni kezd (az első gesztuson), hogy a
      mini-játék indulásakor GARANTÁLTAN kész legyen — így mindig 1-argumentumos, elejéről
      induló, szinkronban lévő lejátszás lesz (nem kell menet közbeni becsatolás). */
-  try{ if(typeof loadConcert==='function')loadConcert(); }catch(e){}
-  try{ if(typeof loadPiano==='function')loadPiano(); }catch(e){}
-  try{ if(typeof loadLights==='function')loadLights(); }catch(e){}
+  try{ loadTrk('menu'); }catch(e){}                       // halk háttérzene (Crystal Drift Run)
+  try{ loadTrk('concert1'); }catch(e){}
+  try{ loadTrk('piano1'); }catch(e){}
+  try{ loadTrk('lights1'); }catch(e){}
  }
  try{ if(AC.state!=='running')AC.resume(); }catch(e){}     // suspended ÉS interrupted (iOS) is
 }
@@ -2847,17 +2848,17 @@ function sfx(name){
    és mini-játék alatt elhallgat (azoknak saját zenéjük van), a HANG kikapcsolja.
    iOS-biztos: 1-argumentumos src.start, AC.resume a lejátszás előtt — sose zúg, sose fagy. */
 let AMB=null;
-const AMB_VOL=0.13;                                            // jóval a mini-játék (0.9) alatt
+const AMB_VOL=0.045;                                           // NAGYON halk — épp csak hallatszódjon
 function startAmbient(){
  if(S.sound===false||AMB)return;
  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
- const buf=(typeof PBUF!=='undefined'&&PBUF)?PBUF:null;       // a legnyugodtabb user-sáv
- if(!buf){ try{ if(typeof loadPiano==='function')loadPiano(); }catch(e){} return; }  // amint kész, a köv. render elindítja
+ const buf=(typeof trkBuf==='function')?trkBuf('menu'):null;  // Crystal Drift Run — halk háttér
+ if(!buf){ try{ if(typeof loadTrk==='function')loadTrk('menu'); }catch(e){} return; }  // amint kész, a köv. render elindítja
  try{ if(AC.state!=='running')AC.resume(); }catch(e){}
  try{
   const src=AC.createBufferSource(); src.buffer=buf; src.loop=true;   // tiszta loop
   const g=AC.createGain(); const t=AC.currentTime;
-  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(AMB_VOL,t+1.4);  // lágy felúszás
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(AMB_VOL,t+1.6);  // lágy felúszás
   src.connect(g); g.connect(AC.destination);
   src.start(t);                                                // 1-argumentumos, elejéről
   AMB={src,g};
@@ -2944,6 +2945,41 @@ function buildPattern(){
    ütemrácsára esnek (phase = az első ütem eltolása). Ha a track nem tölthető be,
    a játék visszaesik a régi szintetikus ütemre — sosem törik el. */
 const CTRACK={src:'assets/concert1.mp3',bpm:128,phase:180,dur:29200,win:820,winHard:600,perfectFrac:0.28};
+/* ================= TÖBB ZENE + ROTÁCIÓ =================
+   Minden mini-játék sávjának ütemtérképe a VALÓS hangból, gépi onset-elemzéssel
+   készült: a dob a valódi ütésekre, a zongora a valódi hangokra esik (nem rács,
+   nem random). Játéktípusonként rotálunk a poolból, hogy váltakozzon a zene. */
+const TRX={
+ concert1:{src:'assets/concert1.mp3',dur:29200,drum:[[196,2],[674,4],[1142,3],[1611,4],[2079,2],[2557,4],[3026,2],[3494,4],[3963,0],[4431,4],[4900,2],[5378,4],[5846,2],[6315,4],[6793,2],[7261,4],[7739,2],[8207,4],[8676,2],[9135,4],[9595,2],[10063,2],[10523,1],[10982,2],[11331,2],[11671,4],[12369,2],[12829,4],[13306,4],[13775,2],[14253,4],[14721,4],[15199,2],[15649,4],[16118,2],[16586,4],[17064,4],[17524,2],[18010,2],[18470,4],[18938,4],[19278,2],[19866,4],[20335,4],[20803,2],[21272,4],[21741,4],[22209,2],[22659,2],[23110,4],[23587,4],[24056,2],[24524,2],[24993,1],[25462,2],[25921,4],[26371,4],[26830,2],[27308,2],[27777,4],[28245,0],[28714,4],[29192,2]]},
+ piano1:{src:'assets/piano1.mp3',dur:17953,piano:[[608,4],[1083,4],[1696,4],[2117,4],[2539,4],[2960,7],[3579,4],[4000,9],[4416,0],[4848,4],[5317,4],[5893,2],[6395,3],[6827,3],[7360,9],[7765,0],[8197,9],[8619,4],[9248,10],[9653,5],[10096,7],[10523,7],[10939,0],[11381,7],[11973,0],[12395,5],[13024,7],[13445,11],[13861,7],[14256,11],[14683,0],[15333,0],[15755,0],[16176,10],[16592,9]]},
+ lights1:{src:'assets/lights1.mp3',dur:31990,bpm:132,phase:0,cues:[3800,8560,13710,17910,22800,27310,30530]},
+ hold:{src:'assets/hold1.mp3',dur:48000,piano:[[105,3,1400],[1750,3,1019],[2889,3,220],[3394,2,735],[4249,2,661],[5030,3,220],[5443,5,1121],[6684,2,220],[7106,11,220],[7510,8,689],[8319,3,220],[8742,4,1102],[9964,3,1400],[11608,3,1400],[13253,3,220],[13528,11,1249],[14897,3,1400],[16606,1,220],[16964,0,1400],[18609,5,1010],[19739,8,220],[20309,1,817],[21246,10,1400],[26400,3,716],[27236,10,1400],[29689,3,707],[30516,11,1400],[32804,1,1400],[40374,10,1400],[43259,11,220],[43672,1,1400],[46383,11,220],[46695,0,1166],[47981,3,220]],drum:[[105,2],[565,4],[1180,4],[1750,2],[2081,4],[2577,4],[3394,2],[4249,1],[5030,2],[5443,1],[5866,4],[6353,4],[6684,2],[7106,1],[7510,2],[8319,2],[8742,1],[9146,4],[9964,2],[10818,4],[11608,2],[12435,4],[12904,4],[13253,2],[14098,4],[14897,2],[15605,4],[16606,1],[16964,1],[18609,2],[19739,1],[20309,1],[21246,2],[21705,1],[22293,4],[23120,0],[23938,4],[24351,4],[24755,3],[25582,4],[26400,2],[27236,1],[27631,4],[28045,3],[28871,4],[29689,2],[30516,1],[30920,4],[31334,3],[32161,4],[32804,1],[33805,4],[34209,4],[34623,3],[35440,4],[36267,3],[37094,4],[37498,4],[37912,3],[38730,4],[39556,3],[40374,1],[40788,4],[41201,3],[42019,4],[42386,0],[42846,0],[43259,1],[43672,1],[44077,4],[44481,3],[45308,4],[45703,1],[46383,1],[47357,0],[47981,1]]},
+ paper:{src:'assets/paper1.mp3',dur:48000,piano:[[1,5,220],[414,1,220],[727,0,1400],[3216,3,1295],[4631,7,1400],[6698,3,220],[6983,7,1093],[8196,5,220],[8435,8,1400],[10171,8,220],[10686,9,909],[11715,9,1400],[13653,3,1400],[15390,8,1400],[17135,8,919],[18174,10,578],[18872,8,936],[19928,5,1400],[22345,8,973],[23438,2,532],[24090,9,1400],[25827,8,753],[26700,7,1120],[27940,3,1249],[29309,6,1400],[31045,4,220],[31330,10,220],[31771,1,891],[32782,9,1400],[34527,8,1400],[36264,7,1400],[40260,2,1102],[41482,6,588],[42190,0,909],[43219,7,220],[43696,10,1139],[44955,6,1400],[46692,8,220],[47133,10,220]],drum:[[1,1],[414,1],[1480,4],[1829,4],[2371,2],[3216,1],[4089,4],[4631,1],[4962,0],[5826,4],[6257,4],[6698,1],[7562,4],[8196,1],[8591,1],[9308,4],[9739,4],[10171,2],[10686,1],[11044,4],[11715,1],[12781,4],[13212,4],[13653,1],[14526,4],[15390,2],[16263,4],[16694,4],[17135,2],[17880,0],[18872,2],[19745,4],[20176,4],[20608,0],[21481,4],[22345,2],[23006,4],[23438,1],[24090,2],[24642,4],[25827,2],[26700,2],[27536,0],[27940,1],[28436,4],[29309,2],[30172,4],[30613,4],[31045,1],[31771,1],[32782,2],[33259,4],[33655,4],[34086,2],[34527,2],[34987,4],[35391,4],[36264,2],[36742,4],[37137,4],[37568,2],[38000,4],[38662,4],[39737,3],[40260,1],[40609,4],[41050,4],[41482,2],[42190,1],[42585,4],[43219,2],[43696,1],[44092,4],[44523,4],[44955,2],[45525,4],[46076,1],[46692,2],[47133,1],[47574,4]]},
+ glass:{src:'assets/glass1.mp3',dur:48000,bpm:128,phase:0,cues:[20160,22999,28668,34336,37166,40005,43781,46620]},
+ back:{src:'assets/back1.mp3',dur:48000,bpm:128,phase:0,cues:[15593,19810,23559,26370,30119,34575,37974,43248,45829],drum:[[131,1],[599,0],[1536,4],[1968,4],[2464,0],[3006,4],[3411,4],[3879,2],[4348,4],[5055,1],[5515,0],[6222,4],[7040,0],[7389,4],[7885,1],[8326,0],[8914,4],[9263,4],[9851,0],[10200,4],[10678,1],[11137,4],[11725,0],[12074,0],[12571,4],[13021,4],[13719,2],[14188,4],[14656,4],[15125,2],[15593,3],[16062,4],[16530,4],[16999,2],[17348,4],[17697,4],[18055,1],[18405,4],[18873,4],[19222,2],[19571,4],[20279,4],[20747,2],[21097,3],[21446,0],[21804,1],[22153,4],[22622,4],[22971,2],[23329,4],[23678,0],[24027,4],[24496,4],[24845,2],[25203,4],[25552,4],[25902,2],[26370,4],[26728,4],[27078,2],[27427,0],[27776,4],[28244,4],[28603,0],[28952,0],[29301,1],[29650,4],[30119,4],[30477,2],[30826,4],[31175,0],[31506,4],[31993,4],[32351,2],[32700,4],[33049,4],[33408,2],[33867,4],[34225,0],[34575,3],[34924,1],[35254,4],[35741,4],[36100,3],[36449,3],[36798,0],[37156,4],[37625,4],[37974,2],[38323,0],[38672,4],[39031,4],[39499,2],[39848,4],[40207,4],[40556,0],[40905,4],[41373,4],[41722,0],[42072,3],[42430,0],[42779,4],[43248,4],[43597,3],[43946,0],[44304,0],[44653,4],[45122,4],[45471,2],[45829,3],[46178,0],[46528,4],[46913,4],[47437,2]]},
+ menu:{src:'assets/menu1.mp3',dur:43992}
+};
+const POOL={drum:['concert1','hold','paper','back'],piano:['piano1','hold','paper'],lights:['lights1','glass','back']};
+function nextTrk(game){
+ const pool=POOL[game]; S.rot=S.rot||{};
+ let i=(S.rot[game]|0)%pool.length;
+ S.rot[game]=(i+1)%pool.length; try{save();}catch(e){}
+ return pool[i];
+}
+const XBUF={}, XTRY={};
+function loadTrk(key){
+ const d=TRX[key]; if(!d||XBUF[key]||XTRY[key])return;
+ try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
+ XTRY[key]=true;
+ fetchAudioBuf(d.src).then(function(b){XBUF[key]=b;XTRY[key]=false;}).catch(function(){XTRY[key]=false;});
+}
+function trkBuf(key){return XBUF[key]||null;}
+/* ütemtérkép → játék-nóták */
+function drumNotesFrom(map){return map.map(function(p,i){var hard=(i%4===3);
+ return {t:p[0],pad:p[1],dur:hard?600:820,hard:hard,done:false};});}
+function pianoNotesFrom(map){return map.map(function(p){
+ return {t:p[0],key:p[1],dur:(p[2]||220),done:false,held:0,hit:false};});}
+function cuesFrom(arr){return (arr||[]).map(function(t){return {t:t,done:false,hit:false};});}
 let CBUF=null, CBUF_TRY=false;
 /* ROBUSZTUS audio-betöltő — a natív iOS/Android WebView (capacitor:// séma) alatt a
    fetch() bináris letöltése gyakran elhasal; az XHR(arraybuffer) megbízhatóbb. A
@@ -2973,12 +3009,7 @@ function fetchAudioBuf(src){
  })
  .then(decodeAudio);
 }
-function loadConcert(){
- if(CBUF||CBUF_TRY)return;
- try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
- CBUF_TRY=true;
- fetchAudioBuf(CTRACK.src).then(function(buf){CBUF=buf;}).catch(function(){CBUF_TRY=false;});   // hiba: legközelebb újrapróbálja
-}
+function loadConcert(){ loadTrk('concert1'); }   // visszafelé kompatibilis wrapper
 function buildConcertPattern(){
  const beat=60000/CTRACK.bpm, ph=CTRACK.phase, notes=[]; let pad=-1,k=0;
  const end=CTRACK.dur-700;
@@ -3002,10 +3033,10 @@ function openMini(stopIdx){
  const L=S.live;if(!L)return;
  const a=AM[L.artist],peak=peakSong(a,L.setlist),city=CM[L.stops[stopIdx].city];
  L.pausedLeft=remainMs();       // csak memóriában: ha újratöltenek játék közben, a turné magától folytatódik
- loadConcert();                                     // a user sávja — kötelező, nincs fallback
- M={notes:buildConcertPattern(),t0:0,raf:0,iv:0,sched:-1,stop:stopIdx,crowd:46,combo:0,best:0,
-    perfect:0,good:0,miss:0,total:0,started:false,ended:false,
-    useTrack:true, buf:CBUF, dur:CTRACK.dur, audioSrc:null, audioStart:null, trackGain:null};
+ const dkey=nextTrk('drum'), dtrk=TRX[dkey]; loadTrk(dkey);   // rotáció: valós onset-térkép
+ M={notes:drumNotesFrom(dtrk.drum),t0:0,raf:0,iv:0,sched:-1,stop:stopIdx,crowd:46,combo:0,best:0,
+    perfect:0,good:0,miss:0,total:0,started:false,ended:false,trkKey:dkey,
+    useTrack:true, buf:trkBuf(dkey), dur:dtrk.dur, audioSrc:null, audioStart:null, trackGain:null};
  M.total=M.notes.length;
  const el=$('#mini');
  el.innerHTML=`
@@ -3045,7 +3076,7 @@ function openMini(stopIdx){
        teljesen bekerítve; a user sávja háttérben csatlakozik (offset-tel, szinkronban). */
     M.t0=performance.now();M.started=true;
     M.iv=setInterval(miniTick,25);M.raf=requestAnimationFrame(miniDraw);
-    try{ startConcertAudio(); attachTrackWhenReady(function(){return CBUF;}, loadConcert); }catch(e){}}};
+    try{ startConcertAudio(); attachTrackWhenReady(function(){return trkBuf(dkey);}, function(){loadTrk(dkey);}); }catch(e){}}};
  tick2();
 }
 /* a valódi track (M.buf) elindítása a visszaszámlálás végén — dob ÉS zongora is ezt hívja */
@@ -3245,13 +3276,7 @@ function schedLead(t,f){const o=AC.createOscillator(),g=AC.createGain();
    dropokra esnek. Fallback: ha nem tölt be, marad a procedurális zene + rövid minta. */
 const LTRACK={src:'assets/lights1.mp3', dur:31990, bpm:132, phase:0,
   cues:[3800,8560,13710,17910,22800,27310,30530]};   // TŰZ pillanatok (nagy dropok)
-let LBUF=null, LBUF_TRY=false;
-function loadLights(){
- if(LBUF||LBUF_TRY)return;
- try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
- LBUF_TRY=true;
- fetchAudioBuf(LTRACK.src).then(function(buf){LBUF=buf;}).catch(function(){LBUF_TRY=false;});
-}
+function loadLights(){ loadTrk('lights1'); }   // visszafelé kompatibilis wrapper
 /* a mozgás-parancsok listája: minden 8. ütemen kér egy irányt/lézert */
 const LMOVES=['left','right','circle','laser'];
 function buildLightMoves(bpm,dur){
@@ -3273,18 +3298,18 @@ function openLights(stopIdx){
  const L=S.live;if(!L)return;
  const a=AM[L.artist],peak=peakSong(a,L.setlist),city=CM[L.stops[stopIdx].city];
  L.pausedLeft=remainMs();
- loadLights();                                        // a user sávja (Heartline Party) — kötelező
- const bpm=LTRACK.bpm, dur=LTRACK.dur, beat=60000/bpm;
+ const lkey=nextTrk('lights'), ltrk=TRX[lkey]; loadTrk(lkey);   // rotáció
+ const bpm=ltrk.bpm||128, dur=ltrk.dur, beat=60000/bpm;
  const nBeats=Math.ceil(dur/beat);
- const cues=LTRACK.cues.map(function(t){return{t:Math.round(t),done:false,hit:false};});
- M={kind:'lights',stop:stopIdx,crowd:46,combo:0,best:0,
+ const cues=cuesFrom(ltrk.cues);
+ M={kind:'lights',stop:stopIdx,crowd:46,combo:0,best:0,trkKey:lkey,
     col:0,wantCol:0,beat:-1,sched:-1,flash:0,strobe:0,fire:[],fireT:0,
     colOn:0,colAll:0,swap:0,
     cues:cues, cueOk:0,cueMiss:0,
     move:'sweep',moveSm:0,                              // aktív mozgás + simított átmenet
     moves:buildLightMoves(bpm,dur),moveWant:null,moveOk:0,moveMiss:0,moveTotal:0,moveFlash:0,
-    bpm:bpm,phase:LTRACK.phase,
-    useTrack:true, buf:LBUF, dur:dur, audioSrc:null,audioStart:null,trackGain:null,
+    bpm:bpm,phase:ltrk.phase||0,
+    useTrack:true, buf:trkBuf(lkey), dur:dur, audioSrc:null,audioStart:null,trackGain:null,
     t0:0,started:false,ended:false,raf:0,iv:0,W:1,H:1,nBeats:nBeats};
  M.moveTotal=M.moves.length;
  const moveBtns=[['left','◄','BAL'],['circle','◯','KÖR'],['right','►','JOBB'],['laser','⚡','LÉZER']];
@@ -3332,7 +3357,7 @@ function openLights(stopIdx){
    /* JÁTÉK ELŐSZÖR (loops), audio utólag bekerítve — sose fagyjon a lights1 miatt. */
    M.t0=performance.now();M.started=true;
    M.iv=setInterval(lightTick,25);M.raf=requestAnimationFrame(lightDraw);
-   try{ startConcertAudio(); attachTrackWhenReady(function(){return LBUF;}, loadLights); }catch(e){}
+   try{ startConcertAudio(); attachTrackWhenReady(function(){return trkBuf(lkey);}, function(){loadTrk(lkey);}); }catch(e){}
  });
 }
 /* mozgás-gomb: azonnal átállítja a nyalábok mozgását + pontozza a parancsot */
@@ -3597,13 +3622,7 @@ function pianoTone(semi,len){
    adta. Fallback: ha nem tölt be, marad a régi szintetikus minta (sose törik el). */
 const PTRACK={src:'assets/piano1.mp3',dur:17953,
  notes:[[608,4],[1083,4],[1696,4],[2117,4],[2539,4],[2960,7],[3579,4],[4000,9],[4416,0],[4848,4],[5317,4],[5893,2],[6395,3],[6827,3],[7360,9],[7765,0],[8197,9],[8619,4],[9248,10],[9653,5],[10096,7],[10523,7],[10939,0],[11381,7],[11973,0],[12395,5],[13024,7],[13445,11],[13861,7],[14256,11],[14683,0],[15333,0],[15755,0],[16176,10],[16592,9]]};
-let PBUF=null, PBUF_TRY=false;
-function loadPiano(){
- if(PBUF||PBUF_TRY)return;
- try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
- PBUF_TRY=true;
- fetchAudioBuf(PTRACK.src).then(function(buf){PBUF=buf;}).catch(function(){PBUF_TRY=false;});
-}
+function loadPiano(){ loadTrk('piano1'); }   // visszafelé kompatibilis wrapper
 function pianoTrackNotes(){
  return PTRACK.notes.map(function(p){return {t:p[0],dur:220,key:p[1],done:false,held:0,hit:false};});
 }
@@ -3626,11 +3645,11 @@ function openPiano(stopIdx){
  const L=S.live;if(!L)return;
  const a=AM[L.artist],peak=peakSong(a,L.setlist),city=CM[L.stops[stopIdx].city];
  L.pausedLeft=remainMs();
- loadPiano();                                         // a user sávja (Velvet Ticket) — kötelező
- M={kind:'piano',stop:stopIdx,notes:pianoTrackNotes(),crowd:46,combo:0,best:0,
+ const pkey=nextTrk('piano'), ptrk=TRX[pkey]; loadTrk(pkey);   // rotáció: valós zongora-térkép
+ M={kind:'piano',stop:stopIdx,notes:pianoNotesFrom(ptrk.piano),crowd:46,combo:0,best:0,trkKey:pkey,
     perfect:0,good:0,miss:0,holdOn:0,holdAll:0,down:{},
-    t0:0,started:false,ended:false,raf:0,iv:0,sched:-1,nBeats:Math.ceil(PN.dur/(60000/PN.bpm)),
-    useTrack:true, buf:PBUF, dur:PTRACK.dur,
+    t0:0,started:false,ended:false,raf:0,iv:0,sched:-1,nBeats:Math.ceil(ptrk.dur/(60000/PN.bpm)),
+    useTrack:true, buf:trkBuf(pkey), dur:ptrk.dur,
     audioSrc:null, audioStart:null, trackGain:null};
  M.total=M.notes.length;
  const white=PK.map(function(k,i){return {k:k,i:i};}).filter(function(x){return x.k.w;});
@@ -3679,7 +3698,7 @@ function openPiano(stopIdx){
    /* JÁTÉK ELŐSZÖR (loops), audio utólag bekerítve — sose fagyjon a piano1 miatt. */
    M.t0=performance.now();M.started=true;
    M.iv=setInterval(pianoTick,25);M.raf=requestAnimationFrame(pianoDraw);
-   try{ startConcertAudio(); attachTrackWhenReady(function(){return PBUF;}, loadPiano); }catch(e){}
+   try{ startConcertAudio(); attachTrackWhenReady(function(){return trkBuf(pkey);}, function(){loadTrk(pkey);}); }catch(e){}
  });
 }
 function pianoDown(ki,el){
@@ -6328,7 +6347,7 @@ else if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track(
 if(S.resultPending&&S.lastResult)showResult();
 if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
 if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,
-  _mus:function(){return{cbuf:!!CBUF,cbufDur:CBUF?+CBUF.duration.toFixed(1):0,pbuf:!!PBUF,pbufDur:PBUF?+PBUF.duration.toFixed(1):0,lbuf:!!LBUF,lbufDur:LBUF?+LBUF.duration.toFixed(1):0,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
+  _mus:function(){var xb={};Object.keys(TRX).forEach(function(k){var b=trkBuf(k);xb[k]=b?+b.duration.toFixed(1):0;});return{buffers:xb,rot:S.rot,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
   _amb:function(){try{return AMB?{playing:!!AMB.src,isBufferSource:(typeof AudioBufferSourceNode!=='undefined'&&AMB.src instanceof AudioBufferSourceNode),looping:!!(AMB.src&&AMB.src.loop),vol:AMB.g?+AMB.g.gain.value.toFixed(3):null}:null;}catch(e){return 'err:'+e;}},
