@@ -2837,38 +2837,36 @@ function sfx(name){
   }
  }catch(e){}
 }
-/* ---------- FINOM HÁTTÉR-AMBIENT ----------
-   Halk, lassan hullámzó szintetikus pad a menükben (start-képernyő + irodai fülek).
-   Turné és mini-játék alatt elhallgat (azoknak saját zenéjük van), a HANG kikapcsolja.
-   Nincs letöltendő fájl, elhanyagolható CPU. */
+/* ---------- HALK HÁTTÉRZENE a menükben (VALÓDI track, nem szintetizált) ----------
+   A korábbi szintetizált pad „zúgott" — kivéve. Helyette a user legnyugodtabb sávja
+   (piano1 = „Velvet Ticket") szól HALKAN, LOOPOLVA az irodai/menü fülek alatt. Turné
+   és mini-játék alatt elhallgat (azoknak saját zenéjük van), a HANG kikapcsolja.
+   iOS-biztos: 1-argumentumos src.start, AC.resume a lejátszás előtt — sose zúg, sose fagy. */
 let AMB=null;
+const AMB_VOL=0.13;                                            // jóval a mini-játék (0.9) alatt
 function startAmbient(){
  if(S.sound===false||AMB)return;
  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
- if(AC.state==='suspended'){try{AC.resume();}catch(e){}}
+ const buf=(typeof PBUF!=='undefined'&&PBUF)?PBUF:null;       // a legnyugodtabb user-sáv
+ if(!buf){ try{ if(typeof loadPiano==='function')loadPiano(); }catch(e){} return; }  // amint kész, a köv. render elindítja
+ try{ if(AC.state!=='running')AC.resume(); }catch(e){}
  try{
-  const t=AC.currentTime;
-  const master=AC.createGain();master.gain.setValueAtTime(0.0001,t);
-  master.gain.exponentialRampToValueAtTime(0.075,t+2.6);     // lassú felúszás (hallhatóbb, de nem tolakodó)
-  const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=520;lp.Q.value=0.7;
-  master.connect(lp);lp.connect(AC.destination);
-  const freqs=[110,164.81,220,146.83];                        // meleg, lebegő pad
-  const oscs=freqs.map((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();
-    o.type=i%2?'sine':'triangle';o.frequency.value=f;o.detune.value=(i-1.5)*5;
-    g.gain.value=0.24/freqs.length;o.connect(g);g.connect(master);o.start();return o;});
-  const lfo=AC.createOscillator(),la=AC.createGain();          // lassú filter-mozgás
-  lfo.type='sine';lfo.frequency.value=0.06;la.gain.value=190;lfo.connect(la);la.connect(lp.frequency);lfo.start();
-  AMB={master,lp,oscs,lfo};
+  const src=AC.createBufferSource(); src.buffer=buf; src.loop=true;   // tiszta loop
+  const g=AC.createGain(); const t=AC.currentTime;
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(AMB_VOL,t+1.4);  // lágy felúszás
+  src.connect(g); g.connect(AC.destination);
+  src.start(t);                                                // 1-argumentumos, elejéről
+  AMB={src,g};
  }catch(e){AMB=null;}
 }
 function stopAmbient(){
  if(!AMB)return;const A=AMB;AMB=null;
  try{
-  const t=AC.currentTime;A.master.gain.cancelScheduledValues(t);
-  A.master.gain.setValueAtTime(Math.max(0.0002,A.master.gain.value),t);
-  A.master.gain.exponentialRampToValueAtTime(0.0001,t+0.7);
-  setTimeout(()=>{try{A.oscs.forEach(o=>o.stop());A.lfo.stop();}catch(e){}},820);
- }catch(e){try{A.oscs.forEach(o=>o.stop());A.lfo.stop();}catch(e){}}
+  const t=AC.currentTime;A.g.gain.cancelScheduledValues(t);
+  A.g.gain.setValueAtTime(Math.max(0.0002,A.g.gain.value||AMB_VOL),t);
+  A.g.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
+  setTimeout(()=>{try{A.src.stop();}catch(e){}},560);
+ }catch(e){try{A.src.stop();}catch(e){}}
 }
 function updateAmbient(){
  const inMini=(typeof M!=='undefined'&&M);
@@ -6324,6 +6322,7 @@ if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPri
   _mus:function(){return{cbuf:!!CBUF,cbufDur:CBUF?+CBUF.duration.toFixed(1):0,pbuf:!!PBUF,pbufDur:PBUF?+PBUF.duration.toFixed(1):0,lbuf:!!LBUF,lbufDur:LBUF?+LBUF.duration.toFixed(1):0,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
+  _amb:function(){try{return AMB?{playing:!!AMB.src,isBufferSource:(typeof AudioBufferSourceNode!=='undefined'&&AMB.src instanceof AudioBufferSourceNode),looping:!!(AMB.src&&AMB.src.loop),vol:AMB.g?+AMB.g.gain.value.toFixed(3):null}:null;}catch(e){return 'err:'+e;}},
   ensureLiveMap:typeof ensureLiveMap!=='undefined'?ensureLiveMap:null,initMap:typeof initMap!=='undefined'?initMap:null,teardownMap:typeof teardownMap!=='undefined'?teardownMap:null,G:typeof G!=='undefined'?G:null,
   closeMini:typeof closeMini!=='undefined'?closeMini:null,
   buildShareCard:typeof buildShareCard!=='undefined'?buildShareCard:null,shareResult:typeof shareResult!=='undefined'?shareResult:null,
