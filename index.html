@@ -787,7 +787,7 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 
 /* 6) a mini-játék felkínálás gombsora: a .btn width:100%-a kilógatta a 2. gombot */
 .btnrow{align-items:stretch}
-.btnrow .btn{width:auto;min-width:0;flex:1 1 auto;white-space:nowrap;padding-left:10px;padding-right:10px}
+.btnrow .btn{width:auto;min-width:0;flex:1 1 auto;white-space:normal;line-height:1.15;padding-left:10px;padding-right:10px}
 .btnrow .btn.keep{flex:0 0 auto}
 
 /* 5) összecsukható másodlagos blokk az Iroda fülön */
@@ -953,8 +953,11 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 #obbar .k{font-size:9px;font-weight:900;letter-spacing:.19em;text-transform:uppercase;color:var(--neon);opacity:.9}
 #obbar h4{font-family:var(--disp);font-weight:700;font-size:16px;margin-top:4px;line-height:1.14;
   letter-spacing:.005em;word-spacing:.13em}
-#obbar p{font-size:12.5px;color:var(--muted);margin-top:5px;line-height:1.45;max-height:56px;overflow:auto;
-  -webkit-mask-image:linear-gradient(180deg,#000 78%,transparent)}
+/* A szöveg TELJESEN látszódjon minden nyelven (az angol/német hosszabb a magyarnál):
+   auto-magasság, nagyvonalú felső korlát + belső görgetés a szélsőségekre, fade NÉLKÜL
+   (a korábbi max-height:56px + mask-image levágta/elhalványította az alját). */
+#obbar p{font-size:12.5px;color:var(--muted);margin-top:5px;line-height:1.45;
+  max-height:min(42vh,320px);overflow-y:auto;overscroll-behavior:contain}
 #obbar .row{display:flex;gap:12px;align-items:center;margin-top:10px}
 #obbar .row .btn{flex:1;width:auto;min-width:0}
 #obbar .skip{font-size:11px;color:var(--faint);font-weight:700;flex:0 0 auto;padding:9px 3px;
@@ -968,7 +971,7 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 #obbar.slim h4{font-size:14.5px;margin-top:0}
 #obbar.slim .tap{margin-top:6px;font-size:12px}
 #obbar.slim .row{margin-top:6px}
-#obbar.slim p{font-size:12px;margin-top:3px;max-height:50px}
+#obbar.slim p{font-size:12px;margin-top:3px;max-height:min(30vh,190px)}
 #obbar.slim .row .btn{min-height:38px}
 #obbar.slim .skip{padding:6px 3px}
 /* A bemutato varos-lepesenel a lista/terkep JOVAL magasabb: minel kevesebb belso gorgetes */
