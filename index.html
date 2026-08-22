@@ -3812,8 +3812,43 @@ function closeMini(played){
   M.ended=true;if(L){L.miniSkip=L.miniSkip||{};L.miniSkip[M.stop]=true;}
  }
  M=null;$('#mini').className='';$('#mini').innerHTML='';
+ if(window.__TESTPLAY){ playLauncher(); return; }         // zene-teszt mód: vissza a választóra
  if(L&&L.pausedLeft!=null){L.ends=Date.now()+L.pausedLeft;L.pausedLeft=null;}
  save();if(S.tab==='terkep')liveScreen();renderHUD();
+}
+
+/* ============================ ZENE-TESZT MÓD (?play) ============================
+   A teljes játék felépítése nélkül lehet kipróbálni bármelyik mini-játékot bármelyik
+   dallal. A live-turnét minimálisan stubbolja, és a mini végén visszadob a választóra. */
+const TRKNAME={concert1:'Alap koncert',piano1:'Alap zongora',lights1:'Alap fény',
+ hold:'Hold Me Steady',paper:'Paper Heart',glass:'Glass on the Keys',back:'Backbeat Kisses'};
+function playLauncher(){
+ window.__TESTPLAY=true;
+ const sec=function(game,label,ic){
+  return '<div style="margin:14px 0 6px;font-weight:800;color:var(--neon);font-size:14px">'+ic+' '+label+'</div>'+
+   '<div style="display:flex;flex-direction:column;gap:8px">'+
+   POOL[game].map(function(k){return '<button class="btn dark" data-g="'+game+'" data-k="'+k+'" style="justify-content:flex-start">'+TRKNAME[k]+'</button>';}).join('')+
+   '</div>';
+ };
+ const el=$('#mini'); el.className='on';
+ el.innerHTML='<div style="flex:1;overflow-y:auto;padding:20px 18px 40px;-webkit-overflow-scrolling:touch">'+
+   '<div style="font-family:var(--disp);font-weight:800;font-size:22px">🎵 Zene-teszt</div>'+
+   '<div style="color:var(--muted);font-size:12px;margin-top:4px;line-height:1.4">Válassz mini-játékot és dalt — rögtön játszhatsz vele, teljes játék nélkül. A hangok a valódi zenére esnek.</div>'+
+   sec('drum','Dob','🥁')+sec('piano','Zongora','🎹')+sec('lights','Fény','💡')+
+   '<button class="btn" id="playExit" style="margin-top:22px">Kilépés a játékba</button>'+
+   '</div>';
+ el.querySelectorAll('[data-g]').forEach(function(b){
+  b.onclick=function(){ testPlay(b.dataset.g, b.dataset.k); };
+ });
+ const ex=$('#playExit'); if(ex)ex.onclick=function(){ window.__TESTPLAY=false; el.className=''; el.innerHTML=''; try{S.tab='iroda';render();}catch(e){} };
+}
+function testPlay(game,key){
+ try{ if(typeof ensureAudio==='function')ensureAudio(); }catch(e){}
+ const ak=Object.keys(AM)[0], ck=Object.keys(CM)[0];
+ S.live={artist:ak,setlist:[0,1,2],stops:[{city:ck}],mini:{},pausedLeft:999999,ends:Date.now()+9e8};
+ S.started=true; if(S.sound!==true)S.sound=true;
+ S.rot=S.rot||{}; S.rot[game]=Math.max(0,POOL[game].indexOf(key));   // a választott dal induljon
+ if(game==='drum')openMini(0); else if(game==='piano')openPiano(0); else openLights(0);
 }
 
 /* ============================ REKLÁM (placeholder) ============================
@@ -6355,6 +6390,8 @@ if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPri
   closeMini:typeof closeMini!=='undefined'?closeMini:null,
   buildShareCard:typeof buildShareCard!=='undefined'?buildShareCard:null,shareResult:typeof shareResult!=='undefined'?shareResult:null,
   _trStr:typeof _trStr!=='undefined'?_trStr:null};
+/* Zene-teszt mód: ?play → egyből a dal-választó (teljes játék nélkül) */
+if(location.search.indexOf('play')>=0){ setTimeout(function(){ try{ playLauncher(); }catch(e){} }, 80); }
 })();
 </script>
 <script>
