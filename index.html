@@ -2964,11 +2964,10 @@ function openMini(stopIdx){
  const L=S.live;if(!L)return;
  const a=AM[L.artist],peak=peakSong(a,L.setlist),city=CM[L.stops[stopIdx].city];
  L.pausedLeft=remainMs();       // csak memóriában: ha újratöltenek játék közben, a turné magától folytatódik
- loadConcert();                                     // ha még nem tölt, most indítjuk (idempotens)
- const useTrack=!!CBUF;
- M={notes:useTrack?buildConcertPattern():buildPattern(),t0:0,raf:0,iv:0,sched:-1,stop:stopIdx,crowd:46,combo:0,best:0,
+ loadConcert();                                     // a user sávja — kötelező, nincs fallback
+ M={notes:buildConcertPattern(),t0:0,raf:0,iv:0,sched:-1,stop:stopIdx,crowd:46,combo:0,best:0,
     perfect:0,good:0,miss:0,total:0,started:false,ended:false,
-    useTrack:useTrack, buf:useTrack?CBUF:null, dur:useTrack?CTRACK.dur:RG.bars, audioSrc:null, audioStart:null, trackGain:null};
+    useTrack:true, buf:CBUF, dur:CTRACK.dur, audioSrc:null, audioStart:null, trackGain:null};
  M.total=M.notes.length;
  const el=$('#mini');
  el.innerHTML=`
@@ -3003,13 +3002,11 @@ function openMini(stopIdx){
  const tick2=()=>{ if(!M||M.ended)return;
    if(c>0){cd.textContent=c;blip(520+(3-c)*90,0.07,'sine',0.12);c--;setTimeout(tick2,620);}
    else{$('#mReady').style.display='none';
-    /* ha az openMini pillanatában még nem tolt be a concert1.mp3 (a dob az ELSO
-       mini-jatek, gyakran a betoltes elott nyilik) — a visszaszamlalas VEGEN ujra
-       ellenorizzuk: ha mar kesz, atvaltunk a valodi trackre (kulonben marad a minta). */
-    if(!M.useTrack&&CBUF){M.useTrack=true;M.buf=CBUF;M.dur=CTRACK.dur;M.notes=buildConcertPattern();M.total=M.notes.length;}
-    M.t0=performance.now();M.started=true;
-    startConcertAudio();
-    M.iv=setInterval(miniTick,25);M.raf=requestAnimationFrame(miniDraw);}};
+    /* Megvárjuk a user sávját (concert1.mp3) — SOHA nincs procedurális helyette. */
+    waitTrackThen(function(){return CBUF;}, loadConcert, function(){
+     M.t0=performance.now();M.started=true;
+     startConcertAudio();
+     M.iv=setInterval(miniTick,25);M.raf=requestAnimationFrame(miniDraw);});}};
  tick2();
 }
 /* a valódi track (M.buf) elindítása a visszaszámlálás végén — dob ÉS zongora is ezt hívja */
@@ -3027,6 +3024,22 @@ function startConcertAudio(){
 }
 function stopConcertAudio(){
  if(M&&M.audioSrc){try{M.audioSrc.stop();}catch(e){}M.audioSrc=null;}
+}
+/* Megvárja, míg a mini-játék VALÓDI zenéje (a user sávja) betölt — retry-jal.
+   NINCS procedurális zene: a 3 saját sáv (concert1/piano1/lights1) az EGYETLEN
+   zene. Amíg tölt, "♪" jelzés a visszaszámláló helyén. */
+function waitTrackThen(getBuf, loadFn, cb){
+ let n=0;
+ (function poll(){
+  if(!M||M.ended)return;
+  const b=getBuf();
+  if(b){ M.buf=b; cb(); return; }
+  try{ loadFn(); }catch(e){}
+  n++;
+  const cd=$('#mCount'); if(cd){cd.textContent='♪';cd.style.opacity=(n%2?'0.5':'1');}
+  if(n>240){ cb(); return; }   // ~36s vészhelyzet: inkább csend, mint procedurális zene
+  setTimeout(poll,150);
+ })();
 }
 function peakSong(a,list){
  const songs=(list||[]).map(i=>a.songs[i]).filter(Boolean);if(!songs.length)return null;
@@ -3063,20 +3076,6 @@ function tapPad(pi,padEl){
 function miniTick(){
  if(!M||M.ended)return;
  const now=mnow();
- /* szintetikus háttérzene CSAK ha nincs valódi track (különben a track szól alá) */
- if(!M.useTrack&&S.sound!==false&&AC){
-  const bm=60000/RG.bpm, b=Math.floor(now/bm);
-  MGAIN=0.5;
-  while(M.sched<b+2&&M.sched*bm<RG.bars){
-   M.sched++;const k=M.sched, t=AC.currentTime+Math.max(0,(k*bm-now))/1000;
-   if(k%2===0)schedKick(t);
-   schedHat(t+bm/2000,false);
-   if(k%2===0)schedBass(t,BASSN[(k>>1)%BASSN.length]);
-   if(k>=8&&k%2===1)schedLead(t,LEADN[((k-9)>>1)%LEADN.length]);
-   if(k%16===0)schedStab(t,220);
-  }
-  MGAIN=1;
- }
  M.notes.forEach(n=>{if(!n.done&&now>n.t+n.dur){n.done=true;judge('miss',null);}});
  if(now>=M.dur)endMini();
 }
@@ -3210,19 +3209,18 @@ function openLights(stopIdx){
  const L=S.live;if(!L)return;
  const a=AM[L.artist],peak=peakSong(a,L.setlist),city=CM[L.stops[stopIdx].city];
  L.pausedLeft=remainMs();
- loadLights();const useTrack=!!LBUF;
- const bpm=useTrack?LTRACK.bpm:LT.bpm, dur=useTrack?LTRACK.dur:LT.dur, beat=60000/bpm;
+ loadLights();                                        // a user sávja (Heartline Party) — kötelező
+ const bpm=LTRACK.bpm, dur=LTRACK.dur, beat=60000/bpm;
  const nBeats=Math.ceil(dur/beat);
- const cues=(useTrack?LTRACK.cues:LT.drops.map(function(b){return b*beat;}))
-    .map(function(t){return{t:Math.round(t),done:false,hit:false};});
+ const cues=LTRACK.cues.map(function(t){return{t:Math.round(t),done:false,hit:false};});
  M={kind:'lights',stop:stopIdx,crowd:46,combo:0,best:0,
     col:0,wantCol:0,beat:-1,sched:-1,flash:0,strobe:0,fire:[],fireT:0,
     colOn:0,colAll:0,swap:0,
     cues:cues, cueOk:0,cueMiss:0,
     move:'sweep',moveSm:0,                              // aktív mozgás + simított átmenet
     moves:buildLightMoves(bpm,dur),moveWant:null,moveOk:0,moveMiss:0,moveTotal:0,moveFlash:0,
-    bpm:bpm,phase:useTrack?LTRACK.phase:0,
-    useTrack:useTrack, buf:useTrack?LBUF:null, dur:dur, audioSrc:null,audioStart:null,trackGain:null,
+    bpm:bpm,phase:LTRACK.phase,
+    useTrack:true, buf:LBUF, dur:dur, audioSrc:null,audioStart:null,trackGain:null,
     t0:0,started:false,ended:false,raf:0,iv:0,W:1,H:1,nBeats:nBeats};
  M.moveTotal=M.moves.length;
  const moveBtns=[['left','◄','BAL'],['circle','◯','KÖR'],['right','►','JOBB'],['laser','⚡','LÉZER']];
@@ -3267,13 +3265,11 @@ function openLights(stopIdx){
    b.onpointerdown=function(e){e.preventDefault();pressMove(b.dataset.move,b);};});
  $('#cueBtn').onpointerdown=function(e){e.preventDefault();fireCue();};
  countdown(function(){
-   /* ha a lights1.mp3 az openLights ota tolt be: atvaltunk a valodi trackre */
-   if(!M.useTrack&&LBUF){M.useTrack=true;M.buf=LBUF;M.dur=LTRACK.dur;M.bpm=LTRACK.bpm;M.phase=LTRACK.phase;
-     M.cues=LTRACK.cues.map(function(t){return{t:Math.round(t),done:false,hit:false};});
-     M.moves=buildLightMoves(M.bpm,M.dur);M.moveTotal=M.moves.length;M.beat=-1;}
-   M.t0=performance.now();M.started=true;
-   startConcertAudio();
-   M.iv=setInterval(lightTick,25);M.raf=requestAnimationFrame(lightDraw);
+   /* Megvárjuk a user sávját (lights1.mp3) — SOHA nincs procedurális helyette. */
+   waitTrackThen(function(){return LBUF;}, loadLights, function(){
+     M.t0=performance.now();M.started=true;
+     startConcertAudio();
+     M.iv=setInterval(lightTick,25);M.raf=requestAnimationFrame(lightDraw);});
  });
 }
 /* mozgás-gomb: azonnal átállítja a nyalábok mozgását + pontozza a parancsot */
@@ -3328,15 +3324,6 @@ function judgeL(kind){
 function lightTick(){
  if(!M||M.ended)return;
  const now=mnow(), bm=60000/M.bpm, b=Math.floor((now-M.phase)/bm);
- if(!M.useTrack&&S.sound!==false&&AC){                 // csak fallback: procedurális zene
-  while(M.sched<b+2&&M.sched<M.nBeats){
-   M.sched++;const k=M.sched, t=AC.currentTime+Math.max(0,(k*bm-(now-M.phase)))/1000;
-   schedKick(t);
-   schedHat(t+bm/2000,false);
-   if(k%2===0)schedBass(t,BASSN[(k>>1)%BASSN.length]);
-   if(k%8===0)schedStab(t,220);
-  }
- }
  if(b!==M.beat){M.beat=b;
   const w=Math.floor(b/8)%LT.cols.length;
   if(w!==M.wantCol){M.wantCol=w;M.swap=1;}
@@ -3576,11 +3563,11 @@ function openPiano(stopIdx){
  const L=S.live;if(!L)return;
  const a=AM[L.artist],peak=peakSong(a,L.setlist),city=CM[L.stops[stopIdx].city];
  L.pausedLeft=remainMs();
- loadPiano();const useTrack=!!PBUF;
- M={kind:'piano',stop:stopIdx,notes:useTrack?pianoTrackNotes():buildPiano(),crowd:46,combo:0,best:0,
+ loadPiano();                                         // a user sávja (Velvet Ticket) — kötelező
+ M={kind:'piano',stop:stopIdx,notes:pianoTrackNotes(),crowd:46,combo:0,best:0,
     perfect:0,good:0,miss:0,holdOn:0,holdAll:0,down:{},
     t0:0,started:false,ended:false,raf:0,iv:0,sched:-1,nBeats:Math.ceil(PN.dur/(60000/PN.bpm)),
-    useTrack:useTrack, buf:useTrack?PBUF:null, dur:useTrack?PTRACK.dur:PN.dur,
+    useTrack:true, buf:PBUF, dur:PTRACK.dur,
     audioSrc:null, audioStart:null, trackGain:null};
  M.total=M.notes.length;
  const white=PK.map(function(k,i){return {k:k,i:i};}).filter(function(x){return x.k.w;});
@@ -3626,11 +3613,11 @@ function openPiano(stopIdx){
   b.onpointerleave=function(){if(M&&M.down[ki])pianoUp(ki,b);};
  });
  countdown(function(){
-   /* ha a piano1.mp3 az openPiano ota tolt be: atvaltunk a valodi trackre */
-   if(!M.useTrack&&PBUF){M.useTrack=true;M.buf=PBUF;M.dur=PTRACK.dur;M.notes=pianoTrackNotes();M.total=M.notes.length;}
-   M.t0=performance.now();M.started=true;
-   startConcertAudio();
-   M.iv=setInterval(pianoTick,25);M.raf=requestAnimationFrame(pianoDraw);
+   /* Megvárjuk a user sávját (piano1.mp3) — SOHA nincs procedurális helyette. */
+   waitTrackThen(function(){return PBUF;}, loadPiano, function(){
+     M.t0=performance.now();M.started=true;
+     startConcertAudio();
+     M.iv=setInterval(pianoTick,25);M.raf=requestAnimationFrame(pianoDraw);});
  });
 }
 function pianoDown(ki,el){
@@ -3661,17 +3648,7 @@ function pjudge(kind){
 }
 function pianoTick(){
  if(!M||M.ended)return;
- const now=mnow(), bm=60000/PN.bpm, b=Math.floor(now/bm);
- if(!M.useTrack&&S.sound!==false&&AC){
-  while(M.sched<b+2&&M.sched<M.nBeats){
-   M.sched++;const k=M.sched, t=AC.currentTime+Math.max(0,(k*bm-now))/1000;
-   MGAIN=0.34;
-   if(k%2===0)schedKick(t);
-   schedHat(t+bm/2000,false);
-   if(k%4===0)schedBass(t,BASSN[(k>>2)%BASSN.length]);
-   MGAIN=0.5;
-  }
- }
+ const now=mnow();
  /* tartás mérése + lekésett nóták */
  M.notes.forEach(function(n){
   if(n.done)return;
