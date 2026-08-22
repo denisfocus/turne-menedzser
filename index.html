@@ -3010,12 +3010,12 @@ function openMini(stopIdx){
  const tick2=()=>{ if(!M||M.ended)return;
    if(c>0){cd.textContent=c;blip(520+(3-c)*90,0.07,'sine',0.12);c--;setTimeout(tick2,620);}
    else{$('#mReady').style.display='none';
-    /* A JÁTÉK AZONNAL indul — az audio betöltésétől FÜGGETLENÜL (sose fagy). A user
-       sávja (concert1.mp3) háttérben csatlakozik, amint kész (offset-tel, szinkronban). */
+    /* A JÁTÉK AZONNAL indul — a hurkot ELŐSZÖR indítjuk, hogy az audio-setup egy
+       esetleges (natív) kivétele SE foghassa meg a játékot. Az audio utólag,
+       teljesen bekerítve; a user sávja háttérben csatlakozik (offset-tel, szinkronban). */
     M.t0=performance.now();M.started=true;
-    startConcertAudio();
-    attachTrackWhenReady(function(){return CBUF;}, loadConcert);
-    M.iv=setInterval(miniTick,25);M.raf=requestAnimationFrame(miniDraw);}};
+    M.iv=setInterval(miniTick,25);M.raf=requestAnimationFrame(miniDraw);
+    try{ startConcertAudio(); attachTrackWhenReady(function(){return CBUF;}, loadConcert); }catch(e){}}};
  tick2();
 }
 /* a valódi track (M.buf) elindítása a visszaszámlálás végén — dob ÉS zongora is ezt hívja */
@@ -3026,14 +3026,18 @@ function startConcertAudio(){
  if(!M||!M.useTrack||!M.buf||!AC||M.audioSrc)return;
  try{
   if(AC.state==='suspended'){try{AC.resume();}catch(e){}}
-  const offMs=M.started?Math.max(0,mnow()):0, off=offMs/1000;
+  let off=0;
+  const offMs=M.started?Math.max(0,mnow()):0; if(isFinite(offMs))off=offMs/1000;
   if(off>=M.buf.duration)return;                    // már túllógtunk a sáv végén — ne indítsuk
   const src=AC.createBufferSource(); src.buffer=M.buf;
   const g=AC.createGain(); g.gain.value=(S.sound===false?0:0.9);
   src.connect(g); g.connect(AC.destination);
   const t=AC.currentTime+0.03;
-  src.start(t,off);
-  M.audioSrc=src; M.trackGain=g; M.audioStart=t-off;  // mnow = (AC.now - audioStart) folytonos
+  /* NORMÁL indulás (off≈0): 1-argumentumos start — ez a bizonyítottan stabil út iOS-en.
+     A 2-argumentumos (offset) forma CSAK valódi menet közbeni becsatolásnál (off>0.05). */
+  if(off>0.05){ src.start(t,off); M.audioStart=t-off; }
+  else { src.start(t); M.audioStart=t; }
+  M.audioSrc=src; M.trackGain=g;
  }catch(e){ M.audioSrc=null; }                        // ha bármi hiba: marad a perf-óra, a játék FUT
 }
 function stopConcertAudio(){
@@ -3043,14 +3047,15 @@ function stopConcertAudio(){
    vár rá: a game-start ettől FÜGGETLEN. Sose fagy, sose procedurális. */
 function attachTrackWhenReady(getBuf, loadFn){
  let n=0;
- (function poll(){
+ function poll(){
   if(!M||M.ended||M.audioSrc)return;                 // vége / már szól
-  const b=getBuf();
-  if(b){ M.buf=b; startConcertAudio(); return; }
+  let b=null; try{ b=getBuf(); }catch(e){}
+  if(b){ M.buf=b; try{startConcertAudio();}catch(e){} return; }
   try{ loadFn(); }catch(e){}                          // idempotens; hibánál újrapróbál
   if(++n>150)return;                                  // ~30s után feladjuk (a játék némán FUT tovább)
   setTimeout(poll,200);
- })();
+ }
+ setTimeout(poll,0);                                  // SOHA ne fusson szinkronban a countdown-callbackben
 }
 function peakSong(a,list){
  const songs=(list||[]).map(i=>a.songs[i]).filter(Boolean);if(!songs.length)return null;
@@ -3276,11 +3281,10 @@ function openLights(stopIdx){
    b.onpointerdown=function(e){e.preventDefault();pressMove(b.dataset.move,b);};});
  $('#cueBtn').onpointerdown=function(e){e.preventDefault();fireCue();};
  countdown(function(){
-   /* A JÁTÉK AZONNAL indul; a user sávja (lights1.mp3) háttérben csatlakozik. */
+   /* JÁTÉK ELŐSZÖR (loops), audio utólag bekerítve — sose fagyjon a lights1 miatt. */
    M.t0=performance.now();M.started=true;
-   startConcertAudio();
-   attachTrackWhenReady(function(){return LBUF;}, loadLights);
    M.iv=setInterval(lightTick,25);M.raf=requestAnimationFrame(lightDraw);
+   try{ startConcertAudio(); attachTrackWhenReady(function(){return LBUF;}, loadLights); }catch(e){}
  });
 }
 /* mozgás-gomb: azonnal átállítja a nyalábok mozgását + pontozza a parancsot */
@@ -3624,11 +3628,10 @@ function openPiano(stopIdx){
   b.onpointerleave=function(){if(M&&M.down[ki])pianoUp(ki,b);};
  });
  countdown(function(){
-   /* A JÁTÉK AZONNAL indul; a user sávja (piano1.mp3) háttérben csatlakozik. */
+   /* JÁTÉK ELŐSZÖR (loops), audio utólag bekerítve — sose fagyjon a piano1 miatt. */
    M.t0=performance.now();M.started=true;
-   startConcertAudio();
-   attachTrackWhenReady(function(){return PBUF;}, loadPiano);
    M.iv=setInterval(pianoTick,25);M.raf=requestAnimationFrame(pianoDraw);
+   try{ startConcertAudio(); attachTrackWhenReady(function(){return PBUF;}, loadPiano); }catch(e){}
  });
 }
 function pianoDown(ki,el){
@@ -6268,6 +6271,7 @@ if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPri
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
   ensureLiveMap:typeof ensureLiveMap!=='undefined'?ensureLiveMap:null,initMap:typeof initMap!=='undefined'?initMap:null,teardownMap:typeof teardownMap!=='undefined'?teardownMap:null,G:typeof G!=='undefined'?G:null,
+  closeMini:typeof closeMini!=='undefined'?closeMini:null,
   buildShareCard:typeof buildShareCard!=='undefined'?buildShareCard:null,shareResult:typeof shareResult!=='undefined'?shareResult:null,
   _trStr:typeof _trStr!=='undefined'?_trStr:null};
 })();
