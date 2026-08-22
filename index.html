@@ -3034,15 +3034,24 @@ function openMini(stopIdx){
    MINDIG (suspended ÉS interrupted esetén is), a lejátszás ELŐTT. */
 function startConcertAudio(){
  if(!M||!M.useTrack||!M.buf||!AC||M.audioSrc)return;
- try{ if(AC.state!=='running')AC.resume(); }catch(e){}
- try{
-  const src=AC.createBufferSource(); src.buffer=M.buf;
-  const g=AC.createGain(); g.gain.value=(S.sound===false?0:0.9);
-  src.connect(g); g.connect(AC.destination);
-  const t=AC.currentTime+0.02;
-  src.start(t);                                       // 1-argumentumos, a sáv elejéről
-  M.audioSrc=src; M.trackGain=g; M.audioStart=t;      // mnow = (AC.now - audioStart), 0-ról
- }catch(e){ M.audioSrc=null; }                        // hiba esetén marad a perf-óra, a játék FUT
+ const Mref=M;
+ function play(){
+  if(!M||M!==Mref||M.ended||M.audioSrc||!M.buf||!AC)return;   // közben lezárult/váltott
+  try{
+   const src=AC.createBufferSource(); src.buffer=M.buf;
+   const g=AC.createGain(); g.gain.value=(S.sound===false?0:0.9);
+   src.connect(g); g.connect(AC.destination);
+   const t=AC.currentTime+0.02;
+   src.start(t);                                      // 1-argumentumos, a sáv elejéről
+   M.audioSrc=src; M.trackGain=g; M.audioStart=t;     // mnow = (AC.now - audioStart), 0-ról
+  }catch(e){ M.audioSrc=null; }                       // hiba esetén marad a perf-óra, a játék FUT
+ }
+ /* A DOB az ELSŐ mini → iOS-en az AC ilyenkor még lehet suspended/interrupted, és a
+    resume() ASZINKRON. Ezért NEM indítunk azonnal suspended contextbe — MEGVÁRJUK a
+    running-ot (resume().then), különben a scheduled hang néma marad. */
+ if(AC.state==='running'){ play(); }
+ else { try{ const p=AC.resume(); if(p&&p.then)p.then(play,play); }catch(e){}
+        setTimeout(play,140); }   // backup: ha a resume-promise beragadna, akkor is próbáljuk (play idempotens)
 }
 function stopConcertAudio(){
  if(M&&M.audioSrc){try{M.audioSrc.stop();}catch(e){}M.audioSrc=null;}
@@ -3054,10 +3063,21 @@ function attachTrackWhenReady(getBuf, loadFn){
  function poll(){
   if(!M||M.ended||M.audioSrc)return;                 // vége / már szól
   let b=null; try{ b=getBuf(); }catch(e){}
-  if(b){ M.buf=b; try{startConcertAudio();}catch(e){} return; }
+  if(b){
+   M.buf=b;
+   /* Ha a játék MÁR érdemben haladt (lassú hálózat, késői betöltés): a beatmapet
+      RESETELJÜK, hogy a zene a sáv ELEJÉRŐL, SZINKRONBAN induljon (nincs 2-argos
+      offset, nincs desync). A pontszám marad. */
+   try{ if(M.started && mnow()>250 && M.notes){
+     M.notes.forEach(function(nn){nn.done=false;if('hit'in nn)nn.hit=false;if('held'in nn)nn.held=0;});
+     M.combo=0; M.beat=-1; M.sched=-1; M.t0=performance.now();
+   } }catch(e){}
+   try{ startConcertAudio(); }catch(e){}
+   return;
+  }
   try{ loadFn(); }catch(e){}                          // idempotens; hibánál újrapróbál
-  if(++n>8)return;                                    // ~1.6s után feladjuk (a becsatolás a sáv elejéről
-  setTimeout(poll,200);                               //   indul → korán kell, ne resetelje mélyen az órát)
+  if(++n>50)return;                                   // ~10s: lassabb hálózatnak is elég, aztán csend (sose fagy)
+  setTimeout(poll,200);
  }
  setTimeout(poll,0);                                  // SOHA ne fusson szinkronban a countdown-callbackben
 }
