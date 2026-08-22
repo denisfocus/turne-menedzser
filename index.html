@@ -181,6 +181,12 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;
 /* ---------- artist portrait tiles ---------- */
 .hscroll{display:flex;gap:12px;overflow-x:auto;padding:2px 14px 6px;scroll-snap-type:x mandatory}
 .hscroll::-webkit-scrollbar{display:none}
+/* Turné-előadóválasztó RÁCS: sortöréssel (nincs vízszintes scroll, a függőleges helyet
+   tölti ki). ~3 kártya/sor a telefon-szélességben, ahogy kifér. */
+.pickgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;padding:2px 14px 24px}
+.pickgrid .acard{flex:none;width:auto}
+.pickgrid .acard .ph{height:148px}
+.pickgrid .acard .info .nm{font-size:14px}
 .acard{scroll-snap-align:start;flex:0 0 150px;border-radius:18px;overflow:hidden;position:relative;border:1px solid var(--line);
   background:var(--panel);box-shadow:var(--sh)}
 .acard .ph{position:relative;height:212px}
@@ -5394,7 +5400,7 @@ function tabTerkep(){
    <div class="coach" data-go="eloadok"><div class="n">1</div><div class="t"><div class="h">Előbb kell egy előadó</div><div class="s">Igazolj le valakit az Előadók fülön, aztán ide visszatérve turnét tervezhetsz.</div></div><div class="go">›</div></div></div>`;
    bind('[data-go]',b=>{S.tab=b.dataset.go;save();render();});return;}
  if(!S.tour){ // előadó választó
-   let h=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">${t('head.step1')}</div><h1>${t('head.pickWho')}</h1><p>${t('head.pickWhoSub')}</p></div></div><div class="hscroll">`;
+   let h=`<div class="hud-space"></div><div class="pad"><div class="shead"><div class="eyebrow">${t('head.step1')}</div><h1>${t('head.pickWho')}</h1><p>${t('head.pickWhoSub')}</p></div></div><div class="pickgrid">`;
    sg.forEach(a=>h+=acardHTML(a).replace('data-artist','data-tour'));
    h+=`</div>`;view.innerHTML=h;bind('[data-tour]',b=>startTour(b.dataset.tour));return;}
  plannerScreen();
@@ -5514,6 +5520,7 @@ function plannerScreen(){
    `;
  /* LÉPÉSES nézet: egyszerre egy szakasz — nincs hosszú, félreérthető görgetés */
  const stp=plStep();
+ if(stp===3)S.tour.promoSeen=true;   /* a Promócióra lépve válik "kész"-zé a 4. lépés */
  h+=`<div class="plsteps">`+PLS.map((x,i)=>`<button class="${i===stp?'on':''} ${plDone(i)?'ok':''}" data-plstep="${i}">
       <b>${i+1}</b><span>${x}</span></button>`).join('')+`</div>`;
 
@@ -5557,7 +5564,8 @@ function plDone(i){const t=S.tour;if(!t)return false;
  if(i===0)return t.setlist.length>=minSet(AM[t.artist]);
  if(i===1)return t.stops.length>=1;
  if(i===2)return t.stops.length>=1&&todoCount()===0;
- return true;}
+ /* Promóció (4): NEM automatikusan kész — csak ha a user tényleg eljutott ide/beállította. */
+ return !!t.promoSeen;}
 function plStep(){const t=S.tour;if(!t)return 0;
  if(typeof t.step!=='number'){t.step=0;}
  return clamp(t.step,0,3);}
@@ -5841,6 +5849,7 @@ function updateSticky(){const stops=S.tour.stops,cost=promoCost(stops,S.tour.pro
  if(S.tour.setlist.length<minSet(AM[S.tour.artist])) main=`<button class="btn lime" id="goSet">${icon('notes','17px')} Válassz dalokat · még ${minSet(AM[S.tour.artist])-S.tour.setlist.length}</button>`;
  else if(stops.length<1) main=`<button class="btn lime" id="goCity">${icon('globe','17px')} Válassz várost a térképen</button>`;
  else if(todo>0) main=`<button class="btn lime" id="goTodo">${icon('alert','17px')} Állomások beállítása · ${todo} maradt →</button>`;
+ else if(plStep()<3) main=`<button class="btn lime" id="goPromo">${icon('megaphone','17px')} Tovább · Promóció →</button>`;
  else main=`<button class="btn lime" id="sim">${icon('mic','18px')} Turné indítása · ${stops.length} állomás${cost?' · promó '+money(cost):''}</button>`;
 
  stickyHost.innerHTML=`<div class="sticky"><div class="in" id="stickyTop">
@@ -5854,6 +5863,7 @@ function updateSticky(){const stops=S.tour.stops,cost=promoCost(stops,S.tour.pro
  const sb=stickyHost.querySelector('.sticky');
  view.style.paddingBottom=((sb?sb.offsetHeight:0)+($('#obbar').offsetHeight||0)+96)+'px';
  const sim=$('#sim');if(sim)sim.onclick=launchTour;
+ const gp=$('#goPromo');if(gp)gp.onclick=()=>plGo(3);
  const gt=$('#goTodo');if(gt)gt.onclick=()=>{if(plStep()!==2)plGo(2);else gotoNextTodo();};
  const gc=$('#goCity');if(gc)gc.onclick=()=>plGo(1);
  const gs=$('#goSet');if(gs)gs.onclick=()=>plGo(0);
