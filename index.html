@@ -2881,12 +2881,31 @@ function buildPattern(){
    a játék visszaesik a régi szintetikus ütemre — sosem törik el. */
 const CTRACK={src:'assets/concert1.mp3',bpm:128,phase:180,dur:29200,win:820,winHard:600,perfectFrac:0.28};
 let CBUF=null, CBUF_TRY=false;
+/* ROBUSZTUS audio-betöltő — a natív iOS/Android WebView (capacitor:// séma) alatt a
+   fetch() bináris letöltése gyakran elhasal; az XHR(arraybuffer) megbízhatóbb. A
+   decodeAudioData-t promise- ÉS callback-formában is kezeljük (régebbi WebView-k). */
+function fetchAudioBuf(src){
+ return new Promise(function(resolve,reject){
+  var xhr;
+  try{ xhr=new XMLHttpRequest(); xhr.open('GET',src,true); xhr.responseType='arraybuffer'; }
+  catch(e){ return reject(e); }
+  xhr.onload=function(){
+   // capacitor:// és file:// esetén a status 0 is siker lehet
+   if(!((xhr.status>=200&&xhr.status<300)||xhr.status===0)||!xhr.response){ return reject(new Error('HTTP '+xhr.status)); }
+   try{
+    var p=AC.decodeAudioData(xhr.response, resolve, reject);
+    if(p&&p.then)p.then(resolve,reject);
+   }catch(e){ reject(e); }
+  };
+  xhr.onerror=function(){ reject(new Error('xhr error')); };
+  try{ xhr.send(); }catch(e){ reject(e); }
+ });
+}
 function loadConcert(){
  if(CBUF||CBUF_TRY)return;
  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
  CBUF_TRY=true;
- fetch(CTRACK.src).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>AC.decodeAudioData(b))
-  .then(buf=>{CBUF=buf;}).catch(()=>{CBUF_TRY=false;});   // hiba: legközelebb újrapróbálja
+ fetchAudioBuf(CTRACK.src).then(function(buf){CBUF=buf;}).catch(function(){CBUF_TRY=false;});   // hiba: legközelebb újrapróbálja
 }
 function buildConcertPattern(){
  const beat=60000/CTRACK.bpm, ph=CTRACK.phase, notes=[]; let pad=-1,k=0;
@@ -3129,8 +3148,7 @@ function loadLights(){
  if(LBUF||LBUF_TRY)return;
  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
  LBUF_TRY=true;
- fetch(LTRACK.src).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>AC.decodeAudioData(b))
-  .then(buf=>{LBUF=buf;}).catch(()=>{LBUF_TRY=false;});
+ fetchAudioBuf(LTRACK.src).then(function(buf){LBUF=buf;}).catch(function(){LBUF_TRY=false;});
 }
 /* a mozgás-parancsok listája: minden 8. ütemen kér egy irányt/lézert */
 const LMOVES=['left','right','circle','laser'];
@@ -3491,8 +3509,7 @@ function loadPiano(){
  if(PBUF||PBUF_TRY)return;
  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
  PBUF_TRY=true;
- fetch(PTRACK.src).then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(b=>AC.decodeAudioData(b))
-  .then(buf=>{PBUF=buf;}).catch(()=>{PBUF_TRY=false;});
+ fetchAudioBuf(PTRACK.src).then(function(buf){PBUF=buf;}).catch(function(){PBUF_TRY=false;});
 }
 function pianoTrackNotes(){
  return PTRACK.notes.map(function(p){return {t:p[0],dur:220,key:p[1],done:false,held:0,hit:false};});

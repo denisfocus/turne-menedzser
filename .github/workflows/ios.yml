@@ -56,6 +56,13 @@ jobs:
       - name: Szinkron
         run: npx cap sync ios
 
+      - name: DIAG — zene-fájlok a bundle-ben
+        run: |
+          echo "=== www/assets ==="; ls -la www/assets/ || echo "NINCS www/assets"
+          echo "=== ios/App/App/public/assets ==="; ls -la ios/App/App/public/assets/ || echo "NINCS public/assets"
+          echo "=== mp3-ok a natív public-ban ==="
+          find ios/App/App/public -iname "*.mp3" -printf "%10s  %p\n" || echo "NINCS mp3 a public-ban"
+
       - name: Verzió és build-szám
         run: |
           PLIST=ios/App/App/Info.plist
@@ -120,6 +127,13 @@ jobs:
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
           ls -la output
+
+      - name: DIAG — mp3-ok az IPA-ban (BIZONYÍTÉK)
+        if: env.ASC_KEY_P8 != ''
+        working-directory: ios/App
+        run: |
+          echo "=== mp3 / assets az IPA-ban ==="
+          unzip -l output/App.ipa | grep -iE "\.mp3|/assets/" || echo "!!! NINCS mp3/assets az IPA-ban !!!"
 
       - name: Feltöltés TestFlightbe
         if: ${{ inputs.upload_testflight && env.ASC_KEY_P8 != '' }}
