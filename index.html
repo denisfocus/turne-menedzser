@@ -540,7 +540,11 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
   color:#2a1c00;background:var(--gold);border-radius:6px;padding:2px 6px;margin-left:6px}
 
 /* ---------- RITMUS MINI-JÁTÉK ---------- */
-#mini{position:absolute;inset:0;z-index:85;display:none;flex-direction:column;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom);
+/* A mini-játék nézete RÖGZÍTETT: nincs görgetés (overflow:hidden) — így az első
+   érintésre a fókuszált gomb NEM görgeti a nézetbe magát (nincs „ugrás felfelé").
+   A flex-elrendezés (flex:1 canvas) kitölti a magasságot; a touch-action:none tiltja
+   a görgető gesztust is. */
+#mini{position:absolute;inset:0;z-index:85;display:none;flex-direction:column;overflow:hidden;touch-action:none;padding-bottom:env(safe-area-inset-bottom);
   background:radial-gradient(120% 70% at 50% 0%,#141a06,#070809 62%)}
 #mini.on{display:flex}
 .mtop{padding:14px 16px 8px;flex:0 0 auto}
