@@ -2827,7 +2827,7 @@ function startAmbient(){
  try{
   const t=AC.currentTime;
   const master=AC.createGain();master.gain.setValueAtTime(0.0001,t);
-  master.gain.exponentialRampToValueAtTime(0.03,t+2.6);      // lassú felúszás
+  master.gain.exponentialRampToValueAtTime(0.075,t+2.6);     // lassú felúszás (hallhatóbb, de nem tolakodó)
   const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=520;lp.Q.value=0.7;
   master.connect(lp);lp.connect(AC.destination);
   const freqs=[110,164.81,220,146.83];                        // meleg, lebegő pad
