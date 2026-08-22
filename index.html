@@ -55,6 +55,27 @@ img{display:block;max-width:100%}
   background:radial-gradient(520px 300px at 50% -6%,rgba(198,255,58,.08),transparent 62%),
              radial-gradient(600px 340px at 100% 8%,rgba(255,61,132,.08),transparent 60%)}
 
+/* teljes-képernyős backstage háttér — tableten NE legyen csúnya fekete perem kétoldalt */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background:
+    radial-gradient(60vw 44vh at 50% -4%,rgba(198,255,58,.10),transparent 60%),
+    radial-gradient(62vw 46vh at 100% 6%,rgba(255,61,132,.09),transparent 58%),
+    radial-gradient(60vw 48vh at 0% 104%,rgba(47,227,155,.06),transparent 60%),
+    var(--bg)}
+
+/* TABLET (≥768px): a telefon-layout arányosan FELNAGYÍTVA — álló, egy oszlop, de
+   kényelmes méret és jobban kitölti a képernyőt. A zoom minden px-t skáláz; a --vph
+   min-height-ot kikapcsoljuk, mert zoommal túlméretezne (inset:0 úgyis kitölt). */
+@media (min-width:768px){
+  #app{ min-height:0; zoom:1.4 }
+}
+@media (min-width:834px){
+  #app{ zoom:1.55 }
+}
+@media (min-width:1000px){
+  #app{ zoom:1.9 }
+}
+
 /* ---------- HUD ---------- */
 #hud{position:absolute;top:0;left:0;right:0;z-index:30;padding:calc(12px + env(safe-area-inset-top)) 14px 10px;
   background:linear-gradient(180deg,rgba(7,8,9,.96),rgba(7,8,9,.7) 78%,transparent);backdrop-filter:blur(6px)}
