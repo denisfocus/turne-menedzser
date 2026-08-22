@@ -38,7 +38,12 @@ body{font-family:var(--body);color:var(--text);background:var(--bg);overflow:hid
   -webkit-user-select:none;-moz-user-select:none;user-select:none;-webkit-touch-callout:none}
 /* a beviteli mezőkben (pl. ügynökség-név) maradjon a szövegkijelölés/beírás */
 input,textarea{-webkit-user-select:text;-moz-user-select:text;user-select:text;-webkit-touch-callout:default}
-button{font-family:var(--body);cursor:pointer;border:0;background:none;color:inherit}
+/* iOS/WKWebView: hosszú-nyomásra NE jelenjen meg a szövegkijelölő / nagyító hurok
+   a játék-vezérlőkön (zongora-billentyűk, dob-zónák, fény-gombok, canvasok). */
+.pk,.pk *,.dz,.dz *,.colb,.colb *,.movb,.movb *,.cuebtn,.relbtn,canvas,#mPads,#mPads *,#rig,#pnKeys,#pnKeys *,#pnRoll{
+  -webkit-user-select:none!important;-moz-user-select:none!important;user-select:none!important;
+  -webkit-touch-callout:none!important;-webkit-tap-highlight-color:transparent!important}
+button{font-family:var(--body);cursor:pointer;border:0;background:none;color:inherit;-webkit-touch-callout:none}
 img{display:block;max-width:100%}
 .num{font-family:var(--disp);font-weight:700;font-feature-settings:"tnum" 1;letter-spacing:.02em}
 .disp{font-family:var(--disp);font-weight:700;letter-spacing:.005em}
@@ -2739,6 +2744,17 @@ window.addEventListener('focus',function(){resumeAudio();setTimeout(refreshMap,6
 window.addEventListener('pageshow',function(){resumeAudio();setTimeout(refreshMap,60);});
 window.addEventListener('resize',function(){setTimeout(refreshMap,80);});
 window.addEventListener('orientationchange',function(){setTimeout(refreshMap,250);});
+/* iOS long-press callout/loupe kikapcsolása a JÁTÉK-INPUT elemeken: a touchstart
+   default-ját megfogjuk, így nem indul szövegkijelölés/nagyító. A pointer-input
+   (zongora-billentyű, dob-pad, fény-gomb) TOVÁBBRA is működik (külön eseményen fut).
+   A Kihagyom/HANG gombokat NEM érintjük (azok click-esek). */
+const GAME_INPUT_SEL='.pk,.dz,.colb,.movb,.cuebtn,#mPads,#rig,#pnKeys,#pnRoll,canvas';
+document.addEventListener('touchstart',function(e){
+ const t=e.target; if(t&&t.closest&&t.closest(GAME_INPUT_SEL)){ try{e.preventDefault();}catch(x){} }
+},{passive:false,capture:true});
+document.addEventListener('contextmenu',function(e){
+ const t=e.target; if(t&&t.closest&&t.closest('#mini,'+GAME_INPUT_SEL)){ e.preventDefault(); }
+});
 function blip(freq,dur,type,vol){
  if(S.sound===false)return;
  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
