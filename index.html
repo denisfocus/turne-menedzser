@@ -1897,6 +1897,7 @@ TD('ob.done.btn','Kezdhetem!','Let\'s do it!','Kann losgehen!','¡Vamos allá!',
 /* ============================ ÁLLAPOT ============================ */
 const KEY='turne_menedzser_v3';
 let S=migrate(load()||newGame());
+if(S.live&&S.live.__test)S.live=null;   // zene-teszt mód maradék-stub takarítása
 function newGame(){return{money:60000,rep:0,week:1,roster:[],upg:{marketing:0,staff:0,merch:0},tab:'iroda',tour:null,live:null,
  art:{},rel:null,relLog:[],streamIncome:0,lastResult:null,toursDone:0,detail:null,studio:null,
  feed:[],lastLevel:1,lastVenues:1,sound:true,autoShow:false,credits:CRED_WELCOME,themes:['lime'],theme:'lime',scout:null,
@@ -2848,7 +2849,7 @@ function sfx(name){
    és mini-játék alatt elhallgat (azoknak saját zenéjük van), a HANG kikapcsolja.
    iOS-biztos: 1-argumentumos src.start, AC.resume a lejátszás előtt — sose zúg, sose fagy. */
 let AMB=null;
-const AMB_VOL=0.045;                                           // NAGYON halk — épp csak hallatszódjon
+const AMB_VOL=0.015;                                           // NAGYON halk — épp csak hallatszódjon
 function startAmbient(){
  if(S.sound===false||AMB)return;
  try{ if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){return;}
@@ -2957,7 +2958,7 @@ const TRX={
  paper:{src:'assets/paper1.mp3',dur:48000,piano:[[1,5,220],[414,1,220],[727,0,1400],[3216,3,1295],[4631,7,1400],[6698,3,220],[6983,7,1093],[8196,5,220],[8435,8,1400],[10171,8,220],[10686,9,909],[11715,9,1400],[13653,3,1400],[15390,8,1400],[17135,8,919],[18174,10,578],[18872,8,936],[19928,5,1400],[22345,8,973],[23438,2,532],[24090,9,1400],[25827,8,753],[26700,7,1120],[27940,3,1249],[29309,6,1400],[31045,4,220],[31330,10,220],[31771,1,891],[32782,9,1400],[34527,8,1400],[36264,7,1400],[40260,2,1102],[41482,6,588],[42190,0,909],[43219,7,220],[43696,10,1139],[44955,6,1400],[46692,8,220],[47133,10,220]],drum:[[1,1],[414,1],[1480,4],[1829,4],[2371,2],[3216,1],[4089,4],[4631,1],[4962,0],[5826,4],[6257,4],[6698,1],[7562,4],[8196,1],[8591,1],[9308,4],[9739,4],[10171,2],[10686,1],[11044,4],[11715,1],[12781,4],[13212,4],[13653,1],[14526,4],[15390,2],[16263,4],[16694,4],[17135,2],[17880,0],[18872,2],[19745,4],[20176,4],[20608,0],[21481,4],[22345,2],[23006,4],[23438,1],[24090,2],[24642,4],[25827,2],[26700,2],[27536,0],[27940,1],[28436,4],[29309,2],[30172,4],[30613,4],[31045,1],[31771,1],[32782,2],[33259,4],[33655,4],[34086,2],[34527,2],[34987,4],[35391,4],[36264,2],[36742,4],[37137,4],[37568,2],[38000,4],[38662,4],[39737,3],[40260,1],[40609,4],[41050,4],[41482,2],[42190,1],[42585,4],[43219,2],[43696,1],[44092,4],[44523,4],[44955,2],[45525,4],[46076,1],[46692,2],[47133,1],[47574,4]]},
  glass:{src:'assets/glass1.mp3',dur:48000,bpm:128,phase:0,cues:[20160,22999,28668,34336,37166,40005,43781,46620]},
  back:{src:'assets/back1.mp3',dur:48000,bpm:128,phase:0,cues:[15593,19810,23559,26370,30119,34575,37974,43248,45829],drum:[[131,1],[599,0],[1536,4],[1968,4],[2464,0],[3006,4],[3411,4],[3879,2],[4348,4],[5055,1],[5515,0],[6222,4],[7040,0],[7389,4],[7885,1],[8326,0],[8914,4],[9263,4],[9851,0],[10200,4],[10678,1],[11137,4],[11725,0],[12074,0],[12571,4],[13021,4],[13719,2],[14188,4],[14656,4],[15125,2],[15593,3],[16062,4],[16530,4],[16999,2],[17348,4],[17697,4],[18055,1],[18405,4],[18873,4],[19222,2],[19571,4],[20279,4],[20747,2],[21097,3],[21446,0],[21804,1],[22153,4],[22622,4],[22971,2],[23329,4],[23678,0],[24027,4],[24496,4],[24845,2],[25203,4],[25552,4],[25902,2],[26370,4],[26728,4],[27078,2],[27427,0],[27776,4],[28244,4],[28603,0],[28952,0],[29301,1],[29650,4],[30119,4],[30477,2],[30826,4],[31175,0],[31506,4],[31993,4],[32351,2],[32700,4],[33049,4],[33408,2],[33867,4],[34225,0],[34575,3],[34924,1],[35254,4],[35741,4],[36100,3],[36449,3],[36798,0],[37156,4],[37625,4],[37974,2],[38323,0],[38672,4],[39031,4],[39499,2],[39848,4],[40207,4],[40556,0],[40905,4],[41373,4],[41722,0],[42072,3],[42430,0],[42779,4],[43248,4],[43597,3],[43946,0],[44304,0],[44653,4],[45122,4],[45471,2],[45829,3],[46178,0],[46528,4],[46913,4],[47437,2]]},
- menu:{src:'assets/menu1.mp3',dur:43992}
+ menu:{src:'assets/menu1.mp3',dur:48000}
 };
 const POOL={drum:['concert1','hold','paper','back'],piano:['piano1','hold','paper'],lights:['lights1','glass','back']};
 function nextTrk(game){
@@ -2975,8 +2976,9 @@ function loadTrk(key){
 }
 function trkBuf(key){return XBUF[key]||null;}
 /* ütemtérkép → játék-nóták */
-function drumNotesFrom(map){return map.map(function(p,i){var hard=(i%4===3);
- return {t:p[0],pad:p[1],dur:hard?600:820,hard:hard,done:false};});}
+function drumNotesFrom(map){return map.map(function(p,i){var hard=(i%4===3),dur=hard?600:820;
+ // a pad az ütés KÖZEPÉN legyen tökéletes → az ablakot a valós hangra CENTRÁLJUK (t = onset - dur/2)
+ return {t:Math.max(0,p[0]-Math.round(dur/2)),pad:p[1],dur:dur,hard:hard,done:false};});}
 function pianoNotesFrom(map){return map.map(function(p){
  return {t:p[0],key:p[1],dur:(p[2]||220),done:false,held:0,hit:false};});}
 function cuesFrom(arr){return (arr||[]).map(function(t){return {t:t,done:false,hit:false};});}
@@ -3066,10 +3068,10 @@ function openMini(stopIdx){
  el.querySelectorAll('[data-pad]').forEach(p=>{
   p.onpointerdown=ev=>{ev.preventDefault();tapPad(+p.dataset.pad,p);};
  });
- /* 3-2-1 visszaszámlálás, aztán indul a minta */
- let c=3;const cd=$('#mCount');
+ /* visszaszámlálás (első alkalom hosszabb), aztán indul a minta */
+ let c=miniCountStart('drum');const iv2=(c>3?1000:620);const cd=$('#mCount');cd.textContent=c;
  const tick2=()=>{ if(!M||M.ended)return;
-   if(c>0){cd.textContent=c;blip(520+(3-c)*90,0.07,'sine',0.12);c--;setTimeout(tick2,620);}
+   if(c>0){cd.textContent=c;blip(460+(10-c)*22,0.06,'sine',0.11);c--;setTimeout(tick2,iv2);}
    else{$('#mReady').style.display='none';
     /* A JÁTÉK AZONNAL indul — a hurkot ELŐSZÖR indítjuk, hogy az audio-setup egy
        esetleges (natív) kivétele SE foghassa meg a játékot. Az audio utólag,
@@ -3228,12 +3230,19 @@ const LT={dur:16000,bpm:112,nBack:9,nFront:11,
   cols:[{id:'ice',n:'Kék',c:[46,150,255]},{id:'white',n:'Fehér',c:[240,248,255]},{id:'amber',n:'Arany',c:[255,150,36]}],
   drops:[6,12,18,24,29],
   cueWin:520};
-function countdown(done){
- let c=3;const cd=$('#mCount');
+function countdown(done,from){
+ let c=from||3; const iv=(from>3?1000:620); const cd=$('#mCount');
  const step=function(){ if(!M||M.ended)return;
-   if(c>0){if(cd)cd.textContent=c;blip(520+(3-c)*90,0.07,'sine',0.12);c--;setTimeout(step,620);}
+   if(c>0){if(cd)cd.textContent=c;blip(460+((from||3)-c)*22,0.06,'sine',0.11);c--;setTimeout(step,iv);}
    else{const r=$('#mReady');if(r)r.style.display='none';done();}};
  step();
+}
+/* első alkalommal HOSSZABB visszaszámláló (idő elolvasni a feladatot), utána rövid */
+function miniCountStart(game){
+ S.seenMini=S.seenMini||{};
+ const first=!S.seenMini[game];
+ S.seenMini[game]=true; try{save();}catch(e){}
+ return first?10:3;
 }
 function beatMs(){return 60000/LT.bpm;}
 let MGAIN=1;   // háttérzene hangereje (a dobosnál halkabb, hogy a saját ütés kiemelkedjen)
@@ -3358,7 +3367,7 @@ function openLights(stopIdx){
    M.t0=performance.now();M.started=true;
    M.iv=setInterval(lightTick,25);M.raf=requestAnimationFrame(lightDraw);
    try{ startConcertAudio(); attachTrackWhenReady(function(){return trkBuf(lkey);}, function(){loadTrk(lkey);}); }catch(e){}
- });
+ }, miniCountStart('lights'));
 }
 /* mozgás-gomb: azonnal átállítja a nyalábok mozgását + pontozza a parancsot */
 function pressMove(type,el){
@@ -3699,7 +3708,7 @@ function openPiano(stopIdx){
    M.t0=performance.now();M.started=true;
    M.iv=setInterval(pianoTick,25);M.raf=requestAnimationFrame(pianoDraw);
    try{ startConcertAudio(); attachTrackWhenReady(function(){return trkBuf(pkey);}, function(){loadTrk(pkey);}); }catch(e){}
- });
+ }, miniCountStart('piano'));
 }
 function pianoDown(ki,el){
  if(!M||M.ended||!M.started)return;
@@ -3840,12 +3849,15 @@ function playLauncher(){
  el.querySelectorAll('[data-g]').forEach(function(b){
   b.onclick=function(){ testPlay(b.dataset.g, b.dataset.k); };
  });
- const ex=$('#playExit'); if(ex)ex.onclick=function(){ window.__TESTPLAY=false; el.className=''; el.innerHTML=''; try{S.tab='iroda';render();}catch(e){} };
+ /* a választóban is szóljon a halk Crystal Drift Run háttér (első gesztus után indul) */
+ try{ loadTrk('menu'); setTimeout(function(){ if(window.__TESTPLAY&&!M)try{startAmbient();}catch(e){} },350); }catch(e){}
+ const ex=$('#playExit'); if(ex)ex.onclick=function(){ window.__TESTPLAY=false; try{stopAmbient();}catch(e){} S.live=null; el.className=''; el.innerHTML=''; try{S.tab='iroda';render();}catch(e){} };
 }
 function testPlay(game,key){
  try{ if(typeof ensureAudio==='function')ensureAudio(); }catch(e){}
+ try{ stopAmbient(); }catch(e){}                          // a mini alatt ne szóljon a háttér
  const ak=Object.keys(AM)[0], ck=Object.keys(CM)[0];
- S.live={artist:ak,setlist:[0,1,2],stops:[{city:ck}],mini:{},pausedLeft:999999,ends:Date.now()+9e8};
+ S.live={artist:ak,setlist:[0,1,2],stops:[{city:ck}],mini:{},pausedLeft:999999,ends:Date.now()+9e8,__test:true};
  S.started=true; if(S.sound!==true)S.sound=true;
  S.rot=S.rot||{}; S.rot[game]=Math.max(0,POOL[game].indexOf(key));   // a választott dal induljon
  if(game==='drum')openMini(0); else if(game==='piano')openPiano(0); else openLights(0);
