@@ -2424,12 +2424,20 @@ function finishRelease(){
  const R=S.rel;if(!R)return;
  const a=AM[R.artist],k=RM[R.kind],st=artState(R.artist);
  const relBoost=1+facLv('studio')*0.12+(hasStaff('prod')?0.25:0);
+ /* KRITIKÁK: a kiadás MINŐSÉGE (fame + stúdió + producer + aktuális trend + kritikus-faktor).
+    A jó kritika többet üt (hype/stream), a gyenge kevesebbet → a minőség számít. */
+ const critBase=42+af(a)*0.42+facLv('studio')*4+(hasStaff('prod')?6:0)+(artistTrend(a)-1)*38;
+ const critic=clamp(Math.round(critBase+(Math.random()-0.5)*22),28,98);
+ const critMul=0.75+critic/100*0.5;                   // 28→~0,89× · 98→~1,24×
+ const OUTLETS=['SoundWave','Pop Daily','Rift','Metronome'];
+ const reviews=OUTLETS.slice(0,3+(R.kind==='album'?1:0)).map(function(o){
+   return {n:o,s:+clamp(critic/10+(Math.random()-0.5)*2.2,1.5,10).toFixed(1)};});
  /* KIADÁS-FÁRADÁS: túl sűrű megjelenés = csökkenő hype/rajongó/stream-hatás (spam ellen, tempó-lassítás).
     A hírnév NEM fárad — a progresszió marad, csak a bevétel-loop lassul. */
  const relGap=(st.lastRelWeek==null)?99:Math.max(0,S.week-st.lastRelWeek);
  const relFat=clamp(0.4+relGap/8*0.6,0.4,1);          // <8 hét → 40%…100% hatás
  st.lastRelWeek=S.week;
- st.hype+=k.hype*relBoost*relFat;
+ st.hype+=k.hype*relBoost*relFat*critMul;
  st.fameAdd=Math.min(60,st.fameAdd+k.fameAdd);
  st.rels=(st.rels||0)+1;
  /* a stúdiózás is fáraszt (album jobban), de kreatív siker → kis morál */
@@ -2443,18 +2451,20 @@ function finishRelease(){
  Object.keys(REGIONS).forEach(r=>{                    // ahol már ismerik, ott üt nagyobbat
   st.fans[r]=clamp(st.fans[r]+k.fansAdd*relBoost*relFat*(0.5+st.fans[r]/100),0,100);});
  const before=st.streams;
- st.streams=Math.round(st.streams*(1+k.hype*0.3*relFat));   // mérsékeltebb kiadás-ugrás + fáradás (tempó-lassítás)
+ st.streams=Math.round(st.streams*(1+k.hype*0.3*relFat*critMul));   // mérsékeltebb kiadás-ugrás + fáradás + kritika
  S.rel=null;
  sfx('cash');                                        // megjelenés → streaming-bevétel
  S.relLog.unshift({artist:a.n,kind:k.n,ic:k.ic,week:S.week,
-   gain:st.streams-before,fame:k.fameAdd,fans:k.fansAdd});
+   gain:st.streams-before,fame:k.fameAdd,fans:k.fansAdd,critic:critic,reviews:reviews});
  S.relLog=S.relLog.slice(0,8);
+ st.lastCritic=critic;                                 // az előadó legutóbbi kritikája (stúdióban látszik)
  chalAdd('rel2',1);
+ const critWord=critic>=85?'Kritikai siker':critic>=68?'Jó fogadtatás':critic>=50?'Vegyes kritika':'Langyos kritika';
  const unlMsg=newTitles.length?` · Új dal a repertoárban: ${newTitles.join(', ')}`:'';
- pushFeed(`${a.n} · ${k.n} megjelent`,`Streaming ${fmtStream(before)} → ${fmtStream(st.streams)} · +${k.fameAdd} hírnév${unlMsg}`,k.ic,'var(--gold)');
+ pushFeed(`${a.n} · ${k.n} megjelent`,`${critWord} · Kritikus-pont ${critic}/100 · Streaming ${fmtStream(before)} → ${fmtStream(st.streams)}${unlMsg}`,k.ic,critic>=68?'var(--cash)':'var(--gold)');
  advanceWeeks(Math.max(1,Math.round(k.days/7)));
  save();
- toast(`${a.n} · ${k.n} megjelent!${newTitles.length?' Új dal: '+newTitles.join(', '):' Streaming '+fmtStream(before)+' → '+fmtStream(st.streams)}`);
+ toast(`${a.n} · ${k.n} megjelent! Kritikus-pont ${critic}/100${newTitles.length?' · Új dal: '+newTitles.join(', '):''}`);
 }
 function relRemain(){return S.rel?Math.max(0,S.rel.ends-Date.now()):0;}
 
@@ -2566,9 +2576,13 @@ function runShow(i){
   L.fanGain[reg]=(L.fanGain[reg]||0)+fanG;
   L.mom=fill>=0.9?Math.min(1.4,L.mom+0.06):(fill<0.45?Math.max(0.75,L.mom-0.05):L.mom);
   A.played[st.city]=S.week;            // a varos kozonsege elhasznalodott, hetek alatt epul vissza
-  /* ENERGIA: minden koncert fáraszt (a turnébusz/magángép enyhíti); a morál a sikertől függ */
-  A.energy=clamp(A.energy-5.5*(1-facLv('bus')*0.08)*(hasBig('jet')?0.82:1),0,100);
+  /* ENERGIA: minden koncert fáraszt (a turnébusz/magángép enyhíti); a morál a sikertől függ.
+     JET LAG: kontinensugrás az előző állomáshoz képest extra fárasztó (a magángép felezi) →
+     érdemes régiónként csoportosítani az útvonalat. */
+  const jetlag=(i>0&&CM[L.stops[i-1].city]&&CM[L.stops[i-1].city].r!==reg)?5*(hasBig('jet')?0.5:1):0;
+  A.energy=clamp(A.energy-5.5*(1-facLv('bus')*0.08)*(hasBig('jet')?0.82:1)-jetlag,0,100);
   A.morale=clamp(A.morale+(fill>=0.9?2.2:fill<0.4?-3:0.3),0,100);
+  if(jetlag>=3)L.log.push({t:'Jet lag',s:esc(city.n)+' másik kontinensen — az előadó fáradtabb (⚡−'+Math.round(jetlag)+').',ic:'plane'});
   (S.cities=S.cities||{})[st.city]=1;   // életmű: hány különböző városban játszottál
   bumpRec('maxFill',fill);bumpRec('bestAtt',att);
   if(v.cap>=20000){bumpRec('arenaFill',fill);if(fill>=0.9&&!(S.recs&&S.recs.firstArenaWeek))(S.recs=S.recs||{}).firstArenaWeek=S.week;}
@@ -6313,8 +6327,10 @@ function tabStudio(){
 
  /* korábbi megjelenések */
  if(S.relLog.length){h+=`<div class="sec"><h2>Eddigi megjelenések</h2></div>`;
-  S.relLog.forEach(x=>h+=`<div class="logr"><div class="i">${icon(x.ic||'notes','15px')}</div>
-    <div class="tx"><b>${esc(x.artist)} · ${esc(x.kind)}</b><span>${x.week}. hét · +${fmtStream(x.gain)} hallgató · +${x.fame} hírnév</span></div></div>`);}
+  S.relLog.forEach(x=>{const cc=x.critic>=68?'var(--cash)':x.critic>=50?'var(--gold)':'var(--hot)';
+    h+=`<div class="logr"><div class="i">${icon(x.ic||'notes','15px')}</div>
+    <div class="tx"><b>${esc(x.artist)} · ${esc(x.kind)}${x.critic?` <span style="color:${cc}">· ${x.critic}/100</span>`:''}</b>
+      <span>${x.week}. hét · +${fmtStream(x.gain)} hallgató${x.reviews&&x.reviews.length?' · '+x.reviews.map(r=>esc(r.n)+' '+r.s).join(' · '):''}</span></div></div>`;});}
  h+=`<div style="height:8px"></div></div>`;
  view.innerHTML=h;
  bind('[data-studio]',b=>{S.studio=b.dataset.studio;save();tabStudio();});
