@@ -1540,6 +1540,69 @@ function driftNpc(){S.npcMom=S.npcMom||{};
  ARTISTS.forEach(function(a){if(S.roster.indexOf(a.id)>=0)return;
   var cur=npcMomentum(a.id);S.npcMom[a.id]=+clamp(cur+(Math.random()-0.5)*0.09,0.6,1.5).toFixed(3);});}
 
+/* ============================ DÍJÁTADÓ-SZEZON (évente) ============================ */
+function checkAwards(){
+ if(S.live||S.rel||($('#modal')||{}).className==='on'||!S.roster.length)return;
+ if(S.awardsNext==null){S.awardsNext=S.week+52;return;}
+ if(S.week<S.awardsNext)return;
+ S.awardsNext=S.week+52;awardsShow();
+}
+function awardsShow(){
+ const chart=chartTop(60), owns=function(id){return S.roster.indexOf(id)>=0;};
+ const wins=[];
+ if(chart[0]&&owns(chart[0].id))wins.push({cat:'Az év előadója',who:chart[0]});
+ GENRES.forEach(function(g){const top=chart.find(function(a){return a.genre===g;});if(top&&owns(top.id))wins.push({cat:'Az év '+g+'-előadója',who:top});});
+ let bestAlb=null;S.roster.forEach(function(id){const c=(artState(id).lastCritic)||0;if(c>=80&&(!bestAlb||c>(artState(bestAlb).lastCritic||0)))bestAlb=id;});
+ if(bestAlb)wins.push({cat:'Az év albuma',who:AM[bestAlb]});
+ wins.forEach(function(w){const st=artState(w.who.id);st.fameAdd=Math.min(60,st.fameAdd+2);st.hype+=0.5;st.trophies=(st.trophies||0)+1;
+   Object.keys(REGIONS).forEach(function(r){st.fans[r]=clamp(st.fans[r]+3,0,100);});});
+ S.trophies=(S.trophies||0)+wins.length;
+ if(wins.length)pushFeed('🏆 Díjátadó · '+wins.length+' díj','Az ügynökséged előadói: '+wins.map(function(w){return esc(w.who.n)+' ('+w.cat+')';}).join(' · '),'trophy','var(--gold)');
+ const list=wins.length?wins.map(function(w){return '<div class="fitem"><div class="ic" style="color:var(--gold)">🏆</div><div class="tx"><div class="h">'+esc(w.who.n)+'</div><div class="s">'+w.cat+'</div></div></div>';}).join('')
+   :'<div class="fitem"><div class="ic">—</div><div class="tx"><div class="h">Idén nem nyertetek díjat</div><div class="s">Építs hype-ot és slágereket — jövőre visszatér a szezon.</div></div></div>';
+ const h='<div class="ev"><div class="bd"><span class="kick" style="color:var(--gold)">Music Awards</span>'+
+  '<h3>Díjátadó-szezon</h3>'+(wins.length?'<p>'+wins.length+' díj az ügynökségednek! (+hírnév, +rajongó, +hype)</p>':'<p>Az idei szezon lezárult.</p>')+
+  '<div class="feedbox" style="margin-top:12px">'+list+'</div>'+
+  '<button class="btn lime" id="awOk" style="margin-top:14px">Rendben</button></div></div>';
+ const m=$('#modal');m.innerHTML=h;m.className='on';
+ $('#awOk').onclick=function(){m.className='';m.innerHTML='';save();render();};
+}
+
+/* ============================ FESZTIVÁLOK (periodikus meghívó) ============================ */
+const FESTS=[{n:'Neon Fields',r:'EU'},{n:'Sunburst',r:'NA'},{n:'Rio Rhythm',r:'SA'},{n:'Neo Tokyo Wave',r:'AS'},{n:'Southern Cross',r:'OC'},{n:'Sahara Sound',r:'AF'}];
+function festSlot(a){const f=af(a);return f>=80?{n:'Headliner',mul:1,c:'var(--cash)'}:f>=55?{n:'Fő színpad',mul:0.6,c:'var(--neon)'}:{n:'Délutáni színpad',mul:0.32,c:'var(--gold)'};}
+function checkFestivals(){
+ if(S.live||S.rel||($('#modal')||{}).className==='on'||!S.roster.length)return;
+ if(S.festNext==null){S.festNext=S.week+10+Math.floor(Math.random()*8);return;}
+ if(S.week<S.festNext)return;
+ S.festNext=S.week+15+Math.floor(Math.random()*10);festivalOffer();
+}
+function festivalOffer(){
+ const f=FESTS[Math.floor(Math.random()*FESTS.length)];S._fest=f;
+ const rows=S.roster.map(function(id){const a=AM[id],sl=festSlot(a),st=artState(id);
+   return '<button class="evb" data-fest="'+id+'"><div class="l">'+esc(a.n)+' <span style="color:'+sl.c+'">· '+sl.n+'</span></div>'+
+     '<div class="s">⚡'+Math.round(st.energy||100)+' · '+a.genre+' · '+rgN(f.r)+' rajongó-lökés</div></button>';}).join('');
+ const h='<div class="ev"><div class="bd"><span class="kick" style="color:var(--gold)">Fesztivál-meghívó</span>'+
+  '<h3>'+esc(f.n)+' · '+rgN(f.r)+'</h3><p>Kit küldesz? A slot a hírnévtől függ; a fesztivál nagy rajongó- és hírnév-lökést ad, de fárasztó.</p>'+
+  '<div class="evch" style="margin-top:12px">'+rows+'<button class="evb" data-fest="_skip"><div class="l">Most kihagyom</div><div class="s">Nem küldesz senkit</div></button></div></div></div>';
+ const m=$('#modal');m.innerHTML=h;m.className='on';
+ m.querySelectorAll('[data-fest]').forEach(function(b){b.onclick=function(){festivalPlay(b.dataset.fest);};});
+}
+function festivalPlay(id){
+ const m=$('#modal');const f=S._fest||FESTS[0];
+ if(id==='_skip'){m.className='';m.innerHTML='';return;}
+ const a=AM[id],st=artState(id),sl=festSlot(a),eM=perfMul(id);
+ const crowd=Math.round((28000+af(a)*1400)*sl.mul*eM);
+ const money0=Math.round((22000+af(a)*3200)*sl.mul*eM/500)*500;
+ const fansUp=+(sl.mul*6*eM).toFixed(1), fameUp=sl.mul>=1?2:sl.mul>=0.6?1:0;
+ S.money+=money0;S.earned=(S.earned||0)+money0;
+ st.fans[f.r]=clamp(st.fans[f.r]+fansUp,0,100);
+ st.fameAdd=Math.min(60,st.fameAdd+fameUp);st.hype+=0.45*sl.mul;
+ st.energy=clamp((st.energy||100)-12,0,100);st.morale=clamp((st.morale||72)+4,0,100);
+ pushFeed('🎪 '+esc(f.n)+' · '+esc(a.n),sl.n+' · '+k(crowd)+' néző · '+money(money0)+' · +'+dec1(fansUp)+' rajongó ('+rgN(f.r)+')','trophy','var(--cash)');
+ sfx('cheer');m.className='';m.innerHTML='';save();toast(esc(a.n)+' fellépett a '+esc(f.n)+'-en · '+money(money0)+' · +'+dec1(fansUp)+' rajongó');render();
+}
+
 /* ---------- KIADÁSOK (a két turné közti tartalom) ---------- */
 const RELEASES=[
  /* A felvétel HOSSZÚ, de a HÁTTÉRBEN fut: közben nyugodtan turnézol, és a játék
@@ -5342,7 +5405,7 @@ function render(){applyTheme();checkUnlocks();chalLive();checkArcs();checkMiles(
  obPaint();
  /* félbehagyott döntés visszaállítása újratöltés után */
  if(S.live&&S.live.pendingEv&&$('#modal').className!=='on'){const e=EVENTS.find(x=>x.id===S.live.pendingEv);if(e)renderEvent(e);}
- if(S.started&&!S.career)checkContracts();}   // lejárt szerződés → újratárgyalás
+ if(S.started&&!S.career){checkContracts();checkAwards();checkFestivals();}}   // szerződés / díjátadó / fesztivál
 function bind(sel,fn){view.querySelectorAll(sel).forEach(el=>el.onclick=()=>fn(el));}
 
 /* ---------- IRODA ---------- */
@@ -6708,7 +6771,7 @@ if(!S.started){renderStart();}
 else if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track('tutorial_started',{source:'first_open'});}
 if(S.resultPending&&S.lastResult)showResult();
 if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
-if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,contractWeeksLeft,contractRenewal,checkContracts,ensureContract,chartTop,chartScore,rivalOf,driftNpc,RIVALS,CONTRACT_TERM,
+if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,contractWeeksLeft,contractRenewal,checkContracts,ensureContract,chartTop,chartScore,rivalOf,driftNpc,RIVALS,CONTRACT_TERM,awardsShow,checkAwards,festivalOffer,festivalPlay,checkFestivals,FESTS,
   _mus:function(){var xb={};Object.keys(TRX).forEach(function(k){var b=trkBuf(k);xb[k]=b?+b.duration.toFixed(1):0;});return{buffers:xb,rot:S.rot,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
