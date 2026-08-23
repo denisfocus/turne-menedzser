@@ -1381,6 +1381,58 @@ const ARTISTS=[
   bio:'Drámai színpadi pop, rózsaszínben. A közönsége jelmezben jön.',reg:{EU:1.15,NA:1.15,SA:0.95,AS:0.9,OC:1.05,AF:0.85},
   songs:songs([['Good Luck Babes',68,60],['Pink Ponyy Club',71,72],['Hot To Go',65,90],['Red Wine Supernovah',63,84]])},
 ];
+/* ---- BŐVÍTHETŐ REPERTOÁR ----
+   A meglévő dalok az ALAP (baseN) — végig elérhetők, nincs regresszió. Az EXTRA_SONGS
+   dalai ZÁROLVA indulnak, és KIADÁSSAL oldódnak fel (single +1 / EP +2 / album +4) az
+   előadó igazi repertoárjából → így van értelme stúdiózni. */
+const EXTRA_SONGS={
+ tswiss:[['Anti-Heroe',95,58],['Stylle',90,84],['Wildest Dreamz',89,30]],
+ drayke:[['One Dancce',93,88],['Passionfruitt',90,60],["Hold On, Goin' Homee",89,40]],
+ bknow:[['Irreplaceablee',92,42],['Partitionn',90,86],['Love On Topp',93,72]],
+ fmercuri:[['Killer Queenn',95,70],['Another One Bites The Dustt',92,88],['We Are The Championz',94,48]],
+ adelia:[['Rumour Has Itt',91,84],['When We Were Youngg',93,38],['Water Under The Bridgge',89,66]],
+ ejonn:[['Crocodile Rockk',94,90],['Bennie & The Jetz',92,74],['Candle In The Windd',93,26]],
+ prynce:[["Let's Go Crazyy",96,92],['Raspberry Barett',93,76],['The Beautiful Onez',91,40]],
+ madona:[['Hung Uppp',94,90],['La Isla Bonitaa',91,66],['Frozenn',92,34]],
+ mjkingg:[["Don't Stop Til You Get Enoughh",96,92],['Rock With Youu',94,66],['Man In The Mirrorr',95,44]],
+ ldelrey:[['National Anthemm',86,84],['West Coastt',85,66],['Ridee',84,32]],
+ dojakat:[['Vegass',88,88],['Juicyy',85,72],['Streetsz',84,40]],
+ shakirah:[['Locaa',88,90],['La Torturaa',86,74],['Underneath Your Clothez',83,34]],
+ jbeaver:[['Where R U Noww',89,86],['What Do You Meann',86,70],['Ghostt',84,44]],
+ agrandee:[['Into Youu',90,88],['Breathinn',88,62],['Ghostinn',86,34]],
+ bbunni:[['Me Portoo Bonito',90,90],['Dákitii',87,74],['Un Verano Sinn Ti',85,40]],
+ klamarr:[['King Kuntaa',91,88],['Loyaltyy',89,74],['Sing About Mee',87,38]],
+ weekop:[['Take My Breathh',90,88],['In Your Eyez',86,74],['Die For Youu',85,42]],
+ esharon:[['Galway Girll',88,84],['Singg',86,78],['Happierr',85,38]],
+ rihannon:[['Rude Boyy',88,88],['Needed Mee',85,60],['Love On The Brainn',84,44]],
+ bmarz:[['Locked Out Of Heavenn',88,86],['Treasuree',85,76],['When I Was Your Mann',84,26]],
+ dlipova:[['Break My Heartt',86,84],['Love Againn',84,72],['Be The Onee',82,48]],
+ beyelash:[['You Should See Me In A Crownn',80,84],['Bury A Friendd',78,68],['Everything I Wantedd',76,24]],
+ orodrigo:[['Get Him Backk',80,84],['Jealousy Jealousyy',76,72],['Favorite Crimee',74,32]],
+ pmalone:[['Psychoo',79,72],['Chemicalz',77,84],['I Fall Apartt',78,34]],
+ scarpanter:[['Juno',75,74],['Busy Womann',72,86],['Sharpest Toolz',70,38]],
+ zbloom:[['Fading Polaroid',56,28],['Half Awake',54,56],['Overexposed',52,88]],
+ kvance:[['Glass House',57,32],['Comet',55,64],['Firestarter',53,90]],
+ nmirage:[['Chrome Hearts',58,40],['Laser Tears',56,70],['Vapor Trail',54,90]],
+ velvet:[['Paper Skin',60,36],['Rooftops',58,68],['Static Radio',55,92]],
+ mfields:[['Dirt Road Diary',61,50],['Empty Bottle',58,26],['County Line',56,84]],
+ srae:[['Silk',62,34],['Neon Lonely',59,58],['Overdrive',57,88]],
+ dorion:[['Concrete',63,50],['Nightshift',60,72],['Ignition',58,92]],
+ gabramz:[["That's So Truee",65,62],['Free Noww',63,84],['Twenty Onee',61,26]],
+ alleyc:[['Last Call',63,40],['Gasoline',61,88],['Static Riot',60,96]],
+ pinkpanth:[['Illegall',66,86],['Break It Offf',64,76],['Angell',62,40]],
+ rrap:[['Not My Faultt',68,84],['Pretty Girlz',65,56],['Tummy Hurtz',63,40]],
+ slacey:[['Infrunamii',71,86],['Playgroundd',68,62],['Mercuryy',65,36]],
+ nkahann:[['Homesickk',73,84],['Growing Sidewayz',70,54],['Call Your Momm',68,28]],
+ bboonee:[['Cryy',74,86],['Mystical Magicall',71,76],['Slow It Downn',68,36]],
+ ispicy:[['Princess Dianaa',75,88],['Think U The Shitt',72,66],['Bikini Bottomm',70,44]],
+ lilnax:[['J Christt',78,88],['Star Walkinn',76,76],['Sun Goes Downn',73,34]],
+ tmcrea:[['Sports Carr',70,88],["She's All I Wanna Bee",67,72],['Feel It All',64,34]],
+ croone:[['Femininomenonn',70,86],['Super Graphicc',67,76],['Casuall',65,38]]
+};
+ARTISTS.forEach(function(a){ a.baseN=a.songs.length;
+  var ex=EXTRA_SONGS[a.id];
+  if(ex&&ex.length){ a.songs=a.songs.concat(songs(ex)); } });
 const AM=Object.fromEntries(ARTISTS.map(a=>[a.id,a]));
 const LEVELS=[0,60,140,260,420,620,860,1150,1500];
 const CRED_WELCOME=2;   // üdvözlő kredit; a többit mérföldkövek/kihívások adják, a feltöltés valódi pénzért megy
@@ -1423,6 +1475,11 @@ function artState(id){
  return S.art[id];
 }
 function af(a){return clamp(a.fame+(S.art&&S.art[a.id]?S.art[a.id].fameAdd:0),0,100);}
+/* ---- repertoár feloldás ---- */
+function songBaseN(a){return a.baseN||(a.songs?a.songs.length:0);}
+function unlockedN(a){var st=S.art&&S.art[a.id];return Math.min(a.songs.length,songBaseN(a)+((st&&st.unl)||0));}
+function availSongs(a){var n=unlockedN(a),o=[];for(var i=0;i<n;i++)o.push(i);return o;}
+function lockedSongs(a){var o=[];for(var i=unlockedN(a);i<a.songs.length;i++)o.push(i);return o;}
 function avgFans(st){const v=Object.values(st.fans);return v.reduce((x,y)=>x+y,0)/v.length;}
 function topRegion(st){return Object.entries(st.fans).sort((x,y)=>y[1]-x[1])[0];}
 function fanLabel(f){return f>=80?'Fanatikus':f>=60?'Erős':f>=40?'Ismerik':f>=20?'Kezdődik':'Ismeretlen';}
@@ -2183,7 +2240,7 @@ function band(raw,sigma,cap){return{lo:clamp(Math.round(raw*(1-1.28*sigma)),0,ca
 const PRICE_MAX=400;                              // jegyár-csúszka felső határa (a presetek is eddig mehetnek)
 const MIN_SET=5;                                  // ennyi dal kell egy indítható szethez
 /* A kezdő előadóknak rövidebb a katalógusuk — náluk a teljes repertoár a minimum. */
-function minSet(a){return Math.min(MIN_SET,(a&&a.songs)?a.songs.length:MIN_SET);}
+function minSet(a){return Math.min(MIN_SET,a?unlockedN(a):MIN_SET);}
 const ARC=[70,80,60,74,90,97,88];                 // ideális energia-görbe kulcspontjai (0→1)
 function arcTarget(t){const x=clamp(t,0,1)*(ARC.length-1),i=Math.floor(x),f=x-i;
  return ARC[i]+((ARC[Math.min(i+1,ARC.length-1)]-ARC[i])*f);}
@@ -2309,6 +2366,11 @@ function finishRelease(){
  st.hype+=k.hype*relBoost;
  st.fameAdd=Math.min(60,st.fameAdd+k.fameAdd);
  st.rels=(st.rels||0)+1;
+ /* KIADÁS = REPERTOÁR-BŐVÜLÉS: feloldunk az előadó igazi (zárolt) dalaiból (single +1 / EP +2 / album +4) */
+ var unlockAmt=({single:1,ep:2,album:4})[R.kind]||1;
+ var prevN=unlockedN(a), lockedNow=a.songs.length-prevN, got=Math.max(0,Math.min(unlockAmt,lockedNow));
+ var newTitles=[];
+ if(got>0){ st.unl=(st.unl||0)+got; for(var _i=prevN;_i<prevN+got;_i++){ if(a.songs[_i])newTitles.push(a.songs[_i].n); } }
  Object.keys(REGIONS).forEach(r=>{                    // ahol már ismerik, ott üt nagyobbat
   st.fans[r]=clamp(st.fans[r]+k.fansAdd*relBoost*(0.5+st.fans[r]/100),0,100);});
  const before=st.streams;
@@ -2319,10 +2381,11 @@ function finishRelease(){
    gain:st.streams-before,fame:k.fameAdd,fans:k.fansAdd});
  S.relLog=S.relLog.slice(0,8);
  chalAdd('rel2',1);
- pushFeed(`${a.n} · ${k.n} megjelent`,`Streaming ${fmtStream(before)} → ${fmtStream(st.streams)} · +${k.fameAdd} hírnév`,k.ic,'var(--gold)');
+ const unlMsg=newTitles.length?` · Új dal a repertoárban: ${newTitles.join(', ')}`:'';
+ pushFeed(`${a.n} · ${k.n} megjelent`,`Streaming ${fmtStream(before)} → ${fmtStream(st.streams)} · +${k.fameAdd} hírnév${unlMsg}`,k.ic,'var(--gold)');
  advanceWeeks(Math.max(1,Math.round(k.days/7)));
  save();
- toast(`${a.n} · ${k.n} megjelent! Streaming ${fmtStream(before)} → ${fmtStream(st.streams)}`);
+ toast(`${a.n} · ${k.n} megjelent!${newTitles.length?' Új dal: '+newTitles.join(', '):' Streaming '+fmtStream(before)+' → '+fmtStream(st.streams)}`);
 }
 function relRemain(){return S.rel?Math.max(0,S.rel.ends-Date.now()):0;}
 
@@ -5492,15 +5555,37 @@ function startTour(id){if(S.live){sfx('error');toast('Előbb fejezd be a folyama
  /* ÜRESEN indul: a szet összerakása és sorrendje a játékos döntése */
  S.tour={artist:id,stops:[],setlist:[],promo:0,risk:false};S.detail=null;S.tab='terkep';save();render();}
 /* kezdo szet: a legjobb dalokbol, de mar az idealis ivhez rendezve - innen lehet tovabb csiszolni */
-function autoSetlist(a,n){n=Math.min(n||6,a.songs.length);
- const pool=a.songs.map((s,i)=>i),out=new Array(n),tgt=p=>arcTarget(n>1?p/(n-1):0.5);
- /* a legmagasabb célú helyeket (csúcs, ráadás) töltjük fel először, hogy oda jusson a nagyágyú */
- const order=[];for(let p=0;p<n;p++)order.push(p);
- order.sort((x,y)=>tgt(y)-tgt(x));
- order.forEach(p=>{const want=tgt(p);let best=0,bs=-1e9;
-  pool.forEach((si,k)=>{const s2=a.songs[si],v=s2.q*0.55-Math.abs(s2.e-want)*0.9;if(v>bs){bs=v;best=k;}});
-  out[p]=pool.splice(best,1)[0];});
+/* a megadott dalok VALÓDI legjobb SORRENDJE a crowdSim-pontszámra (≤8 dalnál teljes
+   permutáció → garantált optimum; több dalnál az energia-ívre illesztő heurisztika). */
+function permN(arr,cb){var n=arr.length,c=new Array(n).fill(0),a=arr.slice();cb(a);var i=0;
+ while(i<n){ if(c[i]<i){var k=i%2?c[i]:0,t=a[k];a[k]=a[i];a[i]=t;cb(a);c[i]++;i=0;} else {c[i]=0;i++;} }}
+function bestOrder(a,idx){
+ if(idx.length<=1)return idx.slice();
+ if(idx.length<=8){var best=idx.slice(),bs=-1;permN(idx,function(p){var s=crowdSim(a,p).score;if(s>bs){bs=s;best=p.slice();}});return best;}
+ var n=idx.length,pos=[];for(var p=0;p<n;p++)pos.push(p);
+ pos.sort(function(x,y){return arcTarget(y/(n-1))-arcTarget(x/(n-1));});
+ var poolL=idx.slice(),out=new Array(n);
+ pos.forEach(function(p){var want=arcTarget(n>1?p/(n-1):0.5),best=0,bs=-1e9;
+  poolL.forEach(function(si,k){var s=a.songs[si],v=s.q*0.4-Math.abs(s.e-want)*1.0;if(v>bs){bs=v;best=k;}});
+  out[p]=poolL.splice(best,1)[0];});
  return out;}
+/* Auto-rendez: ha a user már választott ≥minSet dalt, AZOKAT rendezi optimálisra (tiszteletben
+   tartja a választását); különben a legjobb n dalt válogatja ki (minőség + egy lassú a dip-hez),
+   majd optimálisra rendezi. Csak FELOLDOTT dalokból. */
+function autoSetlist(a,n){
+ var av=availSongs(a);
+ var cur=(S.tour&&S.tour.setlist)?S.tour.setlist.filter(function(i){return av.indexOf(i)>=0;}):[];
+ var pick;
+ if(cur.length>=minSet(a)){ pick=cur.slice(); }
+ else {
+   n=Math.min(n||6,av.length);
+   pick=av.slice().sort(function(x,y){return a.songs[y].q-a.songs[x].q;}).slice(0,n);
+   if(n>=4 && !pick.some(function(i){return a.songs[i].e<=55;})){
+     var low=av.filter(function(i){return a.songs[i].e<=55;}).sort(function(x,y){return a.songs[y].q-a.songs[x].q;})[0];
+     if(low!==undefined && pick.indexOf(low)<0)pick[pick.length-1]=low;
+   }
+ }
+ return bestOrder(a,pick);}
 /* ---------- helyszín-feloldás ---------- */
 function venueOpen(v){return S.rep>=(v.minRep||0);}
 function bestOpenVenue(){for(let i=VENUES.length-1;i>=0;i--)if(venueOpen(VENUES[i]))return VENUES[i];return VENUES[0];}
@@ -5735,7 +5820,9 @@ function renderSongs(){
  /* A REPERTOÁR (választható dalok) MINDIG ugyanott áll: közvetlenül a görbe alatt,
     a szet sorrendje FÖLÖTT. Korábban üres szetnél elöl, az első dal után hátul volt —
     a lista így „eltűnt" a képernyőről, a kiemelő gyűrű pedig az üres régi helyén maradt. */
- const rest=a.songs.map((s,i)=>i).filter(i=>list.indexOf(i)<0);
+ const av=availSongs(a);
+ const rest=av.filter(i=>list.indexOf(i)<0);
+ const locked=lockedSongs(a);
  let pool=`<div class="sec" style="margin:16px 2px 10px"><h2 style="font-size:15px">Repertoár</h2>
    <span class="r ${list.length?'':'act'}">${rest.length} választható</span></div>`;
  pool+=`<div class="poolhint">${icon('notes','13px')} Koppints egy dalra, és bekerül a szetbe.</div><div class="pool">`;
@@ -5744,6 +5831,14 @@ function renderSongs(){
   pool+=`<button data-add="${i}"><span class="pl">＋</span><span class="n2">${esc(s.n)}</span>
     <span class="m2" style="color:${eCol(s.e)}">${eLab(s.e)} ${s.e}</span></button>`;});
  pool+=`</div>`;
+ if(locked.length){
+  pool+=`<div class="poolhint" style="color:var(--gold);margin-top:8px">🔒 ${locked.length} további dal ${esc(a.n)} igazi repertoárjából — add ki a stúdióban (Single +1 · EP +2 · Album +4), és bekerül.</div>`;
+  pool+=`<div class="pool">`;
+  locked.forEach(i=>{const s=a.songs[i];
+   pool+=`<button disabled style="opacity:.5;cursor:default"><span class="pl">🔒</span><span class="n2">${esc(s.n)}</span>
+     <span class="m2" style="color:var(--faint)">kiadással</span></button>`;});
+  pool+=`</div>`;
+ }
  h+=pool;
 
  h+=`<div class="sec" style="margin:16px 2px 10px"><h2 style="font-size:15px">A szet sorrendje</h2>
@@ -6437,7 +6532,7 @@ if(!S.started){renderStart();}
 else if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track('tutorial_started',{source:'first_open'});}
 if(S.resultPending&&S.lastResult)showResult();
 if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
-if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,
+if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,
   _mus:function(){var xb={};Object.keys(TRX).forEach(function(k){var b=trkBuf(k);xb[k]=b?+b.duration.toFixed(1):0;});return{buffers:xb,rot:S.rot,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
