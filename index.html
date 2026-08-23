@@ -1603,6 +1603,53 @@ function festivalPlay(id){
  sfx('cheer');m.className='';m.innerHTML='';save();toast(esc(a.n)+' fellépett a '+esc(f.n)+'-en · '+money(money0)+' · +'+dec1(fansUp)+' rajongó');render();
 }
 
+/* ============================ BÚCSÚTURNÉ → LEGENDÁK ============================
+   Egy sokat elért veterán (nagy hírnév + több kiadás) búcsúturnéval visszavonulhat:
+   hatalmas finálé-bevétel + Örökség-pontok + ügynökség-hírnév, és bekerül a Legendák közé. */
+function farewellEligible(id){const a=AM[id];return a&&af(a)>=86&&((artState(id).rels||0)>=3);}
+function farewellTour(id){
+ const a=AM[id],st=artState(id),avgF=avgFans(st);
+ const money0=Math.round((90000+af(a)*9000)*(1+avgF/100)/1000)*1000;
+ const legPtsGain=Math.max(2,Math.floor(af(a)/20));
+ const repGain=Math.round(af(a)*0.5);
+ const h='<div class="ev"><div class="bd"><span class="kick" style="color:var(--gold)">Búcsúturné</span>'+
+  '<h3>'+esc(a.n)+' visszavonul?</h3>'+
+  '<p>Egy utolsó, hatalmas turné — aztán '+esc(a.n)+' bekerül a <b>Legendák</b> közé (kikerül a rosterből).</p>'+
+  '<div class="chips" style="margin-top:10px"><span class="chip lime">'+money(money0)+' finálé</span>'+
+    '<span class="chip gold">🏆 +'+legPtsGain+' Örökség-pont</span><span class="chip mint">+'+repGain+' ügynökség-hírnév</span></div>'+
+  '<div class="evch" style="margin-top:14px">'+
+   '<button class="evb good" data-fw="go"><div class="l">'+icon('plane','15px')+' Búcsúturné · visszavonulás</div><div class="s">Nagy jutalom, de '+esc(a.n)+' többé nem elérhető</div></button>'+
+   '<button class="evb" data-fw="no"><div class="l">Mégsem</div><div class="s">Marad a rosterben</div></button>'+
+  '</div></div></div>';
+ const m=$('#modal');m.innerHTML=h;m.className='on';
+ m.querySelector('[data-fw="go"]').onclick=function(){
+   S.money+=money0;S.earned=(S.earned||0)+money0;S.rep=Math.max(0,S.rep+repGain);
+   S.leg=S.leg||{pts:0};S.leg.pts=(S.leg.pts||0)+legPtsGain;
+   S.legends=S.legends||[];S.legends.unshift({id:id,n:a.n,week:S.week,fame:af(a),ic:a.ic});
+   S.roster=S.roster.filter(function(x){return x!==id;});if(S.contract)delete S.contract[id];
+   if(S.studio===id)S.studio=S.roster[0]||null;
+   sfx('cheer');pushFeed('👑 '+esc(a.n)+' legendává vált','Búcsúturné · '+money(money0)+' · +'+legPtsGain+' Örökség-pont','crown','var(--gold)');
+   m.className='';m.innerHTML='';save();toast(esc(a.n)+' visszavonult — legenda lett!');render();};
+ m.querySelector('[data-fw="no"]').onclick=function(){m.className='';m.innerHTML='';};
+}
+
+/* ============================ DÍJÁTADÓ ↔ KONCERT ÜTKÖZÉS ============================
+   Ha a díjátadó a turné idejére esik, dönteni kell: a gála (hírnév/hype/trófea, de a turné
+   szenved) VAGY a koncertek (bevétel/rajongó, de nincs díj). Turné-indításkor. */
+function awardConflict(){
+ const t=S.tour,a=AM[t.artist];
+ const h='<div class="ev"><div class="bd"><span class="kick" style="color:var(--gold)">Ütközés</span>'+
+  '<h3>Díjátadó a turné idején</h3>'+
+  '<p>A <b>Music Awards</b> pont a '+esc(a.n)+' turnéjára esik. Nem lehetsz két helyen — melyik legyen a prioritás?</p>'+
+  '<div class="evch" style="margin-top:12px">'+
+   '<button class="evb good" data-aw="awards"><div class="l">🏆 Díjátadóra megyünk</div><div class="s">+hírnév · +hype · esély trófeára — de a turné nézőszáma ~−15%</div></button>'+
+   '<button class="evb" data-aw="tour"><div class="l">'+icon('plane','15px')+' A turnéra fókuszálunk</div><div class="s">Teljes nézőszám/bevétel — de kihagyod az idei gálát (kis hype-veszteség)</div></button>'+
+  '</div></div></div>';
+ const m=$('#modal');m.innerHTML=h;m.className='on';
+ m.querySelector('[data-aw="awards"]').onclick=function(){t._awardDecided=true;t._awardMode='awards';m.className='';m.innerHTML='';launchTour();};
+ m.querySelector('[data-aw="tour"]').onclick=function(){t._awardDecided=true;t._awardMode='tour';m.className='';m.innerHTML='';launchTour();};
+}
+
 /* ---------- KIADÁSOK (a két turné közti tartalom) ---------- */
 const RELEASES=[
  /* A felvétel HOSSZÚ, de a HÁTTÉRBEN fut: közben nyugodtan turnézol, és a játék
@@ -2299,7 +2346,7 @@ function estimate(a,city,v,price,setQ,mom,promo){
    mkt=1+S.upg.marketing*0.10,
    pro=(1+(PROMO[promo||0].dem-1)*(hasStaff('pr')?1.10:1))*(hasBig('fest')?1.12:1),
    setF=setQ>0?(0.45+setQ/100*0.75):0.30, draw=fameDraw(af(a)), fp=fairPrice(a,v), r=price/fp, pf=clamp(1.25-0.60*r,0.03,1.25);
- let pool=draw*DEMAND_BASE*reachScale*gAff*rAff*buzz*setF*mkt*pro*taste*fresh*(mom||1)*trendMul(a.genre,city.r)*perfMul(a.id);
+ let pool=draw*DEMAND_BASE*reachScale*gAff*rAff*buzz*setF*mkt*pro*taste*fresh*(mom||1)*trendMul(a.genre,city.r)*perfMul(a.id)*((S.live&&S.live.awardMode==='awards')?0.85:1);
  /* raw = nyers kereslet (férőhely nélkül). A szórás ezen dolgozik, és csak UTÁNA vágjuk
     a kapacitásra — így a jóval túlkeresett koncert biztosan telt ház lesz, a félig telt viszont
     tényleg ingadozik. */
@@ -2551,11 +2598,13 @@ function launchTour(){
  const t=S.tour,a=AM[t.artist],cost=promoCost(t.stops,t.promo||0);
  const _A=artState(t.artist);
  if((_A.energy||100)<32)toast(a.n+' fáradt (⚡'+Math.round(_A.energy)+') — gyengébb nézőszám várható. Pár hét pihenő feljebb vinné.');
+ /* DÍJÁTADÓ ÜTKÖZÉS: ha a gála a turné idejére esik, előbb dönteni kell */
+ if(!t._awardDecided && S.awardsNext!=null && (S.awardsNext-S.week)>=0 && (S.awardsNext-S.week)<=6){awardConflict();return;}
  Analytics.track('tour_created',{stops:t.stops.length,artist:t.artist,setlist:t.setlist.length});
  Analytics.track('tour_started',{stops:t.stops.length,artist:t.artist,fame:af(a),
    promo:t.promo||0,promo_cost:cost,venues:t.stops.map(x=>x.venue).join(','),agency_level:level()});
 
- S.live={artist:t.artist,setlist:t.setlist.slice(),promo:t.promo||0,promoSpent:cost,risk:!!t.risk,riskDone:false,
+ S.live={artist:t.artist,setlist:t.setlist.slice(),promo:t.promo||0,promoSpent:cost,risk:!!t.risk,riskDone:false,awardMode:t._awardMode||null,
   stops:t.stops.map(s=>({...s})),ph:buildPhases(t.stops),i:0,ends:Date.now()+msFromMin(TIME.prepMin),
   pausedLeft:null,pendingEv:null,mom:1,attMul:1,skipNext:false,days:0,
   rows:[],log:[],evUsed:[],boost:{},fanGain:{},mini:{},miniSkip:{},
@@ -2675,6 +2724,12 @@ function runShow(i){
 function endTour(){
  const L=S.live,a=AM[L.artist],A=artState(a.id);
  if(L.pool){const t2=Math.round(L.pool*commRate(a));S.money+=t2;L.tTake+=t2;L.tArtist+=Math.max(0,L.pool-t2);L.pool=0;}
+ /* DÍJÁTADÓ-ÜTKÖZÉS feloldása: a turné idejére esett gála eredménye */
+ if(L.awardMode&&S.awardsNext!=null){S.awardsNext=S.week+52;
+  if(L.awardMode==='awards'){A.fameAdd=Math.min(60,A.fameAdd+2);A.hype+=0.6;A.trophies=(A.trophies||0)+1;S.trophies=(S.trophies||0)+1;S.rep+=6;
+    pushFeed('🏆 '+esc(a.n)+' díjat nyert','A turné mellett a gálán is ott volt — +hírnév, +hype, trófea.','trophy','var(--gold)');}
+  else{A.hype=Math.max(0,A.hype-0.2);pushFeed(esc(a.n)+' kihagyta a gálát','A turnéra fókuszált — teljes bevétel, de idén nincs díj.','plane','var(--muted)');}
+ }
  const net=L.tTake;                                // az ügynökség tényleges bevétele: a jutalék
  if(L.rows.length)S.toursDone++;      // a megszakított turné nem számít
  /* Az elhanyagolt régiók lassan kopnak — ezért érdemes visszatérni oda, ahol felépítettél valamit.
@@ -4981,6 +5036,14 @@ function careerScreen(){
  }else h+='<div class="goalcard"><div class="g1">'+icon('trophy','20px')+'</div><div class="g2">'+
    '<div class="gh">Minden mérföldkő megvan</div><div class="gs">Az irodád a csúcson van — most a rekordjaidat döntheted meg.</div></div></div>';
 
+ /* LEGENDÁK — a búcsúturnéval visszavonult előadóid csarnoka */
+ if(S.legends&&S.legends.length){
+  h+='<div class="sec"><h2>👑 Legendák</h2><span class="r" style="color:var(--gold)">'+S.legends.length+'</span></div><div class="feedbox">';
+  S.legends.forEach(function(lg){h+='<div class="fitem"><div class="ic" style="color:var(--gold)">'+icon(lg.ic||'crown','15px')+'</div>'+
+    '<div class="tx"><div class="h">'+esc(lg.n)+'</div><div class="s">'+lg.week+'. hét · hírnév '+lg.fame+' · búcsúturné után visszavonult</div></div></div>';});
+  h+='</div>';
+ }
+
  /* kihívás */
  if(c){const pr=clamp(c.st.p/c.d.g,0,1);
   h+='<div class="sec"><h2>Aktuális kihívás</h2><span class="r act">'+(S.chalDone||0)+' kész</span></div>'+
@@ -6389,6 +6452,9 @@ function tabStudio(){
          <span class="chip">${kd.days} nap · nálad kb. ${Math.max(1,Math.round(msFromMin(kd.min)/60000))} perc</span></span></span></button>`;});
 
  /* korábbi megjelenések */
+ /* Búcsúturné — csak elért veteránnak (nagy hírnév + több kiadás) */
+ if(farewellEligible(a.id)&&!S.rel&&!(S.live&&S.live.artist===a.id))
+   h+=`<button class="btn dark sm" id="fwBtn" style="margin-top:12px;border-color:var(--gold);color:var(--gold)">${icon('crown','15px')} Búcsúturné · ${esc(a.n)} visszavonulása → Legendák</button>`;
  if(S.relLog.length){h+=`<div class="sec"><h2>Eddigi megjelenések</h2></div>`;
   S.relLog.forEach(x=>{const cc=x.critic>=68?'var(--cash)':x.critic>=50?'var(--gold)':'var(--hot)';
     h+=`<div class="logr"><div class="i">${icon(x.ic||'notes','15px')}</div>
@@ -6398,6 +6464,7 @@ function tabStudio(){
  view.innerHTML=h;
  bind('[data-studio]',b=>{S.studio=b.dataset.studio;save();tabStudio();});
  bind('[data-rel]',b=>startRelease(a.id,b.dataset.rel));
+ const fw=$('#fwBtn');if(fw)fw.onclick=function(){farewellTour(a.id);};
  /* Nincs ingyen azonnali kiadás: a felvétel kivárható, VAGY egyszer reklámmal
     felezhető. Opcionális ráadás — aki nem kéri, közben turnézik. */
  const ra=$('#relAd');if(ra)ra.onclick=function(){
@@ -6771,7 +6838,7 @@ if(!S.started){renderStart();}
 else if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track('tutorial_started',{source:'first_open'});}
 if(S.resultPending&&S.lastResult)showResult();
 if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
-if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,contractWeeksLeft,contractRenewal,checkContracts,ensureContract,chartTop,chartScore,rivalOf,driftNpc,RIVALS,CONTRACT_TERM,awardsShow,checkAwards,festivalOffer,festivalPlay,checkFestivals,FESTS,
+if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,contractWeeksLeft,contractRenewal,checkContracts,ensureContract,chartTop,chartScore,rivalOf,driftNpc,RIVALS,CONTRACT_TERM,awardsShow,checkAwards,festivalOffer,festivalPlay,checkFestivals,FESTS,farewellEligible,farewellTour,awardConflict,launchTour,
   _mus:function(){var xb={};Object.keys(TRX).forEach(function(k){var b=trkBuf(k);xb[k]=b?+b.duration.toFixed(1):0;});return{buffers:xb,rot:S.rot,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
