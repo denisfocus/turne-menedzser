@@ -77,17 +77,20 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;
 @media (min-width:768px){
   #app{ min-height:0 }
   .livemapz #lmap{ height:440px }
-  /* ALSÓ NAV tableten: a dinamikus zoom felnagyítaná → ellenskálázzuk a --mapz-cal (=1/zoom),
-     így a RENDERED magasság/ikonok/címkék ~telefon-méretűek maradnak, bármekkora a zoom.
-     A safe-area helyes marad: env × --mapz × zoom = env. */
+  /* ALSÓ NAV tableten: a dinamikus zoom felnagyítaná → a --mapz-cal (=1/zoom) ellenskálázzuk, hogy
+     a RENDERED méret zoom-független legyen. A MAGASSÁG/padding kompakt marad (~60px), DE az ikonok és
+     címke-betűk nagyobb BÁZISról renderelnek, mint telefonon (13/25px vs 10/23px) → tableten OLVASHATÓ,
+     arányos, nem zsugorodik a telefonos alá. A safe-area helyes marad: env × --mapz × zoom = env. */
   #app #nav{ min-height:0;
-    height:calc((60px + min(env(safe-area-inset-bottom),14px)) * var(--mapz,.6));
-    padding:calc(7px * var(--mapz,.6)) calc(8px * var(--mapz,.6)) calc((5px + min(env(safe-area-inset-bottom),14px)) * var(--mapz,.6)); }
-  #app #nav a{ font-size:calc(10px * var(--mapz,.6)); gap:calc(5px * var(--mapz,.6)); padding-top:calc(6px * var(--mapz,.6)) }
-  #app #nav a .ic{ font-size:calc(23px * var(--mapz,.6)) }
-  #app #nav a.on::before{ top:calc(-9px * var(--mapz,.6)); width:calc(26px * var(--mapz,.6)); height:calc(3px * var(--mapz,.6)) }
+    height:calc((62px + min(env(safe-area-inset-bottom),14px)) * var(--mapz,.6));
+    padding:calc(5px * var(--mapz,.6)) calc(8px * var(--mapz,.6)) calc((5px + min(env(safe-area-inset-bottom),14px)) * var(--mapz,.6)); }
+  #app #nav a{ font-size:calc(15px * var(--mapz,.6)); gap:calc(3px * var(--mapz,.6)); padding-top:calc(4px * var(--mapz,.6)) }
+  /* az ikon a .ico svg (width/height:1em) → a .ic wrapper nincs a DOM-ban, ezért KÖZVETLENÜL a .ico-t
+     méretezzük: renderelt ~20px (a telefonos fölött, a pre-fix ~17px-hez közel), a magasság kompakt marad. */
+  #app #nav a .ico{ width:calc(20px * var(--mapz,.6)); height:calc(20px * var(--mapz,.6)) }
+  #app #nav a.on::before{ top:calc(-7px * var(--mapz,.6)); width:calc(26px * var(--mapz,.6)); height:calc(3px * var(--mapz,.6)) }
   /* a görgethető nézet alsó térköze igazodjon a kompaktabb navhoz */
-  #app #view{ padding-bottom:calc((76px + min(env(safe-area-inset-bottom),14px)) * var(--mapz,.6)) }
+  #app #view{ padding-bottom:calc((80px + min(env(safe-area-inset-bottom),14px)) * var(--mapz,.6)) }
 }
 @media (min-width:1000px){
   .livemapz #lmap{ height:520px }
