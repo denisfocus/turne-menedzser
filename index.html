@@ -1487,8 +1487,33 @@ function dec1(n){return (Math.round(n*10)/10).toString().replace('.',',');}
 function fanCol(f){return f>=70?'var(--cash)':f>=40?'var(--neon)':f>=20?'var(--gold)':'var(--hot)';}
 /* havi hallgató „természetes" szintje — ide húz a streaming hétről hétre */
 function streamTarget(a){const st=artState(a.id);
- return Math.round(Math.pow(af(a),2.4)*60*(0.55+avgFans(st)/100*0.9)*(1+st.hype*0.6));}
+ return Math.round(Math.pow(af(a),2.4)*60*(0.55+avgFans(st)/100*0.9)*(1+st.hype*0.6)*artistTrend(a));}
 function fmtStream(n){return n>=1e6?(n/1e6).toFixed(2).replace('.',',')+'M':n>=1000?Math.round(n/1000)+'e':String(Math.round(n));}
+
+/* ============================ MŰFAJ-TRENDEK (régiónként, időben sodródnak) ============================
+   Nem mindig a legnagyobb fame nyer: a felkapott műfaj régiójában egy kisebb előadó is nagyot mehet.
+   ~8 hetente új célok felé sodródik. Hat a streamingre ÉS a koncert-nézőszámra. */
+const GENRES=['Pop','Rock','Rap','Elektro'];
+const TREND_LO=0.74, TREND_HI=1.30, TREND_STEP=0.18;
+function initTrends(){var t={};Object.keys(REGIONS).forEach(function(r){t[r]={};GENRES.forEach(function(g){t[r][g]=1;});});return t;}
+function trendMul(genre,region){return (S.trends&&S.trends[region]&&S.trends[region][genre])||1;}
+/* az előadó globális trend-szorzója: régiónként, a rajongótáborral súlyozva */
+function artistTrend(a){var st=artState(a.id),num=0,den=0;
+ Object.keys(REGIONS).forEach(function(r){var w=0.3+(st.fans[r]||0)/100;num+=trendMul(a.genre,r)*w;den+=w;});
+ return den?num/den:1;}
+function trendLabel(m){return m>=1.12?{t:'🔥 Felkapott',c:'var(--cash)'}:m>=1.04?{t:'▲ Emelkedő',c:'var(--neon)'}:m<=0.9?{t:'❄ Hűlő',c:'var(--faint)'}:{t:'➡ Semleges',c:'var(--muted)'};}
+function driftTrends(){
+ if(!S.trends)S.trends=initTrends();
+ if(!S.trendTarget||S.week>=(S.trendNext||0)){        // ~8 hetente új célok
+  S.trendTarget=initTrends();
+  Object.keys(REGIONS).forEach(function(r){GENRES.forEach(function(g){
+   S.trendTarget[r][g]=+(TREND_LO+Math.random()*(TREND_HI-TREND_LO)).toFixed(3);});});
+  S.trendNext=S.week+8;
+ }
+ Object.keys(REGIONS).forEach(function(r){GENRES.forEach(function(g){
+  var cur=S.trends[r][g],tg=S.trendTarget[r][g];
+  S.trends[r][g]=+clamp(cur+(tg-cur)*TREND_STEP,TREND_LO,TREND_HI).toFixed(3);});});
+}
 
 /* ---------- KIADÁSOK (a két turné közti tartalom) ---------- */
 const RELEASES=[
@@ -2186,7 +2211,7 @@ function estimate(a,city,v,price,setQ,mom,promo){
    mkt=1+S.upg.marketing*0.10,
    pro=(1+(PROMO[promo||0].dem-1)*(hasStaff('pr')?1.10:1))*(hasBig('fest')?1.12:1),
    setF=setQ>0?(0.45+setQ/100*0.75):0.30, draw=fameDraw(af(a)), fp=fairPrice(a,v), r=price/fp, pf=clamp(1.25-0.60*r,0.03,1.25);
- let pool=draw*DEMAND_BASE*reachScale*gAff*rAff*buzz*setF*mkt*pro*taste*fresh*(mom||1);
+ let pool=draw*DEMAND_BASE*reachScale*gAff*rAff*buzz*setF*mkt*pro*taste*fresh*(mom||1)*trendMul(a.genre,city.r);
  /* raw = nyers kereslet (férőhely nélkül). A szórás ezen dolgozik, és csak UTÁNA vágjuk
     a kapacitásra — így a jóval túlkeresett koncert biztosan telt ház lesz, a félig telt viszont
     tényleg ingadozik. */
@@ -2325,6 +2350,7 @@ function advanceWeeks(n){
  n=Math.max(0,Math.round(n));if(!n)return 0;
  S.week+=n;let income=0;
  for(let w=0;w<n;w++){
+  driftTrends();                                       // műfaj-trendek lassú sodródása
   S.roster.forEach(id=>{
    const a=AM[id],st=artState(id),tgt=streamTarget(a);
    st.streams=Math.max(0,Math.round(st.streams+(tgt-st.streams)*0.18));
@@ -2365,7 +2391,12 @@ function finishRelease(){
  const R=S.rel;if(!R)return;
  const a=AM[R.artist],k=RM[R.kind],st=artState(R.artist);
  const relBoost=1+facLv('studio')*0.12+(hasStaff('prod')?0.25:0);
- st.hype+=k.hype*relBoost;
+ /* KIADÁS-FÁRADÁS: túl sűrű megjelenés = csökkenő hype/rajongó/stream-hatás (spam ellen, tempó-lassítás).
+    A hírnév NEM fárad — a progresszió marad, csak a bevétel-loop lassul. */
+ const relGap=(st.lastRelWeek==null)?99:Math.max(0,S.week-st.lastRelWeek);
+ const relFat=clamp(0.4+relGap/8*0.6,0.4,1);          // <8 hét → 40%…100% hatás
+ st.lastRelWeek=S.week;
+ st.hype+=k.hype*relBoost*relFat;
  st.fameAdd=Math.min(60,st.fameAdd+k.fameAdd);
  st.rels=(st.rels||0)+1;
  /* KIADÁS = REPERTOÁR-BŐVÜLÉS: feloldunk az előadó igazi (zárolt) dalaiból (single +1 / EP +2 / album +4) */
@@ -2374,9 +2405,9 @@ function finishRelease(){
  var newTitles=[];
  if(got>0){ st.unl=(st.unl||0)+got; for(var _i=prevN;_i<prevN+got;_i++){ if(a.songs[_i])newTitles.push(a.songs[_i].n); } }
  Object.keys(REGIONS).forEach(r=>{                    // ahol már ismerik, ott üt nagyobbat
-  st.fans[r]=clamp(st.fans[r]+k.fansAdd*relBoost*(0.5+st.fans[r]/100),0,100);});
+  st.fans[r]=clamp(st.fans[r]+k.fansAdd*relBoost*relFat*(0.5+st.fans[r]/100),0,100);});
  const before=st.streams;
- st.streams=Math.round(st.streams*(1+k.hype*0.3));   // mérsékeltebb kiadás-ugrás (tempó-lassítás)
+ st.streams=Math.round(st.streams*(1+k.hype*0.3*relFat));   // mérsékeltebb kiadás-ugrás + fáradás (tempó-lassítás)
  S.rel=null;
  sfx('cash');                                        // megjelenés → streaming-bevétel
  S.relLog.unshift({artist:a.n,kind:k.n,ic:k.ic,week:S.week,
@@ -6128,12 +6159,26 @@ function tabStudio(){
   h+=`</div>`;}
 
  /* streaming */
+ const passWk=Math.round(Math.pow(A.streams/1e6,0.7)*1200*(hasBig('label')?1.35:1));
  h+=`<div class="bigstat"><div class="k">Havi hallgató · ${esc(a.n)}</div>
    <div class="v">${fmtStream(A.streams)}</div>
    <div class="s">${trend} — a „természetes" szintje ${fmtStream(tgt)}.
-     Passzív bevétel kb. <b style="color:var(--cash)">${money(Math.round(A.streams*0.0015))}</b> hetente.</div>
+     Passzív bevétel kb. <b style="color:var(--cash)">${money(passWk)}</b> hetente.</div>
    ${A.hype>0.05?`<div style="margin-top:11px"><span class="hypechip">${icon('star','12px')} Friss megjelenés · +${Math.round(A.hype*25)}% kereslet</span></div>`:''}
  </div>`;
+
+ /* MŰFAJ-TREND — a felkapott műfaj régiójában egy kisebb előadó is nagyot mehet */
+ const at=artistTrend(a), tl=trendLabel(at), atPct=Math.round((at-1)*100);
+ const hot=[];Object.keys(REGIONS).forEach(r=>GENRES.forEach(g=>hot.push({r:r,g:g,m:trendMul(g,r)})));
+ hot.sort((x,y)=>y.m-x.m);
+ const hotTxt=hot.slice(0,3).map(x=>`<span class="chip lime">🔥 ${x.g} · ${rgN(x.r)}</span>`).join('');
+ h+=`<div class="sec"><h2>Piaci trend</h2><span class="r" style="color:${tl.c}">${tl.t}</span></div>
+   <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px">
+     <div style="font-size:13px;line-height:1.5"><b>${esc(a.n)}</b> műfaja (<b>${a.genre}</b>) most a rajongói régióiban:
+       <b style="color:${tl.c}">${atPct>=0?'+':''}${atPct}%</b> kereslet.</div>
+     <div class="chips" style="margin-top:10px">${hotTxt}</div>
+     <div class="poolhint" style="margin-top:8px">A trendek ~8 hetente változnak — érdemes a felkapott műfajt/régiót lovagolni.</div>
+   </div>`;
 
  /* rajongótábor */
  h+=`<div class="sec"><h2>Rajongótábor</h2><span class="r act">átlag ${Math.round(avgFans(A))}</span></div>
@@ -6534,7 +6579,7 @@ if(!S.started){renderStart();}
 else if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track('tutorial_started',{source:'first_open'});}
 if(S.resultPending&&S.lastResult)showResult();
 if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
-if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,
+if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,
   _mus:function(){var xb={};Object.keys(TRX).forEach(function(k){var b=trkBuf(k);xb[k]=b?+b.duration.toFixed(1):0;});return{buffers:xb,rot:S.rot,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
