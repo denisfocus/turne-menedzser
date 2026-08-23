@@ -71,27 +71,21 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;
 /* TABLET (≥768px): a telefon-layout arányosan FELNAGYÍTVA — álló, egy oszlop, de
    kényelmes méret és jobban kitölti a képernyőt. A zoom minden px-t skáláz; a --vph
    min-height-ot kikapcsoljuk, mert zoommal túlméretezne (inset:0 úgyis kitölt). */
+/* A tablet-zoom mostantól DINAMIKUS (JS: syncFrame → #app inline zoom = viewport/480),
+   hogy a keret KITÖLTSE a szélességet (ne maradjon oldalt rés). A --mapz a Leaflet-ellenzoom
+   (1/appzoom), mert a Leaflet nem boldogul a CSS-zoommal (clientWidth != getBoundingClientRect). */
 @media (min-width:768px){
-  #app{ min-height:0; zoom:1.4 }
-  /* A Leaflet NEM boldogul a CSS-zoommal (clientWidth != getBoundingClientRect →
-     üres/rossz térkép, főleg iOS WebKit-en). A térkép-konténerre ELLEN-zoomot
-     teszünk, így a Leaflet net 1.0 koordináta-térben dolgozik (tiszta, kitölt). */
-  .mapz{ zoom:0.7143 }
-  .livemapz #lmap{ height:420px }
-}
-@media (min-width:834px){
-  #app{ zoom:1.55 }
-  .mapz{ zoom:0.6452 }
+  #app{ min-height:0 }
+  .livemapz #lmap{ height:440px }
 }
 @media (min-width:1000px){
-  #app{ zoom:1.9 }
-  .mapz{ zoom:0.5263 }
   .livemapz #lmap{ height:520px }
 }
+.mapz{ zoom:var(--mapz,1) }
 
 /* ---------- HUD ---------- */
 #hud{position:absolute;top:0;left:0;right:0;z-index:30;padding:calc(12px + env(safe-area-inset-top)) 14px 10px;
-  background:linear-gradient(180deg,rgba(7,8,9,.96),rgba(7,8,9,.7) 78%,transparent);backdrop-filter:blur(6px)}
+  background:linear-gradient(180deg,rgba(7,8,9,.995) 0%,rgba(7,8,9,.99) 88%,rgba(7,8,9,0) 100%);backdrop-filter:blur(12px)}
 .hud-top{display:flex;align-items:center;gap:11px}
 .ag-av{width:42px;height:42px;border-radius:13px;flex:0 0 auto;overflow:hidden;position:relative;border:1px solid var(--line2);
   background:linear-gradient(145deg,#2a2f16,#0e1005);display:flex;align-items:center;justify-content:center;color:var(--neon)}
@@ -179,7 +173,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 
 /* ---------- artist portrait tiles ---------- */
-.hscroll{display:flex;gap:12px;overflow-x:auto;padding:2px 14px 6px;scroll-snap-type:x mandatory}
+.hscroll{display:flex;gap:12px;overflow-x:auto;padding:2px 14px 6px;scroll-snap-type:x mandatory;scroll-padding-inline:14px}
 .hscroll::-webkit-scrollbar{display:none}
 /* Turné-előadóválasztó RÁCS: sortöréssel (nincs vízszintes scroll, a függőleges helyet
    tölti ki). ~3 kártya/sor a telefon-szélességben, ahogy kifér. */
@@ -390,7 +384,7 @@ input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;bac
 #nav{position:absolute;left:0;right:0;bottom:0;min-height:68px;
   height:calc(68px + min(env(safe-area-inset-bottom),14px));z-index:40;display:flex;
   padding:8px 8px calc(6px + min(env(safe-area-inset-bottom),14px));
-  background:linear-gradient(180deg,rgba(11,13,16,.86),var(--bg));backdrop-filter:blur(16px);border-top:1px solid var(--line)}
+  background:linear-gradient(180deg,rgba(11,13,16,.985),var(--bg));backdrop-filter:blur(18px);border-top:1px solid var(--line2)}
 #nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--faint);font-size:10px;font-weight:700;
   position:relative;padding-top:7px;transition:color .15s}
 #nav a .ic{font-size:23px}
@@ -4105,6 +4099,19 @@ function syncFrame(){
  const h=Math.round(Math.max(vv?vv.height:0,window.innerHeight||0,
                              document.documentElement.clientHeight||0));
  if(h>0)document.documentElement.style.setProperty('--vph',h+'px');
+ /* TABLET: a keret töltse ki a SZÉLESSÉGET (ne maradjon oldalt fekete/rés). A layout 480px
+    logikai szélességű, ezért zoom = viewport/480 (felső korláttal a nagyon széles landscape-re).
+    A --mapz = 1/zoom a Leaflet-ellenzoomhoz. Telefonon (<768) nincs zoom. */
+ const w=Math.round(vv?vv.width:0)||window.innerWidth||480;
+ const app=document.getElementById('app'); if(!app)return;
+ if(w>=768){
+   const z=Math.min(2.2,Math.max(1.35,w/480));
+   app.style.zoom=z;
+   document.documentElement.style.setProperty('--mapz',(1/z).toFixed(4));
+ }else{
+   app.style.zoom='';
+   document.documentElement.style.setProperty('--mapz','1');
+ }
 }
 function syncHudSpace(){
  const hh=hud.offsetHeight||0;
@@ -4699,7 +4706,9 @@ function chalBase(id){
 function rollChal(){
  const pool=CHALS.filter(function(c){return !S.chal||c.id!==S.chal.id;});
  const c=pool[Math.floor(Math.random()*pool.length)]||CHALS[0];
- S.chal={id:c.id,p:0,b:(c.id==='fan60'||c.id==='ai')?chalBase(c.id):0};return S.chal;
+ /* ABSZOLÚT küszöb: „érj el 60 rajongót" = legyen ≥60 (nem növekmény). Így cap-on (100) sem
+    ragad 0-n — ha már megvan a szint, teljesül; ha nincs, valódi cél a feljebb tornázás. */
+ S.chal={id:c.id,p:0,b:0};return S.chal;
 }
 function curChal(){if(!S.chal)rollChal();const d=CHALS.find(function(c){return c.id===S.chal.id;});return d?{d:d,st:S.chal}:null;}
 function chalSet(id,val){const c=curChal();if(!c||c.d.id!==id)return;
@@ -4914,8 +4923,8 @@ function dealRound(){
     kockázat: 90% → fél sáv és lassú inga, 5% → hajszálcsík és villámgyors inga. */
  /* MINIMUM sáv 15% + fair max sebesség: nagy sztárnál is elérhető ügyességgel (kihívás igen,
     lehetetlen nem). A tradeoff marad: mohóbb ajánlat = szűkebb sáv + gyorsabb inga, de a padlón is fogható. */
- D.zw=clamp(0.15+ch*ch*0.45,0.15,0.60);          // 15%…60% sáv
- D.spd=0.012+(1-ch)*0.014;                        // 0.012…0.026 / 16ms (a sávot ~0.6s alatt söpri a legnehezebben)
+ D.zw=clamp(0.13+ch*ch*0.46,0.13,0.59);          // 13%…59% sáv (min 13%: hajszálnyival nehezebb, de fogható)
+ D.spd=0.012+(1-ch)*0.016;                        // 0.012…0.028 / 16ms — top sztárnál elsőre ~fele-fele (lesz, aki reklámot néz)
  D.zone=D.zw/2+Math.random()*(1-D.zw);           // a zóna végig a sávon belül marad
  D.pos=0;D.dir=1;D.locked=false;
  const h='<div class="ev"><div class="bd">'+
@@ -5006,7 +5015,7 @@ const FAC=[
   eff:function(l){return '−'+(l*6)+'% fix helyszínköltség';}},
  {id:'office',n:'Nagyobb iroda',ic:'house',max:3,cost:[0,150000,500000,1800000],
   d:'Több előadót tudsz egyszerre kezelni.',
-  eff:function(l){return (3+l*2)+' előadó fér be';}},
+  eff:function(l){return (ROSTER_CAP[Math.min(l,3)]||4)+' előadó fér be';}},
  {id:'bus',n:'Turnébusz és magángép',ic:'plane',max:3,cost:[0,200000,650000,2400000],
   d:'Saját járművek: olcsóbb és gyorsabb utazás az állomások között.',
   eff:function(l){return '−'+(l*12)+'% utazási költség · −'+(l*8)+'% úthossz';}},
@@ -5037,7 +5046,9 @@ function upkeepParts(){
 }
 function upkeepWeekly(){return upkeepParts().total;}
 function hasStaff(id){return !!(S.staff&&S.staff[id]);}
-function rosterCap(){return 3+facLv('office')*2;}
+/* Nagyobb iroda = jóval több hely; max szinten ~az összes előadó elfér (completionist végjáték). */
+const ROSTER_CAP=[4,14,28,50];
+function rosterCap(){return ROSTER_CAP[Math.min(facLv('office'),3)]||4;}
 /* ---- előadó-fejlesztés ---- */
 function artUp(id){if(!S.artUp)S.artUp={};if(!S.artUp[id])S.artUp[id]={q:0,f:0};return S.artUp[id];}
 function songQ(a,s){return clamp(s.q+artUp(a.id).q,0,100);}
