@@ -369,11 +369,11 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;
 input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:44px;background:transparent;outline:none;
   cursor:pointer;touch-action:pan-y}
 input[type=range]::-webkit-slider-runnable-track{height:13px;border-radius:13px;
-  background:linear-gradient(90deg,var(--hot),var(--gold) 45%,var(--neon));border:1px solid rgba(0,0,0,.35)}
+  background:linear-gradient(90deg,var(--neon),var(--gold) 55%,var(--hot));border:1px solid rgba(0,0,0,.35)}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:34px;height:34px;margin-top:-11px;border-radius:50%;
   background:#fff;border:5px solid var(--neon);box-shadow:0 3px 12px rgba(0,0,0,.65),0 0 14px var(--neonglow)}
 input[type=range]:active::-webkit-slider-thumb{transform:scale(1.08)}
-input[type=range]::-moz-range-track{height:13px;border-radius:13px;background:linear-gradient(90deg,var(--hot),var(--gold) 45%,var(--neon))}
+input[type=range]::-moz-range-track{height:13px;border-radius:13px;background:linear-gradient(90deg,var(--neon),var(--gold) 55%,var(--hot))}
 input[type=range]::-moz-range-thumb{width:30px;height:30px;border-radius:50%;background:#fff;border:5px solid var(--neon)}
 
 /* +/- lepteto gombok a csuszka mellett */
@@ -5848,7 +5848,7 @@ function facCard(f){
  return '<div class="lcard" style="margin-top:12px"><div class="ph" style="flex:0 0 84px;width:84px;background:linear-gradient(145deg,#1a1f10,#0d0f08);display:flex;align-items:center;justify-content:center;color:var(--neon);font-size:30px">'+icon(f.ic)+'</div>'+
   '<div class="bd"><div class="nm" style="font-size:17px">'+f.n+'</div>'+
    '<div class="chips"><span class="chip lime">Szint '+l+'/'+f.max+'</span>'+
-     '<span class="chip mint">'+(maxed?f.eff(l):f.eff(l)+' → <b style="color:var(--neon)">'+f.eff(l+1)+'</b>')+'</span></div>'+
+     '<span class="chip mint">'+(maxed?f.eff(l):f.eff(l+1))+'</span></div>'+
    '<div style="font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.4">'+f.d+'</div>'+
    '<div class="btm">'+(maxed
      ?'<span class="lock" style="color:var(--cash);border-color:rgba(47,227,155,.4)">✓ Maximális szint</span>'
@@ -6887,7 +6887,7 @@ function tabStudio(){
  const passWk=Math.round(Math.pow(A.streams/1e6,0.7)*1200*(hasBig('label')?1.35:1));
  h+=`<div class="bigstat"><div class="k">Havi hallgató · ${esc(a.n)}</div>
    <div class="v">${fmtStream(A.streams)}</div>
-   <div class="s">${trend} — a „természetes" szintje ${fmtStream(tgt)}.
+   <div class="s">${trend} — az átlagos szintje ${fmtStream(tgt)}.
      Passzív bevétel kb. <b style="color:var(--cash)">${money(passWk)}</b> hetente.</div>
    ${A.hype>0.05?`<div style="margin-top:11px"><span class="hypechip">${icon('star','12px')} Friss megjelenés · +${Math.round(A.hype*25)}% kereslet</span></div>`:''}
  </div>`;
@@ -6902,7 +6902,7 @@ function tabStudio(){
      <div class="fanrow"><span class="n">${moraleFace(A.morale||72)} Morál</span>
        <span class="b"><i style="width:${clamp(A.morale||72,0,100)}%;background:var(--neon)"></i></span>
        <span class="v">${Math.round(A.morale||72)}</span></div>
-     <div class="poolhint" style="margin-top:8px">${(A.energy||100)<40?'Fáradt — most kb. <b>'+perf+'%</b>-on teljesít. Pihentesd pár hetet (ne turnéztasd), és visszaépül.':'Turné/kiadás fáraszt; pihenéssel (hetek) épül vissza. Jelenleg kb. <b>'+perf+'%</b> teljesítmény.'}</div>
+     <div class="poolhint" style="margin-top:8px;display:block;line-height:1.45">${(A.energy||100)<40?'Fáradt — most kb. <b>'+perf+'%</b>-on teljesít. Pihentesd pár hetet (ne turnéztasd), és visszaépül.':'Turné/kiadás fáraszt; pihenéssel (hetek) épül vissza. Jelenleg kb. <b>'+perf+'%</b> teljesítmény.'}</div>
      ${(function(){const wl=contractWeeksLeft(a.id);return wl==null?'':'<div class="poolhint" style="margin-top:6px'+(wl<=8?';color:var(--hot)':'')+'">'+icon('pen','12px')+' Szerződés: <b>'+wl+' hét</b> van hátra · '+dealShare(a)+'% ügynökségi rész'+(wl<=8?' — hamarosan újratárgyal!':'')+'</div>';})()}
    </div>`;
 
@@ -7066,11 +7066,11 @@ function tabFejlesztes(){
   S.money-=cost;S.upg[key]++;sfx('buy');save();toast(`${UPG[key].n} fejlesztve — most ${UPG[key].eff(S.upg[key])} ${UPG[key].unit}.`);render();});}
 function upgCard(key){
  const u=UPG[key],lvl=S.upg[key],next=u.cost[lvl+1],maxed=next===undefined,can=!maxed&&S.money>=next;
- /* a fő badge: mit ad a JELENLEGI szint → mit adna a KÖVETKEZŐ */
+ /* a fő badge: mit ad a KÖVETKEZŐ szint (a jelenlegi „→"-es formát elhagytuk, tömör és nem csordul túl) */
  const gain=maxed?`${u.eff(lvl)} ${u.unit} · teljes`
-                 :`${u.eff(lvl)} → <b style="color:var(--neon)">${u.eff(lvl+1)}</b> ${u.unit}`;
+                 :`${u.eff(lvl+1)} ${u.unit}`;
  const gain2=u.eff2?(maxed?`${u.eff2(lvl)} ${u.unit2}`
-                          :`${u.eff2(lvl)} → <b style="color:var(--neon)">${u.eff2(lvl+1)}</b> ${u.unit2}`):'';
+                          :`${u.eff2(lvl+1)} ${u.unit2}`):'';
  return `<div class="lcard" style="margin-top:12px"><div class="ph" style="flex:0 0 84px;width:84px;background:linear-gradient(145deg,#1a1f10,#0d0f08);display:flex;align-items:center;justify-content:center;color:var(--neon);font-size:30px">${icon(u.ic)}</div>
    <div class="bd"><div class="nm" style="font-size:17px">${u.n}</div>
      <div class="chips"><span class="chip lime">Szint ${lvl}/4</span><span class="chip mint">${gain}</span></div>
