@@ -2332,7 +2332,9 @@ function advanceWeeks(n){
    const m=st.streams/1e6*0.5;                       // 1M havi hallgató ≈ +0,5 alap
    Object.keys(REGIONS).forEach(r=>{                 // ott nő gyorsabban, ahol már van alap
     st.fans[r]=clamp(st.fans[r]+m*(0.4+st.fans[r]/100*0.9),0,100);});
-   income+=st.streams*0.0015*(hasBig('label')?1.35:1);                        // 1M havi hallgató ≈ €1 500/hét
+   /* CSÖKKENŐ HOZAM: a passzív streaming-bevétel a hallgatók 0,7-edik hatványával nő, nem
+      lineárisan → a top sztár nem „pénznyomda", a kis előadó bevétele viszont marad. */
+   income+=Math.pow(st.streams/1e6,0.7)*1200*(hasBig('label')?1.35:1);   // 1M ≈ €1 200/hét; 10M ≈ €6 000 (nem €15 000)
   });
   income+=venIncomeWeekly();                          // saját helyszínek bérleti bevétele
   income-=upkeepWeekly();                             // stáb-bér, fenntartás, retainer
@@ -2374,7 +2376,7 @@ function finishRelease(){
  Object.keys(REGIONS).forEach(r=>{                    // ahol már ismerik, ott üt nagyobbat
   st.fans[r]=clamp(st.fans[r]+k.fansAdd*relBoost*(0.5+st.fans[r]/100),0,100);});
  const before=st.streams;
- st.streams=Math.round(st.streams*(1+k.hype*0.5));
+ st.streams=Math.round(st.streams*(1+k.hype*0.3));   // mérsékeltebb kiadás-ugrás (tempó-lassítás)
  S.rel=null;
  sfx('cash');                                        // megjelenés → streaming-bevétel
  S.relLog.unshift({artist:a.n,kind:k.n,ic:k.ic,week:S.week,
