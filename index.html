@@ -1639,12 +1639,12 @@ function checkFestivals(){
 }
 /* Manuális elérés: a játékos maga is ránézhet a fesztivál-ajánlatokra (rövid cooldownnal,
    hogy ne lehessen villámgyorsan farmolni). Az automatikus megkeresések ettől függetlenül jönnek. */
+/* CSAK a meglévő ajánlatot nyitja — kattintásra SOHA nem generál újat (az ajánlat kizárólag
+   időalapon jön, a checkFestivals-ban). Ha nincs érvényes ajánlat, nem történik semmi. */
 function openFestivals(){
- if(!S.roster.length){toast('Előbb igazolj le előadót.');return;}
+ if(!(S.festOffer&&S.week<=S.festOffer.exp))return;   // nincs ajánlat → semmi
  if(S.live||S.rel){toast('Turné/kiadás közben nem érhető el.');return;}
- if(S.festOffer&&S.week<=S.festOffer.exp){festivalOffer();return;}   // van pending ajánlat → nyisd meg
- if(S.festManualNext&&S.week<S.festManualNext){toast('Most nincs friss megkeresés — pár hét múlva (vagy egy turné/kiadás után) nézz vissza.');return;}
- S.festManualNext=S.week+3;newFestOffer();festivalOffer();
+ festivalOffer();
 }
 /* ÜGYNÖKSÉG ↔ SZERVEZŐ: megkeresés érkezik, több sztárt beajánlasz, és tárgyalsz a díjról. */
 function festivalOffer(){
@@ -5727,11 +5727,11 @@ function tabIroda(){
        <div class="sub">${f.lean}-vonal · ${rgN(f.r)} · ajánld be az előadóidat, és tárgyalj a fellépti díjról</div>
        <button class="btn lime" id="festOpen" style="margin-top:12px">${icon('star','18px')} Ajánlat megnyitása ›</button></div></div>`;
   }else{
-   h+=`<div class="nextshow" id="festCard" style="margin-top:12px;opacity:.5;cursor:pointer">
+   h+=`<div class="nextshow" id="festCardOff" style="margin-top:12px;opacity:.45;pointer-events:none;filter:grayscale(.4)">
      <div class="ph"><img src="${CROWD}" ${imgFB()}><div class="g"></div>
        <div class="top"><span class="live" style="background:rgba(120,124,130,.5)">🎪 Fesztiválok</span></div></div>
      <div class="bd"><div class="city" style="color:var(--muted)">Most nincs fesztivál-ajánlat</div>
-       <div class="sub">A szervezők időnként megkeresik az ügynökséget. Koppints, ha proaktívan ránéznél (pár hetente).</div></div></div>`;
+       <div class="sub">A szervezők időnként megkeresik az ügynökséget — nézz vissza később.</div></div></div>`;
   }
  }
  // coach
