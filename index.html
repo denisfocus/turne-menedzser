@@ -1470,10 +1470,20 @@ function artState(id){
  if(!S.art[id]){const a=AM[id],f={};let s=0,n=0;
   const home=(CM[S.hq]||{}).r;
   Object.keys(REGIONS).forEach(r=>{f[r]=clamp(baseFans(a.reg[r]||1)+(r===home?HQ_FAN_BONUS:0),0,100);s+=f[r];n++;});
-  S.art[id]={fans:f,streams:Math.round(Math.pow(a.fame,2.4)*60*(0.55+(s/n)/100*0.9)),hype:0,fameAdd:0,rels:0,played:{}};}
+  S.art[id]={fans:f,streams:Math.round(Math.pow(a.fame,2.4)*60*(0.55+(s/n)/100*0.9)),hype:0,fameAdd:0,rels:0,played:{},energy:100,morale:72};}
  if(!S.art[id].played)S.art[id].played={};
+ if(S.art[id].energy===undefined)S.art[id].energy=100;   // migráció: régi mentés
+ if(S.art[id].morale===undefined)S.art[id].morale=72;
  return S.art[id];
 }
+/* ---- ENERGIA + MORÁL: az előadó nem farmolható végtelenül. A turné/kiadás fáraszt,
+   pihenéssel (hetek) épül vissza; a fáradt/rossz morálú előadó gyengébben teljesít. ---- */
+function perfMul(id){var st=artState(id);
+ var eM=clamp(0.68+st.energy/100*0.32,0.68,1);           // 0 energ.→0.68×, 100→1.0×
+ var mM=clamp(0.86+st.morale/100*0.16,0.86,1.02);        // rossz morál kicsit ront, jó kicsit segít
+ return eM*mM;}
+function energyLabel(e){return e>=70?{t:'Kipihent',c:'var(--cash)'}:e>=40?{t:'Fáradó',c:'var(--gold)'}:e>=20?{t:'Kimerült',c:'var(--hot)'}:{t:'Kiégés-veszély',c:'var(--hot)'};}
+function moraleFace(m){return m>=75?'😄':m>=55?'🙂':m>=35?'😐':'😞';}
 function af(a){return clamp(a.fame+(S.art&&S.art[a.id]?S.art[a.id].fameAdd:0),0,100);}
 /* ---- repertoár feloldás ---- */
 function songBaseN(a){return a.baseN||(a.songs?a.songs.length:0);}
@@ -2211,7 +2221,7 @@ function estimate(a,city,v,price,setQ,mom,promo){
    mkt=1+S.upg.marketing*0.10,
    pro=(1+(PROMO[promo||0].dem-1)*(hasStaff('pr')?1.10:1))*(hasBig('fest')?1.12:1),
    setF=setQ>0?(0.45+setQ/100*0.75):0.30, draw=fameDraw(af(a)), fp=fairPrice(a,v), r=price/fp, pf=clamp(1.25-0.60*r,0.03,1.25);
- let pool=draw*DEMAND_BASE*reachScale*gAff*rAff*buzz*setF*mkt*pro*taste*fresh*(mom||1)*trendMul(a.genre,city.r);
+ let pool=draw*DEMAND_BASE*reachScale*gAff*rAff*buzz*setF*mkt*pro*taste*fresh*(mom||1)*trendMul(a.genre,city.r)*perfMul(a.id);
  /* raw = nyers kereslet (férőhely nélkül). A szórás ezen dolgozik, és csak UTÁNA vágjuk
     a kapacitásra — így a jóval túlkeresett koncert biztosan telt ház lesz, a félig telt viszont
     tényleg ingadozik. */
@@ -2355,6 +2365,9 @@ function advanceWeeks(n){
    const a=AM[id],st=artState(id),tgt=streamTarget(a);
    st.streams=Math.max(0,Math.round(st.streams+(tgt-st.streams)*0.18));
    st.hype=st.hype>0.02?st.hype*0.78:0;
+   /* PIHENÉS: aki épp nem turnézik, energiát épít; a morál lassan a semlegeshez húz */
+   if(!(S.live&&S.live.artist===id))st.energy=clamp((st.energy||100)+7*(hasBig('jet')?1.2:1),0,100);
+   st.morale=clamp((st.morale||72)+(65-(st.morale||72))*0.05,0,100);
    const m=st.streams/1e6*0.5;                       // 1M havi hallgató ≈ +0,5 alap
    Object.keys(REGIONS).forEach(r=>{                 // ott nő gyorsabban, ahol már van alap
     st.fans[r]=clamp(st.fans[r]+m*(0.4+st.fans[r]/100*0.9),0,100);});
@@ -2399,6 +2412,9 @@ function finishRelease(){
  st.hype+=k.hype*relBoost*relFat;
  st.fameAdd=Math.min(60,st.fameAdd+k.fameAdd);
  st.rels=(st.rels||0)+1;
+ /* a stúdiózás is fáraszt (album jobban), de kreatív siker → kis morál */
+ st.energy=clamp(st.energy-({single:6,ep:10,album:16}[R.kind]||6),0,100);
+ st.morale=clamp(st.morale+2,0,100);
  /* KIADÁS = REPERTOÁR-BŐVÜLÉS: feloldunk az előadó igazi (zárolt) dalaiból (single +1 / EP +2 / album +4) */
  var unlockAmt=({single:1,ep:2,album:4})[R.kind]||1;
  var prevN=unlockedN(a), lockedNow=a.songs.length-prevN, got=Math.max(0,Math.min(unlockAmt,lockedNow));
@@ -2440,6 +2456,8 @@ function buildPhases(stops){
 function tourRealMs(stops){return buildPhases(stops).reduce((s,p)=>s+p.ms,0);}
 function launchTour(){
  const t=S.tour,a=AM[t.artist],cost=promoCost(t.stops,t.promo||0);
+ const _A=artState(t.artist);
+ if((_A.energy||100)<32)toast(a.n+' fáradt (⚡'+Math.round(_A.energy)+') — gyengébb nézőszám várható. Pár hét pihenő feljebb vinné.');
  Analytics.track('tour_created',{stops:t.stops.length,artist:t.artist,setlist:t.setlist.length});
  Analytics.track('tour_started',{stops:t.stops.length,artist:t.artist,fame:af(a),
    promo:t.promo||0,promo_cost:cost,venues:t.stops.map(x=>x.venue).join(','),agency_level:level()});
@@ -2528,6 +2546,9 @@ function runShow(i){
   L.fanGain[reg]=(L.fanGain[reg]||0)+fanG;
   L.mom=fill>=0.9?Math.min(1.4,L.mom+0.06):(fill<0.45?Math.max(0.75,L.mom-0.05):L.mom);
   A.played[st.city]=S.week;            // a varos kozonsege elhasznalodott, hetek alatt epul vissza
+  /* ENERGIA: minden koncert fáraszt (a turnébusz/magángép enyhíti); a morál a sikertől függ */
+  A.energy=clamp(A.energy-5.5*(1-facLv('bus')*0.08)*(hasBig('jet')?0.82:1),0,100);
+  A.morale=clamp(A.morale+(fill>=0.9?2.2:fill<0.4?-3:0.3),0,100);
   (S.cities=S.cities||{})[st.city]=1;   // életmű: hány különböző városban játszottál
   bumpRec('maxFill',fill);bumpRec('bestAtt',att);
   if(v.cap>=20000){bumpRec('arenaFill',fill);if(fill>=0.9&&!(S.recs&&S.recs.firstArenaWeek))(S.recs=S.recs||{}).firstArenaWeek=S.week;}
@@ -6167,6 +6188,19 @@ function tabStudio(){
    ${A.hype>0.05?`<div style="margin-top:11px"><span class="hypechip">${icon('star','12px')} Friss megjelenés · +${Math.round(A.hype*25)}% kereslet</span></div>`:''}
  </div>`;
 
+ /* ÁLLAPOT — energia + morál (a fáradt/rossz kedvű előadó gyengébben teljesít) */
+ const el=energyLabel(A.energy||100), perf=Math.round(perfMul(a.id)*100);
+ h+=`<div class="sec"><h2>Állapot</h2><span class="r" style="color:${el.c}">${el.t}</span></div>
+   <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px">
+     <div class="fanrow"><span class="n">⚡ Energia</span>
+       <span class="b"><i style="width:${clamp(A.energy||100,0,100)}%;background:${el.c}"></i></span>
+       <span class="v" style="color:${el.c}">${Math.round(A.energy||100)}</span></div>
+     <div class="fanrow"><span class="n">${moraleFace(A.morale||72)} Morál</span>
+       <span class="b"><i style="width:${clamp(A.morale||72,0,100)}%;background:var(--neon)"></i></span>
+       <span class="v">${Math.round(A.morale||72)}</span></div>
+     <div class="poolhint" style="margin-top:8px">${(A.energy||100)<40?'Fáradt — most kb. <b>'+perf+'%</b>-on teljesít. Pihentesd pár hetet (ne turnéztasd), és visszaépül.':'Turné/kiadás fáraszt; pihenéssel (hetek) épül vissza. Jelenleg kb. <b>'+perf+'%</b> teljesítmény.'}</div>
+   </div>`;
+
  /* MŰFAJ-TREND — a felkapott műfaj régiójában egy kisebb előadó is nagyot mehet */
  const at=artistTrend(a), tl=trendLabel(at), atPct=Math.round((at-1)*100);
  const hot=[];Object.keys(REGIONS).forEach(r=>GENRES.forEach(g=>hot.push({r:r,g:g,m:trendMul(g,r)})));
@@ -6579,7 +6613,7 @@ if(!S.started){renderStart();}
 else if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track('tutorial_started',{source:'first_open'});}
 if(S.resultPending&&S.lastResult)showResult();
 if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
-if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,
+if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,
   _mus:function(){var xb={};Object.keys(TRX).forEach(function(k){var b=trkBuf(k);xb[k]=b?+b.duration.toFixed(1):0;});return{buffers:xb,rot:S.rot,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
