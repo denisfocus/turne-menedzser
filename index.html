@@ -5307,7 +5307,8 @@ function render(){applyTheme();checkUnlocks();chalLive();checkArcs();checkMiles(
  updateAmbient();                      // finom háttér-pad a menükben (turné/mini alatt csend)
  obPaint();
  /* félbehagyott döntés visszaállítása újratöltés után */
- if(S.live&&S.live.pendingEv&&$('#modal').className!=='on'){const e=EVENTS.find(x=>x.id===S.live.pendingEv);if(e)renderEvent(e);}}
+ if(S.live&&S.live.pendingEv&&$('#modal').className!=='on'){const e=EVENTS.find(x=>x.id===S.live.pendingEv);if(e)renderEvent(e);}
+ if(S.started&&!S.career)checkContracts();}   // lejárt szerződés → újratárgyalás
 function bind(sel,fn){view.querySelectorAll(sel).forEach(el=>el.onclick=()=>fn(el));}
 
 /* ---------- IRODA ---------- */
@@ -5549,7 +5550,57 @@ function doSign(id){const a=AM[id];
  const fee=signFee(a); if(S.money<fee){toast('Nincs elég pénz.');return false;}S.money-=fee;S.roster.push(id);
  Analytics.track('artist_signed',{artist:id,fame:af(a),tier:dealStatus(a),commission:dealShare(a),fee:fee});
  sfx('pen');                                          // szerződés-aláírás — sercegő toll
- pushFeed(`${a.n} leigazolva`,`${a.genre} · hírnév ${af(a)} · ${fmtStream(artState(id).streams)} havi hallgató`,a.ic,'var(--neon)');save();toast(`${a.n} leigazolva!`);render();return true;}
+ pushFeed(`${a.n} leigazolva`,`${a.genre} · hírnév ${af(a)} · ${fmtStream(artState(id).streams)} havi hallgató`,a.ic,'var(--neon)');
+ S.contract=S.contract||{};S.contract[id]={end:S.week+CONTRACT_TERM,share:dealShare(a),fame0:af(a)};   // szerződés indul
+ save();toast(`${a.n} leigazolva!`);render();return true;}
+
+/* ============================ SZERZŐDÉSEK (lejárat + újratárgyalás) ============================
+   Az előadó nem örökre a tiéd: a szerződés lejár, és a felnőtt sztár JOBB feltételeket kér
+   (alacsonyabb ügynökségi rész) + re-sign bónuszt. Természetes végjáték-pénznyelő + churn. */
+const CONTRACT_TERM=80;                                  // ~1,5 játékév
+function ensureContract(id){S.contract=S.contract||{};
+ if(!S.contract[id]){const a=AM[id];S.contract[id]={end:S.week+CONTRACT_TERM,share:dealShare(a),fame0:af(a)};}
+ return S.contract[id];}
+function contractWeeksLeft(id){const c=S.contract&&S.contract[id];return c?Math.max(0,c.end-S.week):null;}
+function checkContracts(){
+ if(S.live||S.rel)return;                                // turné/kiadás közben nem zavarunk
+ if(($('#modal')||{}).className==='on')return;
+ S.contract=S.contract||{};
+ S.roster.forEach(function(id){if(!S.contract[id])ensureContract(id);});   // régi mentés: kap szerződést
+ const due=S.roster.find(function(id){const c=S.contract[id];return c&&S.week>=c.end&&!c._renewing;});
+ if(due)contractRenewal(due);
+}
+function contractRenewal(id){
+ const a=AM[id],c=S.contract[id],st=artState(id);
+ const growth=Math.max(0,af(a)-(c.fame0||af(a)));
+ const lev=clamp(growth/40*0.6+(st.morale-50)/100*0.4+0.2,0,1);   // alkuerő: növekedés + morál
+ const newShare=Math.round(clamp(c.share-lev*7,Math.max(6,dealBase(a)-8),c.share));
+ const bonus=Math.round(signFee(a)*(0.4+lev*0.9)/1000)*1000;
+ c._renewing=true;c._newShare=newShare;c._bonus=bonus;save();
+ const canPay=S.money>=bonus, drop=c.share-newShare;
+ const h='<div class="ev"><div class="bd">'+
+  '<span class="kick" style="color:var(--gold)">Szerződés lejár</span>'+
+  '<h3>'+esc(a.n)+' újratárgyal</h3>'+
+  '<p>'+(drop>0?esc(a.n)+' sokat nőtt nálad — most <b>'+newShare+'%</b> ügynökségi részt kér a korábbi <b>'+c.share+'%</b> helyett.'
+        :'Marad a <b>'+newShare+'%</b> ügynökségi rész.')+
+    ' Re-sign bónusz: <b>'+money(bonus)+'</b>.</p>'+
+  '<div class="evch" style="margin-top:14px">'+
+   '<button class="evb '+(canPay?'good':'')+'" data-ct="resign" '+(canPay?'':'disabled')+'><div class="l">'+icon('pen','15px')+' Újra leszerződtetem · '+money(bonus)+'</div>'+
+     '<div class="s">'+(canPay?'Új '+CONTRACT_TERM+' hét · '+newShare+'% ügynökségi rész'+(drop>0?' (−'+drop+'%)':''):'Nincs elég pénz a bónuszra')+'</div></button>'+
+   '<button class="evb" data-ct="release"><div class="l">Elengedem</div><div class="s">Felszabadul egy hely, de elveszíted '+esc(a.n)+'-t</div></button>'+
+  '</div></div></div>';
+ const m=$('#modal');m.innerHTML=h;m.className='on';
+ m.querySelector('[data-ct="resign"]').onclick=function(){
+   if(S.money<c._bonus){toast('Nincs elég pénz.');return;}
+   S.money-=c._bonus;S.deal=S.deal||{};S.deal[id]=c._newShare;
+   c.share=c._newShare;c.fame0=af(a);c.end=S.week+CONTRACT_TERM;c._renewing=false;
+   sfx('pen');pushFeed(esc(a.n)+' újraszerződött',newShare+'% ügynökségi rész · '+money(c._bonus)+' bónusz','pen','var(--gold)');
+   $('#modal').className='';$('#modal').innerHTML='';save();toast(esc(a.n)+' marad · '+newShare+'% rész');render();};
+ m.querySelector('[data-ct="release"]').onclick=function(){
+   S.roster=S.roster.filter(function(x){return x!==id;});delete S.contract[id];
+   pushFeed(esc(a.n)+' távozott','Lejárt a szerződés — felszabadult egy hely.','alert','var(--muted)');
+   $('#modal').className='';$('#modal').innerHTML='';save();toast(esc(a.n)+' elment.');render();};
+}
 function openDetail(id){S.detail=id;S.tab='eloadok';
  if(AM[id])Analytics.track('artist_viewed',{artist:id,fame:af(AM[id]),genre:AM[id].genre,owned:S.roster.indexOf(id)>=0?1:0});
  save();render();}
@@ -6199,6 +6250,7 @@ function tabStudio(){
        <span class="b"><i style="width:${clamp(A.morale||72,0,100)}%;background:var(--neon)"></i></span>
        <span class="v">${Math.round(A.morale||72)}</span></div>
      <div class="poolhint" style="margin-top:8px">${(A.energy||100)<40?'Fáradt — most kb. <b>'+perf+'%</b>-on teljesít. Pihentesd pár hetet (ne turnéztasd), és visszaépül.':'Turné/kiadás fáraszt; pihenéssel (hetek) épül vissza. Jelenleg kb. <b>'+perf+'%</b> teljesítmény.'}</div>
+     ${(function(){const wl=contractWeeksLeft(a.id);return wl==null?'':'<div class="poolhint" style="margin-top:6px'+(wl<=8?';color:var(--hot)':'')+'">'+icon('pen','12px')+' Szerződés: <b>'+wl+' hét</b> van hátra · '+dealShare(a)+'% ügynökségi rész'+(wl<=8?' — hamarosan újratárgyal!':'')+'</div>';})()}
    </div>`;
 
  /* MŰFAJ-TREND — a felkapott műfaj régiójában egy kisebb előadó is nagyot mehet */
@@ -6613,7 +6665,7 @@ if(!S.started){renderStart();}
 else if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track('tutorial_started',{source:'first_open'});}
 if(S.resultPending&&S.lastResult)showResult();
 if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
-if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,
+if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,contractWeeksLeft,contractRenewal,checkContracts,ensureContract,
   _mus:function(){var xb={};Object.keys(TRX).forEach(function(k){var b=trkBuf(k);xb[k]=b?+b.duration.toFixed(1):0;});return{buffers:xb,rot:S.rot,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
