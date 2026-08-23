@@ -1687,17 +1687,19 @@ function festChat(f,sel){
  const city=CM[f.city]||{n:f.city,photo:'concert',lk:1},pref=festPref(f);
  let base=0;sel.forEach(function(id){base+=festFee(id,f);});base=Math.round(base*festBundle(sel.length)/500)*500;
  const leanHint={money:'üzleties, a számok érdeklik',art:'a művészi vonalra, egyedi show-ra ad',respect:'rangos, a tiszteletet és profizmust díjazza'}[pref];
- startChat({name:f.n+' · szervező',photo:cityPhoto(city,120,120),badge:'<span class="gbadge">🎪 '+esc(f.lean)+'</span>',pref:pref,
+ startChat({name:f.n+' · szervező',photo:cityPhoto(city,120,120),badge:'<span class="gbadge">🎪 '+esc(f.lean)+'</span>',pref:pref,content:NEGO_FEST,
   meter0:52,
-  sys:f.n+' szervezője — '+leanHint+'. Alap-díj: '+money(base)+'. Tárgyald feljebb (vagy le)!',
-  open:NEGO_FEST.open[pref],rounds:NEGO_FEST.rounds,
+  sys:f.n+' szervezője — '+leanHint+'. Alap-díj: '+money(base)+'. Figyeld körről körre, mit szeretne hallani!',
+  open:NEGO_FEST.open[pref],
   resolve:function(outcome){
    Analytics.track('fest_negotiated',{fest:f.n,n:sel.length,outcome:outcome});
    if(outcome==='bad'){chatFinish('Köszönjük, de idén más felállással megyünk tovább. Talán legközelebb.',[
      {id:'fCancel',label:'Rendben, tudomásul veszem',emoji:'✕',fn:function(){S.festOffer=null;$('#modal').className='';$('#modal').innerHTML='';save();render();}}]);return;}
    const mult=outcome==='good'?1.35:1,total=Math.round(base*mult/500)*500;
-   chatFinish(outcome==='good'?'Megegyeztünk — '+money(total)+' a felállásért. Alig várjuk a színpadon!':'Nem a csúcsdíj, de rendben — '+money(total)+', áll az alku.',[
-     {id:'fDone',label:'Fellépés véglegesítése · '+money(total),emoji:outcome==='good'?'🎉':'🤝',style:'border-color:rgba(198,255,58,.45);color:var(--neon)',fn:function(){festApply(f,sel,total,outcome);}}]);
+   showChatOffer({msg:outcome==='good'?'Megegyeztünk — '+money(total)+' a felállásért. Alig várjuk a színpadon!':'Nem a csúcsdíj, de rendben — '+money(total)+', áll az alku.',
+     isMax:outcome==='good',suffix:'%',place:'fest',emoji:outcome==='good'?'🎉':'🤝',
+     label:function(b){return 'Fellépés véglegesítése · '+money(Math.round(total*(1+b/100)/500)*500);},
+     accept:function(b){festApply(f,sel,Math.round(total*(1+b/100)/500)*500,outcome);}});
   }});
 }
 function festApply(f,sel,total,outcome){
@@ -5331,24 +5333,25 @@ function artistPref(a){
  return 'money';                                       // Pop + egyéb: mainstream, üzlet
 }
 const NEGO_TRAITS={money:'💰',art:'🎨',respect:'🤝'};
+/* Rotáló pool-modell: az előadó KÖRÖNKÉNT jelzi (cue), mit szeretne HALLANI (money/art/respect).
+   A „want" körönként/futásonként változik (55% az előadó személyisége, 45% véletlen másik) → nem
+   memorizálható egy játék után. A választás-szövegek is poolból, véletlenül. A helyes válasz a cue-ból
+   kikövetkeztethető (ügyesség), de nem fix. */
 const NEGO={
  open:{money:'Beszéljünk a számokról. Mit tud kínálni az ügynökséged?',
        art:'Őszinte leszek — engem a zene érdekel, nem a papírmunka. Miben hisztek?',
        respect:'Sok ajánlatot kapok. Miért pont veletek?'},
- rounds:[
-  [{t:'money',x:'A marketing-gépezet mögötted lesz — a bevétel majd beszél.'},
-   {t:'art',x:'Teljes kreatív szabadság. A hangzásba nem szólunk bele.'},
-   {t:'respect',x:'A te neved a lényeg — mi a háttérben dolgozunk érted.'}],
-  [{t:'money',x:'Prémium helyszínek, nagy színpadok — oda viszünk, ahol a pénz van.'},
-   {t:'art',x:'Kísérletezhetsz. Ha váltanál a stílusodon, mögötted állunk.'},
-   {t:'respect',x:'Csapatként döntünk — a te szavad a mérvadó.'}],
-  [{t:'money',x:'Írjuk alá — korrekt üzlet, és keresünk vele rendesen.'},
-   {t:'art',x:'Építsünk együtt valami maradandót.'},
-   {t:'respect',x:'Bízz bennünk — mindent beleadunk érted.'}]
- ],
- react:{good:['Ez tetszik.','Most figyelek.','Erről van szó.','Ezt akartam hallani.'],
-        mid:['Hmm, oké.','Talán.','Meglátjuk.','Folytasd.'],
-        bad:['Nem tudom…','Ez nem én vagyok.','Nem erről szól nálam.','Ezt már hallottam máshol is.']}
+ cues:{
+  money:['Mondd, hol a pénz ebben nekem?','Most a bevétel érdekel — győzz meg.','Beszéljünk a számokról, ne a szépről.','A végén a bankszámla számít. Mit tesztek le?','Konkrétan mennyit hoz ez nekem?'],
+  art:['A zenémről beszélj, ne a pénzről.','Engem a szabadság érdekel — meglesz?','Nem eladni akarok, alkotni. Ti hogy álltok ehhez?','Az számít, hogy a hangzás az enyém marad.','A víziómat tiszteletben tartjátok?'],
+  respect:['Éreztesd, hogy fontos vagyok nektek.','Sok helyre hívnak — miért bánnátok velem jobban?','A tiszteletet keresem, nem a nagy ígéreteket.','Partnerként kezeltek, vagy csak egy név vagyok?','Számíthatok rátok, ha baj van?']},
+ choices:{
+  money:['A marketing-gépezet mögötted lesz — a bevétel majd beszél.','Prémium helyszínek, nagy színpadok, komoly gázsi.','Streaming-kampány, playlist-pitch — pörgetjük a számaid.','Több fellépés, magasabb díj — kihozzuk belőled a maximumot.','A merch és a jegy is dől majd — jól jársz velünk.'],
+  art:['Teljes kreatív szabadság — a hangzásba nem szólunk bele.','Kísérletezhetsz, válthatsz stílust, mögötted állunk.','A te víziód a lényeg, mi csak keretet adunk.','A producert te választod — a lemez a tiéd marad.','Építsünk együtt valami maradandót.'],
+  respect:['A te neved a lényeg — mi a háttérben dolgozunk érted.','Csapatként döntünk, a te szavad a mérvadó.','Nem szám vagy nálunk, hanem partner.','Bármikor hívhatsz — végig melletted állunk.','Megbízhatsz bennünk, nem hagyunk cserben.']},
+ react:{good:['Ez tetszik.','Most figyelek.','Erről van szó.','Ezt akartam hallani.','Igen, pontosan ezt.','Na, ez már döfi.'],
+        mid:['Hmm, oké.','Talán.','Meglátjuk.','Folytasd.','Nem rossz…','Hallgatlak tovább.'],
+        bad:['Nem tudom…','Ez nem én vagyok.','Nem erről szól nálam.','Ezt már hallottam máshol is.','Hmm, ez mellément.','Nem ezt akartam hallani.']}
 };
 function negoClash(t,pref){return (t==='money'&&pref==='art')||(t==='art'&&pref==='money')||(t==='money'&&pref==='respect');}
 function chatThem(text,cb){const log=$('#chatLog');if(!log)return;
@@ -5360,8 +5363,18 @@ function chatThem(text,cb){const log=$('#chatLog');if(!log)return;
 function chatMe(text){const log=$('#chatLog');if(!log)return;const b=document.createElement('div');b.className='cbub me';b.textContent=text;log.appendChild(b);log.scrollTop=log.scrollHeight;}
 /* ---- ÁLTALÁNOS chat-motor: alkuhoz, fesztiválhoz, szerződés-hosszabbításhoz ---- */
 let CHAT=null;
+/* Körök felépítése: 4–5 kör, körönként rotáló „want" (55% személyiség, 45% véletlen), cue + 3 véletlen válasz. */
+function chatRounds(content,pref,n){
+ const T=['money','art','respect'],out=[],pk=function(arr){return arr[Math.floor(Math.random()*arr.length)];};
+ for(var i=0;i<n;i++){
+  const want=Math.random()<0.55?pref:T.filter(function(t){return t!==pref;})[Math.floor(Math.random()*2)];
+  out.push({want:want,cue:pk(content.cues[want]),choices:T.map(function(t){return {t:t,x:pk(content.choices[t])};})});
+ }
+ return out;
+}
 function startChat(cfg){
- CHAT={meter:clamp(cfg.meter0,8,82),round:0,busy:false,cfg:cfg};
+ const n=4+Math.floor(Math.random()*2);                       // 4 vagy 5 kör (véletlen)
+ CHAT={meter:clamp(cfg.meter0,8,82),round:0,busy:false,cfg:cfg,content:cfg.content,pref:cfg.pref,rounds:chatRounds(cfg.content,cfg.pref,n)};
  const m=$('#modal');
  m.innerHTML='<div class="ev" style="height:82vh;max-height:640px;display:flex;flex-direction:column;padding:0;overflow:hidden">'+
    '<div class="chatwrap"><div class="chathead"><div class="av"><img src="'+cfg.photo+'" '+imgFB()+'></div>'+
@@ -5370,47 +5383,75 @@ function startChat(cfg){
    '<div class="chatlog" id="chatLog">'+(cfg.sys?'<div class="cbub sys">'+esc(cfg.sys)+'</div>':'')+'</div>'+
    '<div class="chatchoices" id="chatChoices"></div></div></div>';
  m.className='on';
- chatThem(cfg.open,function(){nextChatRound();});
+ chatThem(cfg.open||cfg.content.open[cfg.pref],function(){nextChatRound();});
 }
 function nextChatRound(){
  if(!CHAT)return;
- if(CHAT.round>=3){resolveChat();return;}
- const rd=CHAT.cfg.rounds[CHAT.round],ch=$('#chatChoices');if(!ch)return;
+ if(CHAT.round>=CHAT.rounds.length){resolveChat();return;}
+ const rd=CHAT.rounds[CHAT.round];
+ chatThem(rd.cue,function(){chatShowChoices(rd);});             // előbb a cue (mit szeretne hallani), utána a választások
+}
+function chatShowChoices(rd){
+ const ch=$('#chatChoices');if(!ch)return;
  const order=[0,1,2].sort(function(){return Math.random()-0.5;});
- ch.innerHTML=order.map(function(k){const c=rd[k];return '<button class="choice" data-k="'+k+'"><span class="tr">'+NEGO_TRAITS[c.t]+'</span>'+esc(c.x)+'</button>';}).join('');
+ ch.innerHTML=order.map(function(k){const c=rd.choices[k];return '<button class="choice" data-k="'+k+'"><span class="tr">'+NEGO_TRAITS[c.t]+'</span>'+esc(c.x)+'</button>';}).join('');
  ch.querySelectorAll('.choice').forEach(function(b){
-   const h=function(e){if(e)e.preventDefault();if(!CHAT||CHAT.busy)return;pickChoice(CHAT.cfg.rounds[CHAT.round][+b.dataset.k]);};
+   const h=function(e){if(e)e.preventDefault();if(!CHAT||CHAT.busy)return;pickChoice(CHAT.rounds[CHAT.round].choices[+b.dataset.k]);};
    b.onpointerdown=h;b.onclick=h;});
 }
 function pickChoice(c){
  CHAT.busy=true;$('#chatChoices').innerHTML='';chatMe(c.x);
- const pref=CHAT.cfg.pref;let d=c.t===pref?17:negoClash(c.t,pref)?-13:2;d+=Math.round((Math.random()-0.5)*8);
+ const want=CHAT.rounds[CHAT.round].want;
+ let d=c.t===want?12:negoClash(c.t,want)?-13:3;d+=Math.round((Math.random()-0.5)*7);
  CHAT.meter=clamp(CHAT.meter+d,0,100);const bar=$('#rapBar');if(bar)bar.style.width=CHAT.meter+'%';
- const tone=c.t===pref?'good':negoClash(c.t,pref)?'bad':'mid',pool=NEGO.react[tone];
- setTimeout(function(){chatThem(pool[Math.floor(Math.random()*pool.length)],function(){CHAT.round++;CHAT.busy=false;nextChatRound();});},360);
+ const tone=c.t===want?'good':negoClash(c.t,want)?'bad':'mid',pool=CHAT.content.react[tone];
+ setTimeout(function(){chatThem(pool[Math.floor(Math.random()*pool.length)],function(){CHAT.round++;CHAT.busy=false;nextChatRound();});},340);
 }
 function resolveChat(){const meter=CHAT.meter,outcome=meter>=66?'good':meter>=42?'mid':'bad';CHAT.cfg.resolve(outcome,meter);}
-/* végkimenet: buborék + gombok (buttons:[{id,label,emoji,style,fn}]) */
+/* végkimenet: buborék + gombok (buttons:[{id,label,emoji,style,fn}]) — offer nélküli esetekhez (elállnak) */
 function chatFinish(msg,buttons){
  chatThem(msg,function(){const ch=$('#chatChoices');if(!ch)return;
   ch.innerHTML=buttons.map(function(b){return '<button class="choice" id="'+b.id+'"'+(b.style?' style="'+b.style+'"':'')+'><span class="tr">'+b.emoji+'</span>'+esc(b.label)+'</button>';}).join('');
   buttons.forEach(function(b){const el=$('#'+b.id);if(el){const h=function(e){if(e)e.preventDefault();b.fn();};el.onpointerdown=h;el.onclick=h;}});});
 }
+/* AJÁNLAT + opt-in REKLÁM-VIDEÓ bónusz. o:{msg,isMax,suffix,place,label(b),emoji,style,accept(b),extra[]}
+   isMax → videó = +5 · nem-max → videó = +1..5 (véletlen egész). Ingyen átugorható (csak az accept-et nyomod). */
+function showChatOffer(o){
+ let bonus=0;
+ function draw(){
+  const ch=$('#chatChoices');if(!ch)return;
+  const list=[{id:'coAccept',label:o.label(bonus),emoji:o.emoji||'🤝',style:o.style||'border-color:rgba(198,255,58,.45);color:var(--neon)',fn:function(){o.accept(bonus);}}];
+  if(bonus===0&&typeof Ads!=='undefined'&&Ads&&Ads.show){
+   list.push({id:'coVideo',label:'📺 Videó a bónuszért · '+(o.isMax?'+5':'+1–5')+(o.suffix||'%'),emoji:'',style:'',fn:function(){
+     Ads.show(function(){bonus=o.isMax?5:1+Math.floor(Math.random()*5);Analytics.track('rewarded_ad_watched',{placement:o.place||'nego_bonus'});
+        const l=$('#chatLog');if(l){const bb=document.createElement('div');bb.className='cbub sys';bb.textContent='📺 Videó-bónusz: +'+bonus+(o.suffix||'%');l.appendChild(bb);l.scrollTop=l.scrollHeight;}
+        draw();},function(){toast('A videó megszakadt.');});
+   }});
+  }
+  (o.extra||[]).forEach(function(b){list.push(b);});
+  ch.innerHTML=list.map(function(b){return '<button class="choice" id="'+b.id+'"'+(b.style?' style="'+b.style+'"':'')+'><span class="tr">'+(b.emoji||'')+'</span>'+esc(b.label)+'</button>';}).join('');
+  list.forEach(function(b){const el=$('#'+b.id);if(el){const h=function(e){if(e)e.preventDefault();b.fn();};el.onpointerdown=h;el.onclick=h;}});
+ }
+ chatThem(o.msg,function(){draw();});
+}
 /* --- ALKU (leigazolás) --- */
 function dealChat(){
  const a=D.a,base=dealBase(a),pref=artistPref(a);
- startChat({name:a.n,photo:artistPhoto(a,120,120),badge:genreBadge(a),pref:pref,
+ startChat({name:a.n,photo:artistPhoto(a,120,120),badge:genreBadge(a),pref:pref,content:NEGO,
   meter0:50-Math.max(0,D.ask-base)*1.5,
-  sys:a.n+' · kért jutalék '+D.ask+'% — figyeld a stílusát, és aszerint válaszolj!',
-  open:NEGO.open[pref],rounds:NEGO.rounds,
+  open:NEGO.open[pref],
+  sys:a.n+' · kért jutalék '+D.ask+'% — figyeld körről körre, mit szeretne HALLANI, és aszerint válassz!',
   resolve:function(outcome){
    const share=outcome==='good'?D.ask:outcome==='mid'?Math.round(base+(D.ask-base)*0.5):base;
    Analytics.track('contract_negotiated',{artist:a.id,asked:D.ask,base:base,outcome:outcome,share:share});
-   if(outcome==='bad')chatFinish('Sajnálom, most nem érzem — így nem írok alá.',[
-     {id:'cAcc',label:'Elfogadom az alapot · '+base+'%',emoji:'✍️',fn:function(){D.ask=base;closeDeal(false);}},
-     {id:'cCancel',label:'Mégse',emoji:'✕',fn:function(){D=null;$('#modal').className='';$('#modal').innerHTML='';obRewindTo('sign');render();}}]);
-   else chatFinish(outcome==='good'?'Rendben — '+share+'% az ügynökségé. Csináljuk!':'Nem egészen, amit kértél… de '+share+'%-ban megegyezhetünk.',[
-     {id:'cDone',label:'Szerződés aláírása · '+share+'%',emoji:outcome==='good'?'🎉':'🤝',style:'border-color:rgba(198,255,58,.45);color:var(--neon)',fn:function(){D.ask=share;closeDeal(true);}}]);
+   const msg=outcome==='good'?'Rendben — '+share+'% az ügynökségé. Csináljuk!'
+     :outcome==='mid'?'Nem egészen, amit kértél… de '+share+'%-ban megegyezhetünk.'
+     :'A kértet nem érzem — de az alapon ('+share+'%) aláírok.';
+   showChatOffer({msg:msg,isMax:outcome==='good',suffix:'%',place:'deal',
+     emoji:outcome==='good'?'🎉':'✍️',
+     label:function(b){return 'Szerződés aláírása · '+Math.min(35,share+b)+'%';},
+     accept:function(b){D.ask=Math.min(35,share+b);closeDeal(outcome!=='bad');},
+     extra:outcome==='bad'?[{id:'cCancel',label:'Mégse',emoji:'✕',fn:function(){D=null;$('#modal').className='';$('#modal').innerHTML='';obRewindTo('sign');render();}}]:[]});
   }});
 }
 /* --- FESZTIVÁL-SZERVEZŐ persona + tartalom --- */
@@ -5419,16 +5460,17 @@ const NEGO_FEST={
  open:{money:'A fellépti díjról beszéljünk — mit gondoltatok?',
        art:'Ez egy különleges fesztivál. Illik hozzátok a felállás?',
        respect:'Sok ügynökség sorban áll. Miért pont a tiétek?'},
- rounds:[
-  [{t:'money',x:'A neveink megtöltik a színpadot — a jegyeladás beszél.'},
-   {t:'art',x:'A felállásunk pont a ti vibe-otokhoz passzol.'},
-   {t:'respect',x:'Megtiszteltetés itt fellépni — komolyan vesszük.'}],
-  [{t:'money',x:'Prémium slotért prémium díj — korrekt üzlet.'},
-   {t:'art',x:'Emlékezetes show-t hozunk, nem gyári fellépést.'},
-   {t:'respect',x:'Rugalmasak vagyunk — a ti fesztiválotok, a ti szabályaitok.'}],
-  [{t:'money',x:'Zárjuk le a számokat, és készülünk.'},
-   {t:'art',x:'Csináljunk együtt valami feledhetetlent.'},
-   {t:'respect',x:'Bízzatok bennünk — nem okozunk csalódást.'}]]
+ cues:{
+  money:['Beszéljünk a bevételről — mit hoz a felállás?','A jegyeladás a lényeg. Miért éri meg színpadot adni?','A büdzsé feszes — győzzetek meg, hogy megéri.','Számokban gondolkodom. Mit tesztek le?','Mennyi közönséget hoztok reálisan?'],
+  art:['Nálunk a vibe számít — illik hozzánk a felállás?','Egyedi élményt akarunk, ne gyári fellépést.','A közönségünk a minőségre jár. Ti hozzátok?','A színpadi kép fontos — mit mutattok?','Emlékezetes pillanatokat várunk. Meglesz?'],
+  respect:['Rangos fesztivál a miénk. Komolyan veszitek?','Sok ügynökség kopogtat. Miért pont ti?','A profizmust díjazzuk. Megbízhatóak vagytok?','A partnerség nálunk hosszú távú — benne vagytok?','Számíthatunk rátok, ha valami közbejön?']},
+ choices:{
+  money:['A neveink megtöltik a színpadot — a jegyeladás beszél.','Prémium slotért prémium díj — korrekt üzlet.','A merch és a jegy is pörögni fog velünk.','Nagy közönséget hozunk — megtérül a gázsi.','Kihozzuk a maximumot a fesztiválból.'],
+  art:['A felállásunk pont a ti vibe-otokhoz passzol.','Emlékezetes show-t hozunk, látványt és élményt.','Egyedi szettet állítunk össze a fesztiválra.','A közönségetek imádni fogja a hangzást.','Csináljunk együtt valami feledhetetlent.'],
+  respect:['Megtiszteltetés itt fellépni — komolyan vesszük.','Rugalmasak vagyunk — a ti fesztiválotok, a ti szabályaitok.','Profin készülünk, nem okozunk fejfájást.','Hosszú távra tervezünk veletek — megbízható partner.','Bízzatok bennünk — nem okozunk csalódást.']},
+ react:{good:['Ez tetszik.','Erről van szó.','Na, ezt akartam hallani.','Igen, ez a hozzáállás.','Meggyőztetek.','Ez profin hangzik.'],
+        mid:['Hmm, oké.','Talán.','Meglátjuk.','Nem rossz…','Folytassátok.','Hallgatlak.'],
+        bad:['Nem tudom…','Ez nem a mi vonalunk.','Ezt már hallottam máshol is.','Nem győztetek meg.','Hmm, ez mellément.','Nem ezt vártam.']}
 };
 function dealRound(){
  D.round++;
@@ -6016,23 +6058,26 @@ function contractRelease(id){const a=AM[id];
  $('#modal').className='';$('#modal').innerHTML='';save();toast(esc(a.n)+' elment.');render();}
 function contractChat(id){
  const a=AM[id],c=S.contract[id],pref=artistPref(a),bonus=Math.round(signFee(a)*0.35/1000)*1000;
- startChat({name:a.n,photo:artistPhoto(a,120,120),badge:genreBadge(a),pref:pref,
+ startChat({name:a.n,photo:artistPhoto(a,120,120),badge:genreBadge(a),pref:pref,content:NEGO,
   meter0:50,
-  sys:a.n+' hosszabbításról tárgyal · jelenlegi rész '+c.share+'% — a stílusához illő húrokat pengesd!',
-  open:NEGO.open[pref],rounds:NEGO.rounds,
+  sys:a.n+' hosszabbításról tárgyal · jelenlegi rész '+c.share+'% — figyeld körről körre, mit szeretne hallani!',
+  open:NEGO.open[pref],
   resolve:function(outcome){
    Analytics.track('contract_renewed',{artist:id,outcome:outcome});
    if(outcome==='bad'){chatFinish('Nem érzem, hogy jó helyen vagyok. Azt hiszem, továbbállok.',[
      {id:'cGo',label:'Tudomásul veszem — elengedem',emoji:'✕',fn:function(){contractRelease(id);}}]);return;}
    const newShare=outcome==='good'?Math.min(30,c.share+1):c.share;
-   chatFinish(outcome==='good'?'Jó itt nekem — maradok, és '+newShare+'% mehet az ügynökségnek. Csináljuk tovább!':'Rendben, folytassuk — marad a '+newShare+'%.',[
-     {id:'cRe',label:'Hosszabbítás · '+newShare+'% · '+money(bonus),emoji:outcome==='good'?'🎉':'🤝',style:'border-color:rgba(198,255,58,.45);color:var(--neon)',fn:function(){
-        if(S.money<bonus){toast('Nincs elég pénz a bónuszra ('+money(bonus)+').');return;}
-        S.money-=bonus;S.deal=S.deal||{};S.deal[id]=newShare;
-        c.share=newShare;c.fame0=af(a);c.end=S.week+CONTRACT_TERM;c._renewing=false;
-        sfx('pen');pushFeed(esc(a.n)+' újraszerződött',newShare+'% ügynökségi rész · '+money(bonus)+' bónusz'+(outcome==='good'?' · sikeres tárgyalás':''),'pen','var(--gold)');
-        $('#modal').className='';$('#modal').innerHTML='';save();toast(esc(a.n)+' marad · '+newShare+'% rész');render();}},
-     {id:'cRel',label:'Mégis elengedem',emoji:'👋',fn:function(){contractRelease(id);}}]);
+   const doResign=function(b){const fin=Math.min(35,newShare+b);
+     if(S.money<bonus){toast('Nincs elég pénz a bónuszra ('+money(bonus)+').');return;}
+     S.money-=bonus;S.deal=S.deal||{};S.deal[id]=fin;
+     c.share=fin;c.fame0=af(a);c.end=S.week+CONTRACT_TERM;c._renewing=false;
+     sfx('pen');pushFeed(esc(a.n)+' újraszerződött',fin+'% ügynökségi rész · '+money(bonus)+' bónusz'+(outcome==='good'?' · sikeres tárgyalás':''),'pen','var(--gold)');
+     $('#modal').className='';$('#modal').innerHTML='';save();toast(esc(a.n)+' marad · '+fin+'% rész');render();};
+   showChatOffer({msg:outcome==='good'?'Jó itt nekem — maradok, és '+newShare+'% mehet az ügynökségnek. Csináljuk tovább!':'Rendben, folytassuk — marad a '+newShare+'%.',
+     isMax:outcome==='good',suffix:'%',place:'contract',emoji:outcome==='good'?'🎉':'🤝',
+     label:function(b){return 'Hosszabbítás · '+Math.min(35,newShare+b)+'% · '+money(bonus);},
+     accept:doResign,
+     extra:[{id:'cRel',label:'Mégis elengedem',emoji:'👋',fn:function(){contractRelease(id);}}]});
   }});
 }
 function openDetail(id){S.detail=id;S.tab='eloadok';
