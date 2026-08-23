@@ -5013,9 +5013,9 @@ const FAC=[
  {id:'rig',n:'Saját fény- és hangrig',ic:'bolt',max:3,cost:[0,250000,750000,2600000],
   d:'A technikát nem béreled, hanem viszed — csökken a koncert fix költsége.',
   eff:function(l){return '−'+(l*6)+'% fix helyszínköltség';}},
- {id:'office',n:'Nagyobb iroda',ic:'house',max:3,cost:[0,150000,500000,1800000],
+ {id:'office',n:'Nagyobb iroda',ic:'house',max:4,cost:[0,150000,500000,1800000,5000000],
   d:'Több előadót tudsz egyszerre kezelni.',
-  eff:function(l){return (ROSTER_CAP[Math.min(l,3)]||4)+' előadó fér be';}},
+  eff:function(l){return (ROSTER_CAP[Math.min(l,4)]||4)+' előadó fér be';}},
  {id:'bus',n:'Turnébusz és magángép',ic:'plane',max:3,cost:[0,200000,650000,2400000],
   d:'Saját járművek: olcsóbb és gyorsabb utazás az állomások között.',
   eff:function(l){return '−'+(l*12)+'% utazási költség · −'+(l*8)+'% úthossz';}},
@@ -5047,8 +5047,8 @@ function upkeepParts(){
 function upkeepWeekly(){return upkeepParts().total;}
 function hasStaff(id){return !!(S.staff&&S.staff[id]);}
 /* Nagyobb iroda = jóval több hely; max szinten ~az összes előadó elfér (completionist végjáték). */
-const ROSTER_CAP=[4,14,28,50];
-function rosterCap(){return ROSTER_CAP[Math.min(facLv('office'),3)]||4;}
+const ROSTER_CAP=[4,10,20,34,50];   // iroda 0..4 szint — simább felfutás, plafon 50 (≈az összes előadó)
+function rosterCap(){return ROSTER_CAP[Math.min(facLv('office'),4)]||4;}
 /* ---- előadó-fejlesztés ---- */
 function artUp(id){if(!S.artUp)S.artUp={};if(!S.artUp[id])S.artUp[id]={q:0,f:0};return S.artUp[id];}
 function songQ(a,s){return clamp(s.q+artUp(a.id).q,0,100);}
