@@ -1687,13 +1687,11 @@ function festivalCommit(mode){
 /* Fesztivál-tárgyalás chatben. Alap-díj = a felállás összege × csomag-bónusz.
    Kimenet: JÓ → ×1.35 (csúcsdíj) · KÖZEPES → ×1.0 (alap) · ROSSZ → visszalépnek (elmarad). */
 function festChat(f,sel){
- const city=CM[f.city]||{n:f.city,photo:'concert',lk:1},pref=festPref(f);
+ const city=CM[f.city]||{n:f.city,photo:'concert',lk:1},arch=festArch(f);
  let base=0;sel.forEach(function(id){base+=festFee(id,f);});base=Math.round(base*festBundle(sel.length)/500)*500;
- const leanHint={money:'üzleties, a számok érdeklik',art:'a művészi vonalra, egyedi show-ra ad',respect:'rangos, a tiszteletet és profizmust díjazza'}[pref];
- startChat({name:f.n+' · szervező',photo:cityPhoto(city,120,120),badge:'<span class="gbadge">🎪 '+esc(f.lean)+'</span>',pref:pref,content:NEGO_FEST,
+ startChat({name:f.n+' · szervező',photo:cityPhoto(city,120,120),badge:'<span class="gbadge">🎪 '+esc(f.lean)+'</span>',arch:arch,topics:TOPICS_FEST,opens:OPENS[arch],react:REACT_FEST,
   meter0:52,
-  sys:f.n+' szervezője — '+leanHint+'. Alap-díj: '+money(base)+'. Figyeld körről körre, mit szeretne hallani!',
-  open:NEGO_FEST.open[pref],
+  sys:f.n+' szervezője — '+ARCH_HINT[arch]+' Alap-díj: '+money(base)+'. Válaszolj az értékrendje szerint!',
   resolve:function(outcome){
    Analytics.track('fest_negotiated',{fest:f.n,n:sel.length,outcome:outcome});
    if(outcome==='bad'){chatFinish('Köszönjük, de idén más felállással megyünk tovább. Talán legközelebb.',[
@@ -5325,38 +5323,94 @@ function renderDeal(){
    if(D&&D.raf)clearInterval(D.raf);
    D=null;$('#modal').className='';$('#modal').innerHTML='';obRewindTo('sign');render();};
 }
-/* ============================ CHAT-TÁRGYALÁS (messenger) ============================
-   3 kör, körönként 3 válaszopció. Rejtett rapport-mérő; a JÓ válasz az előadó STÍLUSÁHOZ illik
-   (finom támpont a nyitó mondatban + a stílus-badge-ben → ügyesség, nem tiszta szerencse).
-   Kimenet: rapport≥66 → a KÉRT % · 42–65 → KEVESEBB (félúton az alapig) · <42 → ELÁLLNAK. */
-function artistPref(a){
- if(af(a)>=82)return 'respect';                       // a befutott sztár a tiszteletre/rangra ad
- if(a.genre==='Rock'||a.genre==='Elektro')return 'art';
- if(a.genre==='Rap')return 'respect';
- return 'money';                                       // Pop + egyéb: mainstream, üzlet
-}
-const NEGO_TRAITS={money:'💰',art:'🎨',respect:'🤝'};
-/* Rotáló pool-modell: az előadó KÖRÖNKÉNT jelzi (cue), mit szeretne HALLANI (money/art/respect).
-   A „want" körönként/futásonként változik (55% az előadó személyisége, 45% véletlen másik) → nem
-   memorizálható egy játék után. A választás-szövegek is poolból, véletlenül. A helyes válasz a cue-ból
-   kikövetkeztethető (ügyesség), de nem fix. */
-const NEGO={
- open:{money:'Beszéljünk a számokról. Mit tud kínálni az ügynökséged?',
-       art:'Őszinte leszek — engem a zene érdekel, nem a papírmunka. Miben hisztek?',
-       respect:'Sok ajánlatot kapok. Miért pont veletek?'},
- cues:{
-  money:['Mondd, hol a pénz ebben nekem?','Most a bevétel érdekel — győzz meg.','Beszéljünk a számokról, ne a szépről.','A végén a bankszámla számít. Mit tesztek le?','Konkrétan mennyit hoz ez nekem?'],
-  art:['A zenémről beszélj, ne a pénzről.','Engem a szabadság érdekel — meglesz?','Nem eladni akarok, alkotni. Ti hogy álltok ehhez?','Az számít, hogy a hangzás az enyém marad.','A víziómat tiszteletben tartjátok?'],
-  respect:['Éreztesd, hogy fontos vagyok nektek.','Sok helyre hívnak — miért bánnátok velem jobban?','A tiszteletet keresem, nem a nagy ígéreteket.','Partnerként kezeltek, vagy csak egy név vagyok?','Számíthatok rátok, ha baj van?']},
- choices:{
-  money:['A marketing-gépezet mögötted lesz — a bevétel majd beszél.','Prémium helyszínek, nagy színpadok, komoly gázsi.','Streaming-kampány, playlist-pitch — pörgetjük a számaid.','Több fellépés, magasabb díj — kihozzuk belőled a maximumot.','A merch és a jegy is dől majd — jól jársz velünk.'],
-  art:['Teljes kreatív szabadság — a hangzásba nem szólunk bele.','Kísérletezhetsz, válthatsz stílust, mögötted állunk.','A te víziód a lényeg, mi csak keretet adunk.','A producert te választod — a lemez a tiéd marad.','Építsünk együtt valami maradandót.'],
-  respect:['A te neved a lényeg — mi a háttérben dolgozunk érted.','Csapatként döntünk, a te szavad a mérvadó.','Nem szám vagy nálunk, hanem partner.','Bármikor hívhatsz — végig melletted állunk.','Megbízhatsz bennünk, nem hagyunk cserben.']},
- react:{good:['Ez tetszik.','Most figyelek.','Erről van szó.','Ezt akartam hallani.','Igen, pontosan ezt.','Na, ez már döfi.'],
-        mid:['Hmm, oké.','Talán.','Meglátjuk.','Folytasd.','Nem rossz…','Hallgatlak tovább.'],
-        bad:['Nem tudom…','Ez nem én vagyok.','Nem erről szól nálam.','Ezt már hallottam máshol is.','Hmm, ez mellément.','Nem ezt akartam hallani.']}
+/* ===================== CHAT-TÁRGYALÁS (messenger, koherens, téma-alapú) =====================
+   4–5 kör, körönként EGY külön TÉMA (beat): az előadó felvet egy konkrét aggályt (pénz / rang /
+   kreatív kontroll / lojalitás / közönség-építés), a játékos 3 opció közül KONKRÉTAN erre válaszol,
+   az előadó REAGÁL (a reakció illik ahhoz, hogy jól/rosszul válaszoltál), majd a KÖVETKEZŐ téma.
+   A „jó" válasz az előadó ARCHETÍPUSÁNAK ÉRTÉKRENDJÉTŐL függ (díva a rangot, feltörekvő a láthatóságot…)
+   → ügyesség, nem betanulás. Egy tárgyaláson belül SEMMI nem ismétlődik (raise/opció/reakció mind
+   egyszer használatos), és a témák sorrendje + a szövegvariánsok futásonként mások. */
+const VAL_EMOJI={money:'💰',pride:'👑',creative:'🎨',loyalty:'🤝',reach:'📈'};
+const DELTA_W={0:-12,1:0,2:7,3:14};                    // válasz-érték súly → rapport-változás
+/* Archetípus-értékrend: mennyire díjaz egy-egy értéket (0–3). A legmagasabb súlyú a „helyes" válasz. */
+const ARCH_W={
+ diva:   {money:0,pride:3,creative:2,loyalty:1,reach:1},   // rang, elismerés; a puszta pénz hidegen hagyja
+ veteran:{money:0,pride:2,creative:3,loyalty:1,reach:1},   // kreatív kontroll, hitelesség
+ mogul:  {money:3,pride:2,creative:0,loyalty:2,reach:1},   // üzlet, partneri megbízhatóság
+ rebel:  {money:0,pride:1,creative:3,loyalty:2,reach:1},   // szabadság, hűség; az eladósodás taszítja
+ rising: {money:2,pride:1,creative:1,loyalty:1,reach:3},   // láthatóság, felfutás, pénz
+ prestige_org:{money:1,pride:3,creative:2,loyalty:2,reach:1},
+ art_org:     {money:1,pride:1,creative:3,loyalty:1,reach:2},
+ commercial_org:{money:3,pride:1,creative:1,loyalty:1,reach:3}
 };
-function negoClash(t,pref){return (t==='money'&&pref==='art')||(t==='art'&&pref==='money')||(t==='money'&&pref==='respect');}
+const ARCH_HINT={
+ diva:'igazi díva: a rangot és az elismerést többre tartja a puszta pénznél.',
+ veteran:'tapasztalt veterán: a kreatív kontroll és a hitelesség számít neki, a csillogás kevés.',
+ mogul:'üzleti fej: a pénz és a partneri megbízhatóság beszél hozzá, a művészieskedés nem.',
+ rebel:'lázadó alkat: a kreatív szabadság és a hűség fontos, az eladósodást megveti.',
+ rising:'éhes feltörekvő: a láthatóság és a felfutás hajtja, nagy nevet akar építeni.',
+ prestige_org:'rangos szervező: a presztízs és a megbízhatóság a mérce.',
+ art_org:'művészi szemléletű szervező: az egyedi vibe és a látvány a fontos.',
+ commercial_org:'kasszaorientált szervező: a jegyeladás és a nagy közönség dönt.'};
+function artArch(a){const f=af(a);
+ if(f>=80){if(a.genre==='Rap')return 'mogul';if(a.genre==='Rock'||a.genre==='Elektro')return 'veteran';return 'diva';}
+ if(a.genre==='Rock'||a.genre==='Elektro')return 'rebel';
+ if(a.genre==='Rap')return 'mogul';
+ return 'rising';}
+function festArch(f){if(f.prestige>=85)return 'prestige_org';if(f.lean==='Elektro'||f.lean==='Rock')return 'art_org';return 'commercial_org';}
+/* Nyitó köszöntők archetípusonként (jellegzetes HANG). */
+const OPENS={
+ diva:['Nos, halljam. Sokan keresnek — miért pont veletek dolgozzak?','Elegáns, hogy időt szántok rám. Lássuk, értitek-e, kivel beszéltek.'],
+ veteran:['Épp eleget láttam ebből az iparból. Győzzetek meg, hogy ti mások vagytok.','Nem a csillogás érdekel. Térjünk a lényegre.'],
+ mogul:['Idő pénz, térjünk a tárgyra. Mit tesztek az asztalra?','Üzletember vagyok. Lássuk, van-e közös biznisz.'],
+ rebel:['Utálom a nagy dumát. Azt mondjátok, amiben tényleg hisztek.','A kamut kiszúrom. Legyetek őszinték velem.'],
+ rising:['Éhes vagyok a sikerre. Meg tudtok emelni engem?','Most akarok berobbanni. Ti visztek oda, ahová vágyom?'],
+ prestige_org:['Rangos a fesztiválunk. Halljam, miért illetek a színpadunkra.','Sok ügynökség sorakozik. Miért pont a ti felállásotok?'],
+ art_org:['Nálunk a vibe szent. Passzoltok hozzá egyáltalán?','A közönségünk a különlegességre jár. Ti hozzátok azt?'],
+ commercial_org:['Feszes a büdzsé, tele a naptár. Miért érné meg titeket bevenni?','A jegyeladás dönt nálunk. Mit hoztok a kasszába?']};
+/* Reakciók — a reakció ELISMERI, jól/rosszul válaszoltál-e (nem üres közhely). Tónusonként bő pool. */
+const REACT_ART={
+ good:['Igen — pontosan ezt akartam hallani.','Erről van szó. Értitek, mi hajt engem.','Na, ez az a hozzáállás.','Ezt megjegyzem — jól látjátok.','Végre valaki, aki érti a nyelvemet.','Ez meggyőző. Menjünk tovább.','Pontosan a helyes húrt pengetitek.','Ez tetszik — ez az én világom.','Így már beszélhetünk.','Ezt komolyan veszem tőletek.'],
+ mid:['Hmm. Nem rossz, de nem is üt.','Elfogadom, bár vártam többet.','Oké, hallgatlak tovább.','Talán. Győzzetek meg jobban.','Rendben, menjünk tovább.','Ez semleges nekem, őszintén.','Meglátjuk, beválik-e.','Korrekt, de nem forgat fel.','Elmegy. Folytassátok.','Jó, de nem ez fog meggyőzni.'],
+ bad:['Nem. Ez mellément.','Ez pont nem az, ami engem érdekel.','Rossz irányba tapogatóztok.','Ezt már sokszor hallottam — üres.','Hmm, ez nem az én világom.','Elhibáztátok, mi fontos nekem.','Nem érzem. Ez nem rólam szól.','Ezzel épp mellémentetek.','Csalódtam — nem erre számítottam.','Ez nálam pont nem üt.']};
+const REACT_FEST={
+ good:['Igen — ez a hozzáállás kell nekünk.','Erről van szó. Értitek a fesztiválunkat.','Na, ezt akartuk hallani.','Ez profin hangzik — jegyzem.','Meggyőztetek ezzel a ponttal.','Pontosan a mi nyelvünkön beszéltek.','Ez tetszik. Menjünk tovább.','Így már érdekes a dolog.','Ezt komolyan vesszük tőletek.','Ez illik hozzánk.'],
+ mid:['Hmm, elmegy, de nem üt.','Elfogadom, bár vártunk többet.','Oké, hallgatunk tovább.','Talán. Győzzetek meg jobban.','Rendben, folytassátok.','Ez semleges nekünk.','Meglátjuk, beválik-e.','Korrekt, de nem forgat fel.','Jó, de nem ez dönt.','Elmegy, de nem több.'],
+ bad:['Nem. Ez mellément.','Ez nem a mi vonalunk.','Rossz irányba tapogatóztok.','Ezt már hallottuk máshol is.','Hmm, ez nem passzol hozzánk.','Elhibáztátok, mi fontos nekünk.','Nem győztetek meg ezzel.','Ezzel épp mellémentetek.','Csalódás — nem erre számítottunk.','Ez nálunk pont nem üt.']};
+/* ELŐADÓ-TÉMÁK: minden téma egy aggály (raise-pool), és 5 érték-keretezésű válasz (opts), mindegyik
+   2 szövegvariánssal. Mindig mind az 5 érték jelen van → bármelyik archetípus TOP-értéke elérhető. */
+const TOPICS_ART=[
+ {k:'money',raise:['Kezdjük a lényeggel: mit tesz a zsebembe ez a szerződés?','Az előző csapatom keveset hozott. Ti anyagilag mit ígértek?','A pénzről beszéljünk őszintén — megéri ez nekem?'],
+  opts:[{v:'money',tx:['Nagy gázsi, prémium helyszínek — a bevételed azonnal ugrik.','Magasabb jegyár, több állomás — kiszámítható, erős jövedelem.']},
+        {v:'pride',tx:['A neved kerül a plakát tetejére — a rang pénzt is hoz.','A piac a sztárért fizet, és mi sztárrá teszünk.']},
+        {v:'creative',tx:['Nem a gyors pénzt hajszoljuk — értékálló karriert építünk.','A jó lemez évekig fizet; hosszú távra tervezünk veled.']},
+        {v:'loyalty',tx:['Átlátható elszámolás minden fillérről — nálunk nincs meglepetés.','Tisztán játszunk a pénzzel; sosem érzed becsapva magad.']},
+        {v:'reach',tx:['Új piacokat nyitunk — nagyobb közönség, nagyobb bevétel.','Feltornázzuk a rajongótáborod, és a pénz követi a fanokat.']}]},
+ {k:'pride',raise:['Őszinte kérdés: partnerként kezeltek, vagy csak egy név a listán?','Sokan akarnak — miért érezném úgy, hogy nálatok fontos vagyok?','A rang számít nekem. Hogy bántok a sztárjaitokkal?'],
+  opts:[{v:'pride',tx:['Te vagy a zászlóshajónk — minden döntésnél a te neved az első.','A legnagyobbak közé pozicionálunk; a presztízs velünk garantált.']},
+        {v:'money',tx:['A megbecsülés nálunk gázsiban is látszik — prémium feltételek.','Fizetésben is éreztetjük, mennyit érsz nekünk.']},
+        {v:'creative',tx:['Tiszteletből a művészetedbe nem szólunk bele — tiéd a kontroll.','A rangod a szabadságodban mutatkozik: te döntesz mindenről.']},
+        {v:'loyalty',tx:['Kiállunk melletted a sajtóban is — a jó híred a mi dolgunk.','Bármi jön, melletted maradunk; ez a mi tiszteletünk.']},
+        {v:'reach',tx:['A neved minden piacon ott lesz — világszínvonalú megjelenés.','A rangodhoz méltó nagy színpadokra viszünk.']}]},
+ {k:'creative',raise:['A zeném az enyém. Beleszóltok majd a hangzásba?','Az utolsó helyen gyártósorra tettek. Ti hagytok alkotni?','A kreatív kontroll nem alku tárgya nálam. Ti hogy álltok ehhez?'],
+  opts:[{v:'creative',tx:['Teljes kreatív szabadság — a producered te választod, a lemez a tiéd.','Kísérletezhetsz, válthatsz stílust; mi csak a hátteret adjuk.']},
+        {v:'pride',tx:['A te víziód a mi büszkeségünk — nem nyúlunk hozzá.','A művészi rangodat óvjuk; ez a te birodalmad.']},
+        {v:'loyalty',tx:['Ha kockázatos irányt választasz, akkor is melletted állunk.','Rossz kritikáknál sem hagyunk magadra — kitartunk a víziód mellett.']},
+        {v:'money',tx:['A hiteles zene hosszú távon a legjobb üzlet — hagyunk alkotni.','A saját hangod többet hoz; nem szólunk bele, mert megéri.']},
+        {v:'reach',tx:['A friss hangzásodat pont a megfelelő új közönséghez visszük.','Az egyedi stílusod nyit új piacokat — arra építünk.']}]},
+ {k:'loyalty',raise:['Ha jön egy rossz év, mellettem maradtok, vagy ejtetek?','Az iparban sokan eltűnnek a baj első jelére. Ti milyenek vagytok?','Nekem a bizalom a legfontosabb. Miért bízhatok bennetek?'],
+  opts:[{v:'loyalty',tx:['Jóban-rosszban melletted állunk — nem ejtünk az első gödörnél.','Hosszú távra szerződünk, a fejünkkel és a szívünkkel is.']},
+        {v:'pride',tx:['A neved véd téged nálunk — sosem dobunk oda a sajtónak.','Megbecsülésből kiállunk melletted minden helyzetben.']},
+        {v:'money',tx:['Nehéz évben is finanszírozzuk a comeback-edet — anyagilag tartunk.','Van tartalékunk rád; egy gyenge szezon nem visz csődbe minket.']},
+        {v:'creative',tx:['Ha a művészi utad nehéz szakaszba ér, türelemmel kísérünk.','Nem kérünk kompromisszumot pánikból — hagyjuk kiforrni a víziód.']},
+        {v:'reach',tx:['Ha lassabban jönnek a fanok, kitartóan építjük tovább a táborod.','Nem adunk fel egy régiót sem; végig dolgozunk a közönségedért.']}]},
+ {k:'reach',raise:['A rajongótáboromat akarom növelni. Ti mit tesztek le ezért?','Új piacokra vágyom. Elértek oda, ahová egyedül nem jutok?','A láthatóság hajt. Hogyan visztek több emberhez?'],
+  opts:[{v:'reach',tx:['Célzott kampányok új régiókban — a táborod látványosan nő.','Playlist- és fesztiválhelyek, ahol új közönség fedez fel.']},
+        {v:'money',tx:['A növekedést marketingbe fektetjük — a pénz a fanokért dolgozik.','Erős büdzsé a promócióra; a láthatóságod mögé pénzt teszünk.']},
+        {v:'pride',tx:['A neved a nagy plakátokra kerül — az egész világ látni fog.','A legrangosabb színpadokra viszünk, ahol figyel mindenki.']},
+        {v:'creative',tx:['Az egyedi hangod lesz a horog, ami új füleket vonz.','A bátor kreatív irányod pont a friss közönségnek szól.']},
+        {v:'loyalty',tx:['Kitartóan, régióról régióra építjük a táborod — egyet sem hagyunk ki.','Végig melletted dolgozunk, míg minden piac a tiéd nem lesz.']}]}
+];
 function chatThem(text,cb){const log=$('#chatLog');if(!log)return;
  const typ=document.createElement('div');typ.className='typing';typ.innerHTML='<i></i><i></i><i></i>';
  log.appendChild(typ);log.scrollTop=log.scrollHeight;
@@ -5366,18 +5420,16 @@ function chatThem(text,cb){const log=$('#chatLog');if(!log)return;
 function chatMe(text){const log=$('#chatLog');if(!log)return;const b=document.createElement('div');b.className='cbub me';b.textContent=text;log.appendChild(b);log.scrollTop=log.scrollHeight;}
 /* ---- ÁLTALÁNOS chat-motor: alkuhoz, fesztiválhoz, szerződés-hosszabbításhoz ---- */
 let CHAT=null;
-/* Körök felépítése: 4–5 kör, körönként rotáló „want" (55% személyiség, 45% véletlen), cue + 3 véletlen válasz. */
-function chatRounds(content,pref,n){
- const T=['money','art','respect'],out=[],pk=function(arr){return arr[Math.floor(Math.random()*arr.length)];};
- for(var i=0;i<n;i++){
-  const want=Math.random()<0.55?pref:T.filter(function(t){return t!==pref;})[Math.floor(Math.random()*2)];
-  out.push({want:want,cue:pk(content.cues[want]),choices:T.map(function(t){return {t:t,x:pk(content.choices[t])};})});
- }
- return out;
+/* Egy tárgyaláson belül SEMMI nem ismétlődik: minden felhasznált sort a CHAT.used halmazba teszünk. */
+function pickUnused(pool,used){
+ const avail=pool.filter(function(s){return !used.has(s);});
+ const arr=avail.length?avail:pool, s=arr[Math.floor(Math.random()*arr.length)];
+ used.add(s); return s;
 }
 function startChat(cfg){
- const n=4+Math.floor(Math.random()*2);                       // 4 vagy 5 kör (véletlen)
- CHAT={meter:clamp(cfg.meter0,8,82),round:0,busy:false,cfg:cfg,content:cfg.content,pref:cfg.pref,rounds:chatRounds(cfg.content,cfg.pref,n)};
+ const n=4+Math.floor(Math.random()*2);                       // 4 vagy 5 téma-kör (véletlen)
+ CHAT={meter:clamp(cfg.meter0,8,82),round:0,total:n,busy:false,cfg:cfg,arch:cfg.arch,
+       topics:cfg.topics.slice(),react:cfg.react,used:new Set(),beat:null};
  const m=$('#modal');
  m.innerHTML='<div class="ev" style="height:82vh;max-height:640px;display:flex;flex-direction:column;padding:0;overflow:hidden">'+
    '<div class="chatwrap"><div class="chathead"><div class="av"><img src="'+cfg.photo+'" '+imgFB()+'></div>'+
@@ -5386,29 +5438,40 @@ function startChat(cfg){
    '<div class="chatlog" id="chatLog">'+(cfg.sys?'<div class="cbub sys">'+esc(cfg.sys)+'</div>':'')+'</div>'+
    '<div class="chatchoices" id="chatChoices"></div></div></div>';
  m.className='on';
- chatThem(cfg.open||cfg.content.open[cfg.pref],function(){nextChatRound();});
+ chatThem(pickUnused(cfg.opens,CHAT.used),function(){nextChatRound();});
+}
+/* Egy beat felépítése: ismétlésmentes téma; a válaszkészletben az archetípus TOP-értéke (jó), egy
+   közepes és a LEG-alacsonyabb súlyú (rossz) is jelen van → tiszta jó/közepes/rossz spektrum. */
+function chatBeat(){
+ const w=ARCH_W[CHAT.arch];
+ const topic=CHAT.topics.splice(Math.floor(Math.random()*CHAT.topics.length),1)[0];
+ const scored=topic.opts.slice().sort(function(a,b){return w[b.v]-w[a.v];});
+ const best=scored[0],worst=scored[scored.length-1];
+ const mids=scored.slice(1,scored.length-1),mid=mids[Math.floor(Math.random()*mids.length)];
+ const cards=[best,mid,worst].map(function(o){return {v:o.v,w:w[o.v],x:pickUnused(o.tx,CHAT.used)};});
+ cards.sort(function(){return Math.random()-0.5;});
+ return {raise:pickUnused(topic.raise,CHAT.used),cards:cards,maxW:w[best.v],minW:w[worst.v]};
 }
 function nextChatRound(){
  if(!CHAT)return;
- if(CHAT.round>=CHAT.rounds.length){resolveChat();return;}
- const rd=CHAT.rounds[CHAT.round];
- chatThem(rd.cue,function(){chatShowChoices(rd);});             // előbb a cue (mit szeretne hallani), utána a választások
+ if(CHAT.round>=CHAT.total||!CHAT.topics.length){resolveChat();return;}
+ CHAT.beat=chatBeat();
+ chatThem(CHAT.beat.raise,function(){chatShowChoices(CHAT.beat);});   // előbb az aggály, utána a válaszok
 }
-function chatShowChoices(rd){
+function chatShowChoices(beat){
  const ch=$('#chatChoices');if(!ch)return;
- const order=[0,1,2].sort(function(){return Math.random()-0.5;});
- ch.innerHTML=order.map(function(k){const c=rd.choices[k];return '<button class="choice" data-k="'+k+'"><span class="tr">'+NEGO_TRAITS[c.t]+'</span>'+esc(c.x)+'</button>';}).join('');
+ ch.innerHTML=beat.cards.map(function(c,k){return '<button class="choice" data-k="'+k+'"><span class="tr">'+VAL_EMOJI[c.v]+'</span>'+esc(c.x)+'</button>';}).join('');
  ch.querySelectorAll('.choice').forEach(function(b){
-   const h=function(e){if(e)e.preventDefault();if(!CHAT||CHAT.busy)return;pickChoice(CHAT.rounds[CHAT.round].choices[+b.dataset.k]);};
+   const h=function(e){if(e)e.preventDefault();if(!CHAT||CHAT.busy)return;pickChoice(CHAT.beat.cards[+b.dataset.k]);};
    b.onpointerdown=h;b.onclick=h;});
 }
-function pickChoice(c){
- CHAT.busy=true;$('#chatChoices').innerHTML='';chatMe(c.x);
- const want=CHAT.rounds[CHAT.round].want;
- let d=c.t===want?12:negoClash(c.t,want)?-13:3;d+=Math.round((Math.random()-0.5)*7);
- CHAT.meter=clamp(CHAT.meter+d,0,100);const bar=$('#rapBar');if(bar)bar.style.width=CHAT.meter+'%';
- const tone=c.t===want?'good':negoClash(c.t,want)?'bad':'mid',pool=CHAT.content.react[tone];
- setTimeout(function(){chatThem(pool[Math.floor(Math.random()*pool.length)],function(){CHAT.round++;CHAT.busy=false;nextChatRound();});},340);
+function pickChoice(card){
+ CHAT.busy=true;$('#chatChoices').innerHTML='';chatMe(card.x);
+ const beat=CHAT.beat,tone=card.w>=beat.maxW?'good':card.w<=beat.minW?'bad':'mid';
+ CHAT.meter=clamp(CHAT.meter+DELTA_W[card.w]+Math.round((Math.random()-0.5)*6),0,100);
+ const bar=$('#rapBar');if(bar)bar.style.width=CHAT.meter+'%';
+ const react=pickUnused(CHAT.react[tone],CHAT.used);
+ setTimeout(function(){chatThem(react,function(){CHAT.round++;CHAT.busy=false;nextChatRound();});},340);
 }
 function resolveChat(){const meter=CHAT.meter,outcome=meter>=66?'good':meter>=42?'mid':'bad';CHAT.cfg.resolve(outcome,meter);}
 /* végkimenet: buborék + gombok (buttons:[{id,label,emoji,style,fn}]) — offer nélküli esetekhez (elállnak) */
@@ -5439,11 +5502,10 @@ function showChatOffer(o){
 }
 /* --- ALKU (leigazolás) --- */
 function dealChat(){
- const a=D.a,base=dealBase(a),pref=artistPref(a);
- startChat({name:a.n,photo:artistPhoto(a,120,120),badge:genreBadge(a),pref:pref,content:NEGO,
+ const a=D.a,base=dealBase(a),arch=artArch(a);
+ startChat({name:a.n,photo:artistPhoto(a,120,120),badge:genreBadge(a),arch:arch,topics:TOPICS_ART,opens:OPENS[arch],react:REACT_ART,
   meter0:50-Math.max(0,D.ask-base)*1.5,
-  open:NEGO.open[pref],
-  sys:a.n+' · kért jutalék '+D.ask+'% — figyeld körről körre, mit szeretne HALLANI, és aszerint válassz!',
+  sys:a.n+' '+ARCH_HINT[arch]+' Kért jutalék: '+D.ask+'%. Válaszolj az értékrendje szerint!',
   resolve:function(outcome){
    const share=outcome==='good'?D.ask:outcome==='mid'?Math.round(base+(D.ask-base)*0.5):base;
    Analytics.track('contract_negotiated',{artist:a.id,asked:D.ask,base:base,outcome:outcome,share:share});
@@ -5457,24 +5519,39 @@ function dealChat(){
      extra:outcome==='bad'?[{id:'cCancel',label:'Mégse',emoji:'✕',fn:function(){D=null;$('#modal').className='';$('#modal').innerHTML='';obRewindTo('sign');render();}}]:[]});
   }});
 }
-/* --- FESZTIVÁL-SZERVEZŐ persona + tartalom --- */
-function festPref(f){if(f.prestige>=85)return 'respect';if(f.lean==='Elektro'||f.lean==='Rock')return 'art';if(f.lean==='Rap')return 'respect';return 'money';}
-const NEGO_FEST={
- open:{money:'A fellépti díjról beszéljünk — mit gondoltatok?',
-       art:'Ez egy különleges fesztivál. Illik hozzátok a felállás?',
-       respect:'Sok ügynökség sorban áll. Miért pont a tiétek?'},
- cues:{
-  money:['Beszéljünk a bevételről — mit hoz a felállás?','A jegyeladás a lényeg. Miért éri meg színpadot adni?','A büdzsé feszes — győzzetek meg, hogy megéri.','Számokban gondolkodom. Mit tesztek le?','Mennyi közönséget hoztok reálisan?'],
-  art:['Nálunk a vibe számít — illik hozzánk a felállás?','Egyedi élményt akarunk, ne gyári fellépést.','A közönségünk a minőségre jár. Ti hozzátok?','A színpadi kép fontos — mit mutattok?','Emlékezetes pillanatokat várunk. Meglesz?'],
-  respect:['Rangos fesztivál a miénk. Komolyan veszitek?','Sok ügynökség kopogtat. Miért pont ti?','A profizmust díjazzuk. Megbízhatóak vagytok?','A partnerség nálunk hosszú távú — benne vagytok?','Számíthatunk rátok, ha valami közbejön?']},
- choices:{
-  money:['A neveink megtöltik a színpadot — a jegyeladás beszél.','Prémium slotért prémium díj — korrekt üzlet.','A merch és a jegy is pörögni fog velünk.','Nagy közönséget hozunk — megtérül a gázsi.','Kihozzuk a maximumot a fesztiválból.'],
-  art:['A felállásunk pont a ti vibe-otokhoz passzol.','Emlékezetes show-t hozunk, látványt és élményt.','Egyedi szettet állítunk össze a fesztiválra.','A közönségetek imádni fogja a hangzást.','Csináljunk együtt valami feledhetetlent.'],
-  respect:['Megtiszteltetés itt fellépni — komolyan vesszük.','Rugalmasak vagyunk — a ti fesztiválotok, a ti szabályaitok.','Profin készülünk, nem okozunk fejfájást.','Hosszú távra tervezünk veletek — megbízható partner.','Bízzatok bennünk — nem okozunk csalódást.']},
- react:{good:['Ez tetszik.','Erről van szó.','Na, ezt akartam hallani.','Igen, ez a hozzáállás.','Meggyőztetek.','Ez profin hangzik.'],
-        mid:['Hmm, oké.','Talán.','Meglátjuk.','Nem rossz…','Folytassátok.','Hallgatlak.'],
-        bad:['Nem tudom…','Ez nem a mi vonalunk.','Ezt már hallottam máshol is.','Nem győztetek meg.','Hmm, ez mellément.','Nem ezt vártam.']}
-};
+/* --- FESZTIVÁL-SZERVEZŐ témák (ügynökség ↔ szervező, szervezői aggályok) --- */
+const TOPICS_FEST=[
+ {k:'fee',raise:['Kezdjük a díjjal — mi fér bele reálisan a büdzsénkbe?','A gázsi a legkényesebb pont. Miért éri meg ennyit fizetni?','Szűk a keret. Győzzetek meg, hogy megéri a fellépti díj.'],
+  opts:[{v:'money',tx:['A jegyeladás fedezi a díjat — a neveink megtöltik a helyet.','Prémium slot, prémium díj — de a kassza is prémium lesz.']},
+        {v:'reach',tx:['Hatalmas közönséget hozunk — a többletjegy behozza a gázsit.','Új nézőket vonzunk a fesztiválra; megtérül a befektetés.']},
+        {v:'pride',tx:['A nevünk emeli a plakát rangját — ez felárat ér.','A felállásunk lesz a fesztivál fő attrakciója.']},
+        {v:'creative',tx:['Emlékezetes show-t adunk — az élményért érdemes fizetni.','Egyedi szettet hozunk, amit máshol nem látnak — ez az ára.']},
+        {v:'loyalty',tx:['Korrekt, fix díj, semmi utólagos csúsztatás — tiszta alku.','Rugalmasan kezeljük a keretet; nem terhelünk rejtett költséggel.']}]},
+ {k:'draw',raise:['Mekkora közönséget hoztok reálisan a színpad elé?','A sávot meg kell tölteni. Ti behúzzátok a népet?','A nézőszám nálunk minden. Mit tesztek le ezért?'],
+  opts:[{v:'reach',tx:['Széles rajongótábor több régióból — tele lesz a placc.','Erős online jelenlét: a fanok utaznak is a fellépésért.']},
+        {v:'money',tx:['A jegybevétel mindkettőnknek jó — közösen keresünk rajta.','Marketinget teszünk mögé; a nézőszám mögé pénzt rakunk.']},
+        {v:'pride',tx:['A nevünk önmagában tömeget vonz — headliner-húzóerő.','A plakátunkra sokan váltanak jegyet, csak a névért.']},
+        {v:'creative',tx:['A show híre terjed — a látvány önmagát adja el.','Emlékezetes pillanatokért jönnek, és hozzák a barátaikat is.']},
+        {v:'loyalty',tx:['Végig promózzuk a fellépést a saját csatornáinkon — nem marad üres szék.','Kitartóan dolgozunk a nézőszámért az előtte lévő hetekben is.']}]},
+ {k:'fit',raise:['Passzol a felállásotok a fesztivál karakteréhez?','Nálunk a vibe szent. Illik hozzánk, amit hoztok?','A közönségünk kényes az ízlésre. Ti a mi világunk vagytok?'],
+  opts:[{v:'creative',tx:['A felállásunk pont a ti vibe-otokba simul — művészileg passzol.','Egyedi, a fesztiválra szabott szettet állítunk össze.']},
+        {v:'pride',tx:['A rangos vonalatokhoz méltó neveket hozunk.','A mi sztárjaink emelik a fesztivál művészi tekintélyét.']},
+        {v:'reach',tx:['A stílusunk pont a ti közönségeteket vonzza be.','A rajongóink a ti profilotokhoz illő nézők.']},
+        {v:'money',tx:['Ami passzol, az jegyet is ad el — a fit kasszasiker is.','A jó illeszkedés a legjobb marketing; magától fogy a jegy.']},
+        {v:'loyalty',tx:['Alkalmazkodunk a szabályaitokhoz — a ti fesztiválotok a mérce.','Nem erőltetünk semmit, ami nem illik hozzátok — rugalmasak vagyunk.']}]},
+ {k:'reliability',raise:['Megbízhatóak vagytok? Nem lesz balhé a színfalak mögött?','Volt már, hogy egy fellépő cserben hagyott. Ti milyenek vagytok?','A gördülékeny lebonyolítás nálunk alap. Számíthatunk rátok?'],
+  opts:[{v:'loyalty',tx:['Profin, pontosan érkezünk — a rider betartva, semmi dráma.','Megbízható partner vagyunk; ami meg van beszélve, az úgy is lesz.']},
+        {v:'pride',tx:['A jó hírünk a tét — sosem égetnénk le magunkat nálatok.','A rangunkat pont a megbízhatóság adja; erre építünk.']},
+        {v:'money',tx:['Szerződésben rögzítünk mindent — kötbérrel a biztonságotokért.','Anyagilag is garantáljuk a megjelenést; nincs kockázat nálatok.']},
+        {v:'creative',tx:['Rugalmas a szettünk — ha csúszik a menetrend, alkalmazkodunk.','Bármilyen technikai keretbe illesztjük a show-t, gördülékenyen.']},
+        {v:'reach',tx:['Mi is hozzuk a saját közönségünket — közös érdek a siker.','Előre kommunikálunk a fanoknak minden részletet; nincs meglepetés.']}]},
+ {k:'prestige',raise:['Méltó a nevünkhöz ez a felállás? Rangos eseményünk van.','A fesztiválunk presztízs kérdése. Emeli a szintet, amit hoztok?','A legjobbakat várjuk a színpadunkra. Miért ti?'],
+  opts:[{v:'pride',tx:['A nevünk a fesztivál rangját emeli — büszkék lehettek a plakátra.','Világklasszis felállás, amely tekintélyt ad az eseménynek.']},
+        {v:'creative',tx:['Művészileg egyedi produkciót hozunk — a kritikusok is jegyzik majd.','Olyan show, amiről évekig beszélnek — ez presztízs.']},
+        {v:'reach',tx:['A jelenlétünk médiafigyelmet hoz — a világ a fesztiválra néz.','A fanjaink és a sajtó reflektorfénybe emelik az eseményt.']},
+        {v:'money',tx:['A rangos név rangos jegyárat is elbír — presztízs és bevétel együtt.','A prémium felállás prémium szponzorokat is vonz.']},
+        {v:'loyalty',tx:['Hosszú távra építünk veletek egy rangos hagyományt.','Visszatérő partnerként emeljük évről évre a fesztivál nevét.']}]}
+];
 function dealRound(){
  D.round++;
  const a=D.a,ch=dealChance(a,D.ask);
@@ -6060,11 +6137,10 @@ function contractRelease(id){const a=AM[id];
  pushFeed(esc(a.n)+' távozott','Lejárt a szerződés — felszabadult egy hely.','alert','var(--muted)');
  $('#modal').className='';$('#modal').innerHTML='';save();toast(esc(a.n)+' elment.');render();}
 function contractChat(id){
- const a=AM[id],c=S.contract[id],pref=artistPref(a),bonus=Math.round(signFee(a)*0.35/1000)*1000;
- startChat({name:a.n,photo:artistPhoto(a,120,120),badge:genreBadge(a),pref:pref,content:NEGO,
+ const a=AM[id],c=S.contract[id],arch=artArch(a),bonus=Math.round(signFee(a)*0.35/1000)*1000;
+ startChat({name:a.n,photo:artistPhoto(a,120,120),badge:genreBadge(a),arch:arch,topics:TOPICS_ART,opens:OPENS[arch],react:REACT_ART,
   meter0:50,
-  sys:a.n+' hosszabbításról tárgyal · jelenlegi rész '+c.share+'% — figyeld körről körre, mit szeretne hallani!',
-  open:NEGO.open[pref],
+  sys:a.n+' hosszabbításról tárgyal ('+c.share+'% jelenleg) — '+ARCH_HINT[arch]+' Válaszolj az értékrendje szerint!',
   resolve:function(outcome){
    Analytics.track('contract_renewed',{artist:id,outcome:outcome});
    if(outcome==='bad'){chatFinish('Nem érzem, hogy jó helyen vagyok. Azt hiszem, továbbállok.',[
@@ -7172,7 +7248,7 @@ if(!S.started){renderStart();}
 else if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track('tutorial_started',{source:'first_open'});}
 if(S.resultPending&&S.lastResult)showResult();
 if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
-if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,contractWeeksLeft,contractRenewal,checkContracts,ensureContract,chartTop,chartScore,rivalOf,driftNpc,RIVALS,CONTRACT_TERM,awardsShow,checkAwards,festivalOffer,festivalCommit,festFee,checkFestivals,FESTS,farewellEligible,farewellTour,awardConflict,launchTour,vcap,cityCapMul,songFresh,setlistFresh,openFestivals,fairPrice,dealChat,artistPref,newFestOffer,genreBadge,renderDeal,gLabel,startChat,festChat,festApply,festPref,festSelected,contractChat,contractRelease,signFee,
+if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,contractWeeksLeft,contractRenewal,checkContracts,ensureContract,chartTop,chartScore,rivalOf,driftNpc,RIVALS,CONTRACT_TERM,awardsShow,checkAwards,festivalOffer,festivalCommit,festFee,checkFestivals,FESTS,farewellEligible,farewellTour,awardConflict,launchTour,vcap,cityCapMul,songFresh,setlistFresh,openFestivals,fairPrice,dealChat,artArch,newFestOffer,genreBadge,renderDeal,gLabel,startChat,festChat,festApply,festArch,festSelected,contractChat,contractRelease,signFee,ARCH_W,ARCH_HINT,TOPICS_ART,TOPICS_FEST,OPENS,REACT_ART,REACT_FEST,
   _mus:function(){var xb={};Object.keys(TRX).forEach(function(k){var b=trkBuf(k);xb[k]=b?+b.duration.toFixed(1):0;});return{buffers:xb,rot:S.rot,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
