@@ -80,6 +80,14 @@ jobs:
           echo "verzió $VER · build ${{ github.run_number }} · orientation: Portrait-only"
           /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations" "$PLIST"
           /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations~ipad" "$PLIST"
+          # HANG NÉMA MÓDBAN IS — AVAudioSession .playback, hogy a zene a MÉDIA-hangerővel szóljon
+          # akkor is, ha a Csengő/Néma kapcsoló némán van (mint egy zenelejátszó). A generált
+          # AppDelegate.swift-be injektáljuk (import + setCategory a didFinishLaunching-ban).
+          APPD=ios/App/App/AppDelegate.swift
+          perl -0pi -e 's/^import Capacitor/import Capacitor\nimport AVFoundation/m' "$APPD"
+          perl -0pi -e 's/(didFinishLaunchingWithOptions[^\{]*\{)/$1\n        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])\n        try? AVAudioSession.sharedInstance().setActive(true)/s' "$APPD"
+          echo "=== AppDelegate.swift (audio-session patch ellenőrzés) ==="
+          grep -nE "AVFoundation|AVAudioSession" "$APPD" || echo "FIGYELEM: az audio-session patch NEM ment be!"
 
       - name: Fordítási próba (ha nincs Apple-titok)
         if: env.ASC_KEY_P8 == ''
