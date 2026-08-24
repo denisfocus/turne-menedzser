@@ -69,7 +69,17 @@ jobs:
           VER=$(node -p "require('./package.json').version")
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VER" "$PLIST"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}" "$PLIST"
-          echo "verzió $VER · build ${{ github.run_number }}"
+          # FORGATÁS TILTVA — az app CSAK álló (portré) módban működik (iPhone ÉS iPad).
+          # A Capacitor által generált Info.plist orientation-tömbjeit lecseréljük CSAK Portrait-ra.
+          /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations:0 string UIInterfaceOrientationPortrait" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations~ipad" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations~ipad array" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations~ipad:0 string UIInterfaceOrientationPortrait" "$PLIST"
+          echo "verzió $VER · build ${{ github.run_number }} · orientation: Portrait-only"
+          /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations" "$PLIST"
+          /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations~ipad" "$PLIST"
 
       - name: Fordítási próba (ha nincs Apple-titok)
         if: env.ASC_KEY_P8 == ''
