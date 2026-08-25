@@ -1593,6 +1593,19 @@ function chartScore(a){var tr=artistTrend(a);
  if(S.roster.indexOf(a.id)>=0){var st=artState(a.id);return st.streams*(1+st.hype*0.4)*tr;}
  return Math.pow(af(a),2.4)*60*1.05*npcMomentum(a.id)*tr;}
 function chartTop(n){return ARTISTS.slice().sort(function(x,y){return chartScore(y)-chartScore(x);}).slice(0,n||10);}
+/* ÜGYNÖKSÉG-RANGLISTA: a te ügynökséged a 6 AI-riválishoz mérve. Az ügynökség PONTSZÁMA a hozzá tartozó
+   előadók chart-pontjainak összege. Ha leigazolsz egy sztárt, ELVESZED a riválistól → az ő pontjuk
+   csökken, a tiéd nő → valódi tét a nagy nevek megszerzésében. */
+/* konzisztens előadó-erő (owned/NPC egyformán, fame-alapú) — a leigazolt sztár +15% (te fejleszted),
+   így a leigazolás VALÓBAN átviszi a riválistól az erőt a te ügynökségedhez. */
+function artistPower(a){var owned=S.roster.indexOf(a.id)>=0;return Math.pow(af(a),2.2)*artistTrend(a)*(owned?1.15:1);}
+function agencyScore(name){var mine=name===agencyName(),sum=0;
+ ARTISTS.forEach(function(a){var owned=S.roster.indexOf(a.id)>=0;
+  if(mine){if(owned)sum+=artistPower(a);}else{if(!owned&&rivalOf(a.id)===name)sum+=artistPower(a);}});
+ return sum;}
+function agencyRanking(){var rows=[{name:agencyName(),mine:true,score:agencyScore(agencyName())}];
+ RIVALS.forEach(function(r){rows.push({name:r,mine:false,score:agencyScore(r)});});
+ rows.sort(function(a,b){return b.score-a.score;});rows.forEach(function(r,i){r.rank=i+1;});return rows;}
 function driftNpc(){S.npcMom=S.npcMom||{};
  ARTISTS.forEach(function(a){if(S.roster.indexOf(a.id)>=0)return;
   var cur=npcMomentum(a.id);S.npcMom[a.id]=+clamp(cur+(Math.random()-0.5)*0.09,0.6,1.5).toFixed(3);});}
@@ -1814,7 +1827,7 @@ function relCost(a,k){return Math.round((4000+af(a)*260)*k.mul*(1-facLv('studio'
 /* ---------- MERCH ---------- */
 /* Fejenkénti költés: az alap × rajongói szint × a merch-pult fejlesztése.
    A hűséges rajongó sokkal többet költ — ezért a merch a rajongótábor „kamata". */
-const MERCH_COST=[0,18000,55000,160000,400000];
+const MERCH_COST=[0,18000,80000,280000,900000];
 /* a helyszín mérete szorozza a rajongótábor-építést: nagy hely = nagyobb nyomot hagy */
 const VFAN={club:1,theatre:1.5,arena:2.2,stadium:3};
 function merchMul(){return 1+S.upg.merch*0.35;}
@@ -2468,7 +2481,7 @@ function genreBadge(a){return '<span class="gbadge">'+icon(a.ic,'10px')+' '+esc(
 const CROWD='https://loremflickr.com/900/560/concert,crowd,stage,lights?lock=7';
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;$('#app').appendChild(t);setTimeout(()=>t.remove(),2000);}
 function imgFB(){return `onerror="this.style.opacity=0"`;}
-const MK_COST=[0,25000,70000,190000,480000], ST_COST=[0,20000,60000,170000,420000];
+const MK_COST=[0,25000,100000,350000,1100000], ST_COST=[0,20000,85000,300000,950000];
 
 /* ============================ GAZDASÁG ============================ */
 function haversine(a,b){const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lon-a.lon)*Math.PI/180,la1=a.lat*Math.PI/180,la2=b.lat*Math.PI/180;
@@ -5244,6 +5257,16 @@ function careerScreen(){
    '<div class="tile c2">'+icon('ticket','20px')+'<div class="v">'+money(r.bestMerch)+'</div><div class="k">Legjobb merch</div></div></div>';
  if(r.firstArenaWeek)h+='<div class="hint"><span class="i">'+icon('clock','13px')+'</span><span>Az első megtöltött arénáig <b>'+r.firstArenaWeek+' hét</b> kellett.</span></div>';
 
+ /* ügynökség-ranglista — te vs. a 6 AI-rivális ügynökség */
+ {const rk=agencyRanking(),mx=rk[0]?rk[0].score:0,me=rk.find(function(x){return x.mine;})||{rank:'?'};
+  h+='<div class="sec"><h2>Ügynökség-ranglista</h2><span class="r act" style="color:'+(me.rank===1?'var(--cash)':'var(--gold)')+'">te vagy a #'+me.rank+'/'+rk.length+'</span></div>';
+  h+='<div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px">';
+  rk.forEach(function(r){var w=mx>0?Math.max(3,Math.round(r.score/mx*100)):0;
+    h+='<div class="fanrow"><span class="n" style="min-width:0;'+(r.mine?'color:var(--neon);font-weight:800':'')+'">'+r.rank+'. '+esc(r.name)+(r.mine?' — te':'')+'</span>'+
+       '<span class="b"><i style="width:'+w+'%;background:'+(r.mine?'var(--neon)':'var(--faint)')+'"></i></span>'+
+       '<span class="v" style="color:'+(r.mine?'var(--neon)':'var(--muted)')+'">'+w+'</span></div>';});
+  h+='</div><div class="hint"><span class="i">'+icon('star','13px')+'</span><span>Igazolj le nagyobb sztárokat — elveszed őket a riválisoktól, és feljebb kerülsz a listán.</span></div>';}
+
  /* dicsőségfal */
  h+='<div class="sec"><h2>Dicsőségfal</h2><span class="r">'+((S.hall||[]).length)+'</span></div>';
  if(!(S.hall||[]).length)h+='<div class="empty">Még nincs bejegyzés. A legjobb turnéid ide kerülnek.</div>';
@@ -5683,16 +5706,16 @@ function closeDeal(won){
 /* ============================ BERUHÁZÁSOK (€ sinkek) ============================
    A pénz célja: earn -> reinvest -> earn more. Minden itt EURÓBÓL megy, nem kreditből. */
 const FAC=[
- {id:'studio',n:'Saját stúdió',ic:'notes',max:3,cost:[0,180000,500000,1800000],
+ {id:'studio',n:'Saját stúdió',ic:'notes',max:3,cost:[0,180000,800000,5000000],
   d:'Olcsóbb és ütősebb kiadások: nem kell bérelni a stúdiót.',
   eff:function(l){return '−'+(l*15)+'% kiadási költség · +'+(l*12)+'% streaming-lökés';}},
- {id:'rig',n:'Saját fény- és hangrig',ic:'bolt',max:3,cost:[0,250000,750000,2600000],
+ {id:'rig',n:'Saját fény- és hangrig',ic:'bolt',max:3,cost:[0,250000,1500000,7500000],
   d:'A technikát nem béreled, hanem viszed — csökken a koncert fix költsége.',
   eff:function(l){return '−'+(l*6)+'% fix helyszínköltség';}},
- {id:'office',n:'Nagyobb iroda',ic:'house',max:4,cost:[0,150000,500000,1800000,5000000],
+ {id:'office',n:'Nagyobb iroda',ic:'house',max:4,cost:[0,150000,800000,4000000,16000000],
   d:'Több előadót tudsz egyszerre kezelni.',
   eff:function(l){return (ROSTER_CAP[Math.min(l,4)]||4)+' előadó fér be';}},
- {id:'bus',n:'Turnébusz és magángép',ic:'plane',max:3,cost:[0,200000,650000,2400000],
+ {id:'bus',n:'Turnébusz és magángép',ic:'plane',max:3,cost:[0,250000,1500000,7000000],
   d:'Saját járművek: olcsóbb és gyorsabb utazás az állomások között.',
   eff:function(l){return '−'+(l*12)+'% utazási költség · −'+(l*8)+'% úthossz';}},
 ];
@@ -7291,7 +7314,7 @@ if(!S.started){renderStart();}
 else if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track('tutorial_started',{source:'first_open'});}
 if(S.resultPending&&S.lastResult)showResult();
 if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
-if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,contractWeeksLeft,contractRenewal,checkContracts,ensureContract,chartTop,chartScore,rivalOf,driftNpc,RIVALS,CONTRACT_TERM,awardsShow,checkAwards,festivalOffer,festivalCommit,festFee,checkFestivals,FESTS,farewellEligible,farewellTour,awardConflict,launchTour,vcap,cityCapMul,songFresh,setlistFresh,openFestivals,fairPrice,dealChat,artArch,newFestOffer,genreBadge,renderDeal,gLabel,startChat,festChat,festApply,festArch,festSelected,contractChat,contractRelease,signFee,ARCH_W,ARCH_HINT,TOPICS_ART,TOPICS_FEST,OPENS,REACT_ART,REACT_FEST,streamBase,streamTarget,showResult,awardsShow,endTour,avgFans,
+if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,contractWeeksLeft,contractRenewal,checkContracts,ensureContract,chartTop,chartScore,rivalOf,driftNpc,RIVALS,CONTRACT_TERM,awardsShow,checkAwards,festivalOffer,festivalCommit,festFee,checkFestivals,FESTS,farewellEligible,farewellTour,awardConflict,launchTour,vcap,cityCapMul,songFresh,setlistFresh,openFestivals,fairPrice,dealChat,artArch,newFestOffer,genreBadge,renderDeal,gLabel,startChat,festChat,festApply,festArch,festSelected,contractChat,contractRelease,signFee,ARCH_W,ARCH_HINT,TOPICS_ART,TOPICS_FEST,OPENS,REACT_ART,REACT_FEST,streamBase,streamTarget,showResult,awardsShow,endTour,avgFans,agencyRanking,agencyScore,agencyName,FAC,UPG,facLv,
   _mus:function(){var xb={};Object.keys(TRX).forEach(function(k){var b=trkBuf(k);xb[k]=b?+b.duration.toFixed(1):0;});return{buffers:xb,rot:S.rot,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
