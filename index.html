@@ -4965,7 +4965,10 @@ function renderNav(){const tabs=[['iroda','house',t('nav.iroda')],['terkep','glo
  navEl.innerHTML=tabs.map(([id,ic,l])=>`<a class="${S.tab===id?'on':''}" data-tab="${id}">${icon(ic)}${l}</a>`).join('');
  const allow=obAllowedTabs();
  if(allow)navEl.querySelectorAll('[data-tab]').forEach(a=>{if(allow.indexOf(a.dataset.tab)<0)a.classList.add('off');});
- navEl.querySelectorAll('[data-tab]').forEach(a=>a.onclick=()=>{if(S.tab!==a.dataset.tab){sfx('tap');S.detail=null;if(a.dataset.tab!=='terkep')teardownMap();S.tab=a.dataset.tab;save();render();}});}
+ navEl.querySelectorAll('[data-tab]').forEach(a=>a.onclick=()=>{
+   if(S.tab!==a.dataset.tab){sfx('tap');S.detail=null;if(a.dataset.tab!=='terkep')teardownMap();S.tab=a.dataset.tab;save();render();}
+   else if(S.detail){sfx('tap');S.detail=null;save();render();}   // ugyanaz a fül + nyitott előadó-profil → vissza a listára
+ });}
 
 /* ============================ KARRIER-RENDSZER ============================
    Retenció ÉLVEZETBŐL, nem várakozásból: nincs energia, élet vagy napi timer.
@@ -6206,6 +6209,30 @@ function contractRelease(id){const a=AM[id];
  S.roster=S.roster.filter(function(x){return x!==id;});delete S.contract[id];
  pushFeed(esc(a.n)+' távozott','Lejárt a szerződés — felszabadult egy hely.','alert','var(--muted)');
  $('#modal').className='';$('#modal').innerHTML='';save();toast(esc(a.n)+' elment.');render();}
+/* SZERZŐDÉSBONTÁS idő előtt — KÖTBÉRÉRT. A kötbér a sztár értékétől (fame²) ÉS a hátralévő időtől függ:
+   nagy sztár + sok hátralévő hét = drágább. Kb.: (20e + fame²·40) × (0.4 + 0.6·hét/CONTRACT_TERM). */
+function contractBreakCost(id){const a=AM[id],wl=Math.max(0,contractWeeksLeft(id)||0);
+ return Math.round((20000+af(a)*af(a)*40)*(0.4+0.6*wl/CONTRACT_TERM)/1000)*1000;}
+function contractBreak(id){
+ const a=AM[id],wl=contractWeeksLeft(id);if(wl==null)return;
+ const cost=contractBreakCost(id),canPay=S.money>=cost;
+ const h='<div class="ev"><div class="bd"><span class="kick" style="color:var(--hot)">Szerződésbontás</span>'+
+  '<h3>'+esc(a.n)+' elengedése</h3>'+genreBadge(a)+
+  '<p style="margin-top:8px">A szerződésből még <b>'+wl+' hét</b> van hátra. Idő előtti bontás <b>kötbérrel</b> jár — utána felszabadul egy hely, de elveszíted '+esc(a.n)+'-t.</p>'+
+  '<div class="evch" style="margin-top:14px">'+
+   '<button class="evb'+(canPay?' pay':'')+'" data-cb="yes"'+(canPay?'':' disabled')+'><div class="l">'+icon('alert','15px')+' Bontás · kötbér '+money(cost)+'</div><div class="s">'+(canPay?'Kifizeted a kötbért, és '+esc(a.n)+' távozik.':'Nincs elég pénz a kötbérre.')+'</div></button>'+
+   '<button class="evb" data-cb="no"><div class="l">Mégse</div></button>'+
+  '</div></div></div>';
+ const m=$('#modal');m.innerHTML=h;m.className='on';
+ m.querySelector('[data-cb="yes"]').onclick=function(){
+   if(S.money<cost){toast('Nincs elég pénz a kötbérre ('+money(cost)+').');return;}
+   S.money-=cost;S.roster=S.roster.filter(function(x){return x!==id;});delete S.contract[id];
+   Analytics.track('contract_broken',{artist:id,cost:cost,weeksLeft:wl});
+   pushFeed(esc(a.n)+' szerződése felbontva','Kötbér: '+money(cost)+' · felszabadult egy hely','alert','var(--hot)');
+   sfx('pen');if(S.detail===id)S.detail=null;
+   m.className='';m.innerHTML='';save();toast(esc(a.n)+' távozott · kötbér '+money(cost));render();};
+ m.querySelector('[data-cb="no"]').onclick=function(){m.className='';m.innerHTML='';};
+}
 function contractChat(id){
  const a=AM[id],c=S.contract[id],arch=artArch(a),bonus=Math.round(signFee(a)*0.35/1000)*1000;
  startChat({name:a.n,photo:artistPhoto(a,120,120),badge:genreBadge(a),arch:arch,topics:TOPICS_ART,opens:OPENS[arch],react:REACT_ART,
@@ -6292,11 +6319,14 @@ function detailScreen(){const a=AM[S.detail],mine=S.roster.includes(a.id),fee=si
  else h+=`<button class="btn ${canPay?'lime':'dark'}" data-sign="${a.id}" ${canPay?'':'disabled'}>${fee?(canPay?'Leigazolás · '+money(fee):'Nincs elég pénz ('+money(fee)+')'):'Leigazolás · ingyen'}</button>`;
  if(mine&&farewellEligible(a.id)&&!(S.rel&&S.rel.artist===a.id)&&!(S.live&&S.live.artist===a.id))
    h+=`<button class="btn dark" id="fwBtn2" style="margin-top:8px;border-color:var(--gold);color:var(--gold)">${icon('crown','18px')} Búcsúturné · visszavonulás → Legendák</button>`;
+ if(mine&&contractWeeksLeft(a.id)>0&&!(S.rel&&S.rel.artist===a.id)&&!(S.live&&S.live.artist===a.id))
+   h+=`<button class="btn dark sm" id="cbBtn" style="margin-top:8px;border-color:rgba(255,61,132,.4);color:var(--hot)">${icon('alert','15px')} Szerződés bontása · kötbér ${money(contractBreakCost(a.id))}</button>`;
  h+=`</div>`;
  view.innerHTML=h;
  $('.back').onclick=()=>{S.detail=null;save();render();};
  const sb=view.querySelector('[data-sign]');if(sb)sb.onclick=()=>{openDeal(a.id);};
  const tb=view.querySelector('[data-tour]');if(tb)tb.onclick=()=>{startTour(a.id);};
+ const cbb=view.querySelector('#cbBtn');if(cbb)cbb.onclick=()=>{contractBreak(a.id);};
  const fw2=view.querySelector('#fwBtn2');if(fw2)fw2.onclick=()=>{farewellTour(a.id);};
  view.querySelectorAll('[data-train]').forEach(b=>b.onclick=()=>trainArtist(a.id,b.dataset.train));
 }
@@ -7326,7 +7356,7 @@ if(!S.started){renderStart();}
 else if(!S.obDone&&S.ob===0&&!S.obStarted){S.obStarted=1;save();Analytics.track('tutorial_started',{source:'first_open'});}
 if(S.resultPending&&S.lastResult)showResult();
 if(Analytics.debug){window.Analytics=Analytics;Object.defineProperty(window,'__M',{get:function(){return M;}});}   // fejlesztői mód: konzolból is vizsgálható
-if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,contractWeeksLeft,contractRenewal,checkContracts,ensureContract,chartTop,chartScore,rivalOf,driftNpc,RIVALS,CONTRACT_TERM,awardsShow,checkAwards,festivalOffer,festivalCommit,festFee,checkFestivals,FESTS,farewellEligible,farewellTour,awardConflict,launchTour,vcap,cityCapMul,songFresh,setlistFresh,openFestivals,fairPrice,dealChat,artArch,newFestOffer,genreBadge,renderDeal,gLabel,startChat,festChat,festApply,festArch,festSelected,contractChat,contractRelease,signFee,ARCH_W,ARCH_HINT,TOPICS_ART,TOPICS_FEST,OPENS,REACT_ART,REACT_FEST,streamBase,streamTarget,showResult,awardsShow,endTour,avgFans,agencyRanking,agencyScore,agencyName,FAC,UPG,facLv,
+if(location.search.indexOf('dbg')>=0)window.__G={S,AM,VM,VENUES,estimate,fairPrice,commRate,dealBase,dealChance,af,artState,legCost,CM,promoCost,setlistQ,launchTour,save,render,OB,plStep,plGo,buildPattern,RG,LT,KIT,artistPhoto,byFame,ARTISTS,miniResult,skipPhase,skipAll,claimGift,giftReady,legEarn,legLv,legRank,legPts,doPrestige,prestigeConfirm,buyLegPerk,canPrestige,careerScreen,cityList,LEGPERKS,level,recs,UICT,CT,setLang,translateUI,relocalizeContent,openDeal,showResult,openShop,renderEvent,openEvent,EVENTS,acardHTML,tabStudio,GIFTS,loadConcert,CTRACK,openMini,loadPiano,PTRACK,openPiano,loadLights,LTRACK,openLights,sfx,startRelease,doSign,startAmbient,stopAmbient,updateAmbient,buyFac,claimGift,autoSetlist,bestOrder,unlockedN,availSongs,lockedSongs,finishRelease,crowdSim,arcTarget,trendMul,artistTrend,driftTrends,streamTarget,advanceWeeks,estimate,GENRES,trendLabel,perfMul,energyLabel,runShow,contractWeeksLeft,contractRenewal,checkContracts,ensureContract,chartTop,chartScore,rivalOf,driftNpc,RIVALS,CONTRACT_TERM,awardsShow,checkAwards,festivalOffer,festivalCommit,festFee,checkFestivals,FESTS,farewellEligible,farewellTour,awardConflict,launchTour,vcap,cityCapMul,songFresh,setlistFresh,openFestivals,fairPrice,dealChat,artArch,newFestOffer,genreBadge,renderDeal,gLabel,startChat,festChat,festApply,festArch,festSelected,contractChat,contractRelease,signFee,ARCH_W,ARCH_HINT,TOPICS_ART,TOPICS_FEST,OPENS,REACT_ART,REACT_FEST,streamBase,streamTarget,showResult,awardsShow,endTour,avgFans,agencyRanking,agencyScore,agencyName,FAC,UPG,facLv,contractBreak,contractBreakCost,openDetail,
   _mus:function(){var xb={};Object.keys(TRX).forEach(function(k){var b=trkBuf(k);xb[k]=b?+b.duration.toFixed(1):0;});return{buffers:xb,rot:S.rot,acState:AC?AC.state:'no-ac',M:(typeof M!=='undefined'&&M)?{kind:M.kind,useTrack:M.useTrack,notes:(M.notes?M.notes.length:(M.moves?M.moves.length:0)),dur:M.dur,started:M.started,hasAudio:!!M.audioSrc,audioStart:M.audioStart}:null};},
   _setM:function(k,v){if(typeof M!=='undefined'&&M){M[k]=v;return M[k];}return null;},
   _ac:function(){return (typeof AC!=='undefined')?AC:null;},
