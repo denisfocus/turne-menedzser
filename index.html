@@ -3130,11 +3130,15 @@ const AD_TOUR_BONUS=0.50;   // a turné végi flagship reklám: +50% a jutalékr
    ha a natív burokban elérhető a vásárlás-plugin; addig (és weben) a fejlesztői ág fut.
    Termékazonosítók: lásd STORE.md (tourempire.credits.100 / .550 / .1200). */
 function isNative(){return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());}
+/* IAP_LIVE: amíg FALSE, NEM indítunk valós StoreKit-terhelést — a prototípus-ág fut (azonnal jóváír,
+   nem fizettet). Így nincs „fizet, de nem szállít" helyzet, amíg a boltban be nincs állítva a 3 termék
+   és eszközön nincs letesztelve a nyugta→jóváírás. Élesítéskor: IAP_LIVE=true + ASC-termékek + sandbox-teszt. */
+const IAP_LIVE=false;
 const Store={
  buy(pack,onOk){
   Analytics.track('iap_started',{pack:pack.c,price:pack.eur,native:isNative()?1:0});
-  /* Natív burokban a bolt fizet; a jóváírás a nyugta ellenőrzése UTÁN történik. */
-  if(isNative()&&IAP.buy(pack,onOk)){toast('Vásárlás indítása…');return;}
+  /* Natív burokban a bolt fizet; a jóváírás a nyugta ellenőrzése UTÁN történik. (Csak ha IAP_LIVE.) */
+  if(IAP_LIVE&&isNative()&&IAP.buy(pack,onOk)){toast('Vásárlás indítása…');return;}
   /* fejlesztői / webes ág: azonnal jóváír, hogy a folyamat tesztelhető legyen */
   Analytics.track('iap_completed',{pack:pack.c,price:pack.eur,native:0});
   S.credits=credits()+pack.c;save();renderHUD();
@@ -3157,7 +3161,7 @@ function openShop(why){
    <span class="pr2">${k.eur}</span></button>`);
  h+=`</div>
    <div style="font-size:10.5px;color:var(--faint);margin-top:11px;line-height:1.45">
-     Prototípus — a fizetés még nincs bekötve.</div>
+     Teszt-mód — a kredit jóváíródik, valódi fizetés nélkül.</div>
    <button class="btn dark sm" data-close="1" style="margin-top:12px">Bezárom</button>
    </div></div>`;
  const m=$('#modal');m.innerHTML=h;m.className='on';
@@ -3212,8 +3216,12 @@ function ensureAudio(){
   try{ loadTrk('concert1'); }catch(e){}
   try{ loadTrk('piano1'); }catch(e){}
   try{ loadTrk('lights1'); }catch(e){}
+  /* NÉMA PRIMING (iOS): egy néma, ismétlődő <audio> elem lejátszása „média szól" állapotba billenti a
+     WebView-t → a WebAudio a natív .playback kategóriát követi, így néma kapcsolónál is szól (média-hangerő). */
+  try{ if(!window.__silPrime){ const s=new Audio('data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAAABmYWN0BAAAAAAAAABkYXRhAAAAAA=='); s.loop=true; s.volume=0; s.setAttribute('playsinline',''); const p=s.play(); if(p&&p.catch)p.catch(function(){}); window.__silPrime=s; } else if(window.__silPrime.paused){ try{window.__silPrime.play().catch(function(){});}catch(e){} } }catch(e){}
  }
  try{ if(AC.state!=='running')AC.resume(); }catch(e){}     // suspended ÉS interrupted (iOS) is
+ try{ if(window.__silPrime&&window.__silPrime.paused)window.__silPrime.play().catch(function(){}); }catch(e){}
 }
 function resumeAudio(){ try{ if(AC&&AC.state!=='running')AC.resume(); }catch(e){} }
 /* a Leaflet-térkép újraméretezése, amikor a konténer láthatóvá válik / a képernyő
@@ -6237,15 +6245,19 @@ function detailScreen(){const a=AM[S.detail],mine=S.roster.includes(a.id),fee=si
  /* ÁLLAPOT — a saját előadó profilján: energia, morál, szerződés, trend, kritika */
  if(mine){const el=energyLabel(A.energy||100),perf=Math.round(perfMul(a.id)*100),wl=contractWeeksLeft(a.id),
      at=artistTrend(a),tl=trendLabel(at),atPct=Math.round((at-1)*100);
+  const pcol=perf>=85?'var(--cash)':perf>=60?'var(--neon)':'var(--gold)';
+  const wlPct=wl!=null?clamp(Math.round(wl/CONTRACT_TERM*100),3,100):0, wcol=wl<=8?'var(--hot)':wl<=16?'var(--gold)':'var(--neon)';
+  const ccol=A.lastCritic>=80?'var(--cash)':A.lastCritic>=55?'var(--neon)':'var(--gold)';
   h+=`<div class="sec"><h2>Állapot</h2><span class="r" style="color:${el.c}">${el.t}</span></div>
    <div style="background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px">
      <div class="fanrow"><span class="n">⚡ Energia</span><span class="b"><i style="width:${clamp(A.energy||100,0,100)}%;background:${el.c}"></i></span><span class="v" style="color:${el.c}">${Math.round(A.energy||100)}</span></div>
      <div class="fanrow"><span class="n">${moraleFace(A.morale||72)} Morál</span><span class="b"><i style="width:${clamp(A.morale||72,0,100)}%;background:var(--neon)"></i></span><span class="v">${Math.round(A.morale||72)}</span></div>
-     <div class="poolhint" style="margin-top:8px">Teljesítmény most kb. <b>${perf}%</b>${(A.energy||100)<40?' — fáradt, pihentesd pár hetet (ne turnéztasd).':''}</div>
-     ${wl!=null?`<div class="poolhint" style="margin-top:6px${wl<=8?';color:var(--hot)':''}">${icon('pen','12px')} Szerződés: <b>${wl} hét</b> · ${dealShare(a)}% rész${wl<=8?' — hamarosan újratárgyal!':''}</div>`:''}
-     <div class="poolhint" style="margin-top:6px;color:${tl.c}">📈 ${a.genre}-trend: <b>${atPct>=0?'+':''}${atPct}%</b> (${tl.t})</div>
-     ${A.lastCritic?`<div class="poolhint" style="margin-top:6px">🎼 Legutóbbi kritika: <b>${A.lastCritic}/100</b></div>`:''}
-     ${A.trophies?`<div class="poolhint" style="margin-top:6px;color:var(--gold)">🏆 ${A.trophies} díj</div>`:''}
+     <div class="fanrow"><span class="n">🎤 Teljesítmény</span><span class="b"><i style="width:${clamp(perf,0,100)}%;background:${pcol}"></i></span><span class="v" style="color:${pcol}">${perf}%</span></div>
+     ${A.lastCritic?`<div class="fanrow"><span class="n">🎼 Kritika</span><span class="b"><i style="width:${clamp(A.lastCritic,0,100)}%;background:${ccol}"></i></span><span class="v" style="color:${ccol}">${A.lastCritic}</span></div>`:''}
+     ${wl!=null?`<div class="fanrow"><span class="n" style="${wl<=8?'color:var(--hot)':''}">${icon('pen','12px')} Szerződés</span><span class="b"><i style="width:${wlPct}%;background:${wcol}"></i></span><span class="v" style="color:${wcol}">${wl}h</span></div>
+     <div class="poolhint" style="margin-top:2px;font-size:11px">${dealShare(a)}% ügynökségi rész${wl<=8?' <span style="color:var(--hot)">· hamarosan újratárgyal!</span>':''}</div>`:''}
+     <div class="poolhint" style="margin-top:8px;color:${tl.c}">📈 ${a.genre}-trend: <b>${atPct>=0?'+':''}${atPct}%</b> (${tl.t})${A.trophies?` · <span style="color:var(--gold)">🏆 ${A.trophies} díj</span>`:''}</div>
+     ${(A.energy||100)<40?`<div class="poolhint" style="margin-top:4px;color:var(--hot)">Fáradt — pihentesd pár hetet (ne turnéztasd), és visszaépül.</div>`:''}
    </div>`;}
  const arc=artArc(a),nx=artNext(a);
  h+=`<div class="sec"><h2>Karrier-ív</h2><span class="r act">${arc.n}</span></div>

@@ -89,9 +89,11 @@ jobs:
           # AppDelegate.swift-be injektáljuk (import + setCategory a didFinishLaunching-ban).
           APPD=ios/App/App/AppDelegate.swift
           perl -0pi -e 's/^import Capacitor/import Capacitor\nimport AVFoundation/m' "$APPD"
-          perl -0pi -e 's/(didFinishLaunchingWithOptions[^\{]*\{)/$1\n        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])\n        try? AVAudioSession.sharedInstance().setActive(true)/s' "$APPD"
+          # setCategory(.playback) + ÚJRA-ÉRVÉNYESÍTÉS route-change ÉS app-active eseményre (a WKWebView
+          # a WebAudio indulasakor gyakran visszaallitja ambient-re -> ezert kell ujra-asszertalni).
+          perl -0pi -e 's/(didFinishLaunchingWithOptions[^\{]*\{)/$1\n        let __as = AVAudioSession.sharedInstance()\n        func __applyAudio() { try? __as.setCategory(.playback, mode: .default, options: []); try? __as.setActive(true) }\n        __applyAudio()\n        NotificationCenter.default.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { _ in __applyAudio() }\n        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in __applyAudio() }/s' "$APPD"
           echo "=== AppDelegate.swift (audio-session patch ellenőrzés) ==="
-          grep -nE "AVFoundation|AVAudioSession" "$APPD" || echo "FIGYELEM: az audio-session patch NEM ment be!"
+          grep -nE "AVFoundation|AVAudioSession|__applyAudio|routeChangeNotification" "$APPD" || echo "FIGYELEM: az audio-session patch NEM ment be!"
 
       - name: Fordítási próba (ha nincs Apple-titok)
         if: env.ASC_KEY_P8 == ''
