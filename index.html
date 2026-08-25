@@ -3216,12 +3216,8 @@ function ensureAudio(){
   try{ loadTrk('concert1'); }catch(e){}
   try{ loadTrk('piano1'); }catch(e){}
   try{ loadTrk('lights1'); }catch(e){}
-  /* NÉMA PRIMING (iOS): egy néma, ismétlődő <audio> elem lejátszása „média szól" állapotba billenti a
-     WebView-t → a WebAudio a natív .playback kategóriát követi, így néma kapcsolónál is szól (média-hangerő). */
-  try{ if(!window.__silPrime){ const s=new Audio('data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAAABmYWN0BAAAAAAAAABkYXRhAAAAAA=='); s.loop=true; s.volume=0; s.setAttribute('playsinline',''); const p=s.play(); if(p&&p.catch)p.catch(function(){}); window.__silPrime=s; } else if(window.__silPrime.paused){ try{window.__silPrime.play().catch(function(){});}catch(e){} } }catch(e){}
  }
  try{ if(AC.state!=='running')AC.resume(); }catch(e){}     // suspended ÉS interrupted (iOS) is
- try{ if(window.__silPrime&&window.__silPrime.paused)window.__silPrime.play().catch(function(){}); }catch(e){}
 }
 function resumeAudio(){ try{ if(AC&&AC.state!=='running')AC.resume(); }catch(e){} }
 /* a Leaflet-térkép újraméretezése, amikor a konténer láthatóvá válik / a képernyő

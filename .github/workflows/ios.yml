@@ -84,16 +84,8 @@ jobs:
           echo "verzió $VER · build ${{ github.run_number }} · orientation: Portrait-only · UIRequiresFullScreen: true"
           /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations" "$PLIST"
           /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations~ipad" "$PLIST"
-          # HANG NÉMA MÓDBAN IS — AVAudioSession .playback, hogy a zene a MÉDIA-hangerővel szóljon
-          # akkor is, ha a Csengő/Néma kapcsoló némán van (mint egy zenelejátszó). A generált
-          # AppDelegate.swift-be injektáljuk (import + setCategory a didFinishLaunching-ban).
-          APPD=ios/App/App/AppDelegate.swift
-          perl -0pi -e 's/^import Capacitor/import Capacitor\nimport AVFoundation/m' "$APPD"
-          # setCategory(.playback) + ÚJRA-ÉRVÉNYESÍTÉS route-change ÉS app-active eseményre (a WKWebView
-          # a WebAudio indulasakor gyakran visszaallitja ambient-re -> ezert kell ujra-asszertalni).
-          perl -0pi -e 's/(didFinishLaunchingWithOptions[^\{]*\{)/$1\n        let __as = AVAudioSession.sharedInstance()\n        func __applyAudio() { try? __as.setCategory(.playback, mode: .default, options: []); try? __as.setActive(true) }\n        __applyAudio()\n        NotificationCenter.default.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { _ in __applyAudio() }\n        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in __applyAudio() }/s' "$APPD"
-          echo "=== AppDelegate.swift (audio-session patch ellenőrzés) ==="
-          grep -nE "AVFoundation|AVAudioSession|__applyAudio|routeChangeNotification" "$APPD" || echo "FIGYELEM: az audio-session patch NEM ment be!"
+          # (Audio: a normál WebKit-viselkedést hagyjuk — a hang a néma kapcsolót követi, mint a legtöbb
+          #  játék. A .playback hack kivéve, mert a Web Audio úgyis a WebKit saját munkamenetét használja.)
 
       - name: Fordítási próba (ha nincs Apple-titok)
         if: env.ASC_KEY_P8 == ''
