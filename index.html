@@ -1898,6 +1898,12 @@ const EVENTS=[
   ch:[{l:'Fedett tartalék helyszín',s:'Kisebb terem — jóval kevesebb hely, a nagy helyszín költsége bukó',c:'pay',e:{money:-11000,cap:0.55}},
       {l:'Vállaljuk a kockázatot',s:'Sokan otthon maradhatnak',c:'risk',e:{att:-0.3}}]},
 
+ /* NAGYON RITKA (w:2): az előadó lebetegszik. A hátralévő állomások lemondhatók — bukott előlegekkel. */
+ {id:'sick',w:2,when:['pre','road'],ic:'alert',t:'Lebetegedett az előadó',
+  d:'{A} belázasodott a turné közben — az orvos szerint most fellépni kockázatos.',
+  ch:[{l:'Feszítjük — talán meggyógyul útközben',s:'Gyengébb esték, csalódott közönség',c:'risk',e:{att:-0.2,rep:-3}},
+      {l:'Lemondjuk a turné hátralévő részét',s:'A többi állomás elmarad — a lekötött előlegek buknak, sérül a hírnév',c:'risk',e:{cancelTour:true}}]},
+
  {id:'sponsor',w:8,when:['pre'],ic:'banknote',t:'Helyi szponzor jelentkezett',
   d:'Egy energiaital-márka a színpadi háttérre kerülne, cserébe azonnal fizet.',
   ch:[{l:'Elfogadjuk az ajánlatot',s:'+€9 000 · kicsit kiárusítós',c:'good',e:{money:9000,rep:-2}},
@@ -3043,6 +3049,19 @@ function chooseEvent(ev,idx){
  if(e.days)L.days+=e.days;
  if(e.skip)L.skipNext=true;
  if(e.wait)extra=e.wait;
+ /* TURNÉ-LEMONDÁS (nagyon ritka, pl. lebetegedés): a hátralévő állomások ELMARADNAK, a lekötött
+    helyszín-előlegek BUKNAK (a nagy részét már kifizetted), + hírnév-veszteség. A turné azonnal lezárul. */
+ if(e.cancelTour){
+  let sunk=0;
+  for(let j=(L.rows?L.rows.length:0);j<L.stops.length;j++){const stp=L.stops[j];
+    if(stp&&CM[stp.city]&&VM[stp.venue])sunk+=Math.round(vcap(stp.city,VM[stp.venue])*3/500)*500;}
+  sunk=Math.max(sunk,15000);
+  S.money=Math.max(0,S.money-sunk);L.tEvent-=sunk;
+  S.rep=Math.max(0,S.rep-8);L.rep-=8;
+  L.log.push({t:ev.t,s:ch.l+' — a turné hátralévő állomásai ELMARADNAK · −'+money(sunk)+' bukott előleg · −8 hírnév',ic:'alert'});
+  L.pausedLeft=null;L.pendingEv=null;$('#modal').className='';$('#modal').innerHTML='';
+  save();toast('Elmaradt turné — bukott előlegek: '+money(sunk));endTour();return;
+ }
  L.log.push({t:ev.t,s:ch.l+(em?` · ${money(em)}`:'')+(er?` · ${er>0?'+':''}${er} hírnév`:'')+
    (e.att?` · ${e.att>0?'+':''}${Math.round(e.att*100)}% nézőszám`:'')+(e.cap?` · −${Math.round((1-e.cap)*100)}% férőhely`:'')+(e.days?` · +${e.days} nap`:''),ic:ev.ic});
  L.ends=Date.now()+(L.pausedLeft||0)+extra;L.pausedLeft=null;L.pendingEv=null;
@@ -5765,8 +5784,10 @@ function artUp(id){if(!S.artUp)S.artUp={};if(!S.artUp[id])S.artUp[id]={q:0,f:0};
 function songQ(a,s){return clamp(s.q+artUp(a.id).q,0,100);}
 /* Az előadó-fejlesztés nem fogy el: a költség lépésenként MÉRTANI sorral nő,
    így késői vagyonnál is valódi nyelő marad. */
-function trainCost(a){return Math.round((30000+af(a)*1400)*Math.pow(1.32,artUp(a.id).q/2)/1000)*1000;}
-function imageCost(a){return Math.round((45000+af(a)*2200)*Math.pow(1.30,artUp(a.id).f/3)/1000)*1000;}
+/* Előadó-fejlesztés = VÉGTELEN, mértani pénznyelő: a roster tökéletesítése milliós, hosszú távú
+   végjáték-cél (a fejlesztés-fa kimaxolása után is van hova tenni a pénzt). A korai szintek olcsók. */
+function trainCost(a){return Math.round((30000+af(a)*1400)*Math.pow(1.40,artUp(a.id).q/2)/1000)*1000;}
+function imageCost(a){return Math.round((45000+af(a)*2200)*Math.pow(1.38,artUp(a.id).f/3)/1000)*1000;}
 
 function buyFac(id){
  const f=FAC.find(function(x){return x.id===id;});const l=facLv(id);
