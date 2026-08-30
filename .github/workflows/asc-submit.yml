@@ -87,29 +87,27 @@ jobs:
               print("\n=== SZÁRAZ FUTÁS (confirm != IGEN) — NEM küldtem be. Build rákötve, minden kész a beküldésre. ===")
               raise SystemExit(0)
 
-          # nyitott review submission újrahasznosítása vagy létrehozása
-          openst='AWAITING_FOR_REVIEW,IN_REVIEW,UNRESOLVED_ISSUES,COMPLETING,READY_FOR_REVIEW,WAITING_FOR_REVIEW,CANCELING'
+          # Régi, még BE NEM KÜLDÖTT (nyitott) review submissionöket töröljük, hogy
+          # tiszta lappal induljunk — a beragadt üres submission okozhat állapot-hibát.
           rss=g('/v1/reviewSubmissions', **{'filter[app]':aid,'filter[platform]':'IOS','limit':20}).get('data',[])
-          openone=next((r for r in rss if r['attributes'].get('state') not in ('COMPLETE','CANCELED')), None)
-          if openone:
-              sid=openone['id']; print("Meglévő nyitott review submission:",sid,openone['attributes'].get('state'))
-          else:
-              r=req('POST','/v1/reviewSubmissions', {'data':{'type':'reviewSubmissions','attributes':{'platform':'IOS'},
-                   'relationships':{'app':{'data':{'type':'apps','id':aid}}}}})
-              if r.status_code>=300: raise SystemExit(1)
-              sid=r.json()['data']['id']; print("Új review submission:",sid)
+          for r0 in rss:
+              stt=r0['attributes'].get('state')
+              if stt in ('READY_FOR_REVIEW','UNRESOLVED_ISSUES'):
+                  # nem submitted → törölhető/lemondható
+                  req('PATCH', f"/v1/reviewSubmissions/{r0['id']}", {'data':{'type':'reviewSubmissions','id':r0['id'],'attributes':{'canceled':True}}})
+                  req('DELETE', f"/v1/reviewSubmissions/{r0['id']}", None)
+          # friss submission
+          r=req('POST','/v1/reviewSubmissions', {'data':{'type':'reviewSubmissions','attributes':{'platform':'IOS'},
+               'relationships':{'app':{'data':{'type':'apps','id':aid}}}}})
+          if r.status_code>=300: raise SystemExit(1)
+          sid=r.json()['data']['id']; print("Új review submission:",sid)
 
-          # verzió mint item hozzáadása (ha még nincs)
-          items=g(f'/v1/reviewSubmissions/{sid}/items').get('data',[])
-          has=any((it.get('relationships',{}).get('appStoreVersion',{}).get('data') or {}).get('id')==vid for it in items)
-          if not has:
-              r=req('POST','/v1/reviewSubmissionItems', {'data':{'type':'reviewSubmissionItems',
-                   'relationships':{'reviewSubmission':{'data':{'type':'reviewSubmissions','id':sid}},
-                                    'appStoreVersion':{'data':{'type':'appStoreVersions','id':vid}}}}})
-              if r.status_code>=300:
-                  print("!!! Item hozzáadás hiba — valószínűleg hiányzó adatlap-elem (screenshot/jog/adatvédelem)."); raise SystemExit(1)
-          else:
-              print("A verzió már item a submissionben.")
+          # verzió mint item hozzáadása
+          r=req('POST','/v1/reviewSubmissionItems', {'data':{'type':'reviewSubmissionItems',
+               'relationships':{'reviewSubmission':{'data':{'type':'reviewSubmissions','id':sid}},
+                                'appStoreVersion':{'data':{'type':'appStoreVersions','id':vid}}}}})
+          if r.status_code>=300:
+              print("!!! Item hozzáadás hiba — a verzió nincs beküldhető állapotban (hiányzó adatlap-elem)."); raise SystemExit(1)
 
           # beküldés
           r=req('PATCH', f'/v1/reviewSubmissions/{sid}', {'data':{'type':'reviewSubmissions','id':sid,'attributes':{'submitted':True}}})
