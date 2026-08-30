@@ -80,7 +80,7 @@ jobs:
               if ex:
                   print(f"  {prod}: már van screenshot, kihagyom"); continue
               # reservation
-              r=requests.post(Bx+'/v2/inAppPurchaseAppStoreReviewScreenshots', headers=H(), json={
+              r=requests.post(Bx+'/v1/inAppPurchaseAppStoreReviewScreenshots', headers=H(), json={
                 'data':{'type':'inAppPurchaseAppStoreReviewScreenshots',
                         'attributes':{'fileName':'iap-review.png','fileSize':size},
                         'relationships':{'inAppPurchaseV2':{'data':{'type':'inAppPurchases','id':pid}}}}})
@@ -94,7 +94,7 @@ jobs:
                   up=requests.request(op.get('method','PUT'), op['url'], headers=hdrs, data=data[off:off+ln])
                   if up.status_code>=300: print('   upload FAIL',up.status_code,up.text[:200]); ok=False
               if not ok: continue
-              c=requests.patch(Bx+f'/v2/inAppPurchaseAppStoreReviewScreenshots/{sid}', headers=H(), json={
+              c=requests.patch(Bx+f'/v1/inAppPurchaseAppStoreReviewScreenshots/{sid}', headers=H(), json={
                 'data':{'type':'inAppPurchaseAppStoreReviewScreenshots','id':sid,
                         'attributes':{'uploaded':True,'sourceFileChecksum':md5}}})
               print(f"  {prod}: commit", c.status_code, '' if c.status_code<300 else c.text[:300])
