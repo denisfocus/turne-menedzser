@@ -147,6 +147,21 @@ jobs:
           else:
               print("A verzió már item a submissionben.")
 
+          # --- IAP-ok csatolása a review-hoz (READY_TO_SUBMIT kredit-termékek) ---
+          items2=g(f'/v1/reviewSubmissions/{sid}/items').get('data',[])
+          have_iap=set()
+          for it in items2:
+              d0=(it.get('relationships',{}).get('inAppPurchaseV2',{}).get('data') or {})
+              if d0.get('id'): have_iap.add(d0['id'])
+          for ip in g(f'/v1/apps/{aid}/inAppPurchasesV2', **{'limit':50}).get('data',[]):
+              a=ip['attributes']
+              if not (a.get('productId') or '').startswith('tourempire.credits.'): continue
+              if a.get('state')!='READY_TO_SUBMIT' or ip['id'] in have_iap: continue
+              ri=req('POST','/v1/reviewSubmissionItems', {'data':{'type':'reviewSubmissionItems',
+                   'relationships':{'reviewSubmission':{'data':{'type':'reviewSubmissions','id':sid}},
+                                    'inAppPurchaseV2':{'data':{'type':'inAppPurchases','id':ip['id']}}}}})
+              print("IAP csatolva:", a.get('productId'), ri.status_code)
+
           # beküldés
           r=req('PATCH', f'/v1/reviewSubmissions/{sid}', {'data':{'type':'reviewSubmissions','id':sid,'attributes':{'submitted':True}}})
           if r.status_code>=300:
