@@ -9,7 +9,10 @@ on:
     inputs:
       build_number:
         description: 'Melyik build kerüljön a verzióra'
-        default: '48'
+        default: '49'
+      privacy_url:
+        description: 'Adatvédelmi irányelv URL'
+        default: 'https://tourempire.github.io/privacy.html'
       confirm:
         description: 'Beküldés review-ra? Írd: IGEN'
         default: 'NEM'
@@ -22,6 +25,7 @@ jobs:
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
       BUILD_NUM: ${{ inputs.build_number }}
+      PRIVACY_URL: ${{ inputs.privacy_url }}
       CONFIRM: ${{ inputs.confirm }}
     steps:
       - name: Python deps
@@ -34,6 +38,7 @@ jobs:
 
           kid=os.environ['ASC_KEY_ID']; iss=os.environ['ASC_ISSUER_ID']; p8=os.environ['ASC_KEY_P8']
           BN=os.environ['BUILD_NUM'].strip(); CONFIRM=os.environ['CONFIRM'].strip()
+          PRIVACY_URL=os.environ.get('PRIVACY_URL','').strip()
           if 'BEGIN PRIVATE KEY' not in p8:
               import base64; p8=base64.b64decode(p8).decode()
           def token():
@@ -82,6 +87,19 @@ jobs:
           # ellenőrzés
           cur=g(f'/v1/appStoreVersions/{vid}/build').get('data')
           print("Verzióhoz rendelt build:", (cur or {}).get('id'))
+
+          # --- ADATVÉDELMI URL beállítása az appInfoLocalizations-ön ---
+          if PRIVACY_URL:
+              infos=g(f'/v1/apps/{aid}/appInfos').get('data',[])
+              for inf in infos:
+                  locs=g(f"/v1/appInfos/{inf['id']}/appInfoLocalizations").get('data',[])
+                  for l in locs:
+                      curl=l['attributes'].get('privacyPolicyUrl')
+                      if curl!=PRIVACY_URL:
+                          req('PATCH', f"/v1/appInfoLocalizations/{l['id']}",
+                              {'data':{'type':'appInfoLocalizations','id':l['id'],
+                                       'attributes':{'privacyPolicyUrl':PRIVACY_URL}}})
+              print("Adatvédelmi URL beállítva:", PRIVACY_URL)
 
           if CONFIRM!='IGEN':
               print("\n=== SZÁRAZ FUTÁS (confirm != IGEN) — NEM küldtem be. Build rákötve, minden kész a beküldésre. ===")
