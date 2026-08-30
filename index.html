@@ -4472,27 +4472,50 @@ const IAP={
    PACKS.forEach(function(pk){
     store.register({id:pk.id,type:PT.CONSUMABLE,platform:platform});
    });
+   /* NINCS szerveres nyugta-ellenőrzés (validator), ezért NEM a .verified()-re várunk
+      (az validator nélkül sosem futna le). A fogyóeszközt közvetlenül az .approved
+      eseményen kézbesítjük, majd lezárjuk a tranzakciót (finish). */
    store.when()
-    .approved(function(tr){tr.verify();})
-    .verified(function(receipt){
-      (receipt.collection||[]).forEach(function(item){IAP.grant(item.id);});
-      receipt.finish();
+    .approved(function(tr){
+       try{ IAP._deliver(tr); }catch(e){}
+       try{ tr.finish(); }catch(e){}
+       try{ IAP._done(); }catch(e){}          // modal bezárása azonnal (ne csak .finished-re bízzuk)
     })
-    .receiptUpdated(function(){})
-    .productUpdated(function(){});
-   store.error(function(){ if(IAP.pending){IAP.pending=null;toast('A vásárlás nem sikerült.');} });
+    .finished(function(tr){ try{ IAP._done(); }catch(e){} });
+   store.error(function(e){
+     if(IAP.pending){IAP.pending=null;}
+     var cancelled=false;
+     try{ cancelled = !!(e && CP.ErrorCode && e.code===CP.ErrorCode.PAYMENT_CANCELLED); }catch(_){}
+     if(!cancelled) toast('A vásárlás nem sikerült.');
+   });
    store.initialize([platform]);
    IAP.ready=true;
    Analytics.track('iap_ready',{platform:nativePlatform()});
   }catch(e){IAP.ready=false;}
  },
+ _ids(tr){
+  var ids=[];
+  try{
+   if(tr&&tr.products&&tr.products.length){tr.products.forEach(function(p){if(p&&p.id)ids.push(p.id);});}
+   if(!ids.length&&tr&&tr.productIds&&tr.productIds.length){ids=tr.productIds.slice();}
+  }catch(e){}
+  return ids;
+ },
+ _deliver(tr){
+  var ids=IAP._ids(tr);
+  if(!ids.length&&IAP.pending&&IAP.pending.pack)ids=[IAP.pending.pack.id];   // tartalék: a megvett csomag
+  var got=false;
+  ids.forEach(function(pid){ if(IAP.grant(pid))got=true; });
+  return got;
+ },
+ _done(){ var p=IAP.pending;IAP.pending=null; if(p&&p.cb)p.cb(); },
  grant(productId){
   const pk=PACKS.find(function(p){return p.id===productId;});
-  if(!pk)return;
+  if(!pk)return false;
   S.credits=credits()+pk.c;save();renderHUD();
   Analytics.track('iap_completed',{pack:pk.c,price:pk.eur,native:1});
   toast(`+${pk.c} kredit jóváírva.`);
-  const cb=IAP.pending;IAP.pending=null;if(cb)cb();
+  return true;
  },
  buy(pack,onOk){
   const CP=window.CdvPurchase;
@@ -4501,7 +4524,7 @@ const IAP={
    const prod=CP.store.get(pack.id);
    const offer=prod&&prod.getOffer&&prod.getOffer();
    if(!offer)return false;
-   IAP.pending=onOk||null;
+   IAP.pending={pack:pack, cb:onOk||null};
    offer.order();
    return true;
   }catch(e){return false;}
