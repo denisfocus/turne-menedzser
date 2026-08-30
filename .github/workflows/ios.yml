@@ -114,11 +114,14 @@ jobs:
           # Az archívum ALÁÍRÁS NÉLKÜL készül; az App Store terjesztési aláírás az
           # EXPORT lépésben történik. Így nem próbál fejlesztői profilt csinálni
           # (ahhoz regisztrált eszköz kellene) — a terjesztési profilhoz nem kell.
+          # TARGETED_DEVICE_FAMILY=1 → CSAK iPhone (a játék álló, telefonra tervezett).
+          # Így az App Store nem kér iPad-screenshotokat, és nincs iPad-only követelmény.
           xcodebuild -workspace App.xcworkspace -scheme App \
             -configuration Release -destination 'generic/platform=iOS' \
             -archivePath "$PWD/App.xcarchive" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="$TEAM_ID" \
+            TARGETED_DEVICE_FAMILY=1 \
             archive
 
       - name: IPA exportálása
