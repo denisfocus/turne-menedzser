@@ -97,6 +97,13 @@ jobs:
               b=g(f'/v1/appStoreVersions/{vid}/build').get('data')
               print("Hozzárendelt build:", (b or {}).get('id') if b else "NINCS")
 
+          print("\n=== IN-APP PURCHASE TERMÉKEK ===")
+          iaps=g(f'/v2/apps/{aid}/inAppPurchases', **{'limit':50}).get('data',[])
+          if not iaps: print("(nincs egyetlen IAP-termék sem az appon)")
+          for p in iaps:
+              pa=p['attributes']
+              print(f"- {pa.get('productId')} | name={pa.get('name')} | type={pa.get('inAppPurchaseType')} | state={pa.get('state')}")
+
           print("\n=== BUILDEK (TestFlight, feldolgozás) ===")
           builds=g('/v1/builds', **{'filter[app]':aid,'limit':6,'sort':'-version'}).get('data',[])
           for bd in builds:
