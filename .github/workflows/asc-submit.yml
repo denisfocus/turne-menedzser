@@ -1,0 +1,120 @@
+name: ASC beküldés (App Store review)
+
+# Build 48 rákötése az App Store verzióra + beküldés Apple-review-ra.
+# Export-compliance: usesNonExemptEncryption=false (standard, csak HTTPS).
+# Csak akkor küld be, ha confirm=IGEN.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Melyik build kerüljön a verzióra'
+        default: '48'
+      confirm:
+        description: 'Beküldés review-ra? Írd: IGEN'
+        default: 'NEM'
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      BUILD_NUM: ${{ inputs.build_number }}
+      CONFIRM: ${{ inputs.confirm }}
+    steps:
+      - name: Python deps
+        run: pip install pyjwt cryptography requests
+
+      - name: Beküldés
+        run: |
+          python3 - <<'PY'
+          import os, time, jwt, requests
+
+          kid=os.environ['ASC_KEY_ID']; iss=os.environ['ASC_ISSUER_ID']; p8=os.environ['ASC_KEY_P8']
+          BN=os.environ['BUILD_NUM'].strip(); CONFIRM=os.environ['CONFIRM'].strip()
+          if 'BEGIN PRIVATE KEY' not in p8:
+              import base64; p8=base64.b64decode(p8).decode()
+          def token():
+              return jwt.encode({'iss':iss,'iat':int(time.time()),'exp':int(time.time())+1200,'aud':'appstoreconnect-v1'},
+                                p8, algorithm='ES256', headers={'kid':kid,'typ':'JWT'})
+          B='https://api.appstoreconnect.apple.com'
+          def H(): return {'Authorization':'Bearer '+token(),'Content-Type':'application/json'}
+          def g(u,**p):
+              r=requests.get(B+u,headers=H(),params=p)
+              if r.status_code>=300: print('GET FAIL',r.status_code,u,r.text[:600])
+              return r.json()
+          def req(method,u,body):
+              r=requests.request(method,B+u,headers=H(),json=body)
+              print(method,u,'->',r.status_code)
+              if r.status_code>=300: print('  ',r.text[:800])
+              return r
+
+          apps=g('/v1/apps').get('data',[])
+          app=next((a for a in apps if 'tourempire' in (a['attributes'].get('bundleId') or '')), None)
+          aid=app['id']; print("App:",app['attributes'].get('name'),aid)
+
+          # szerkeszthető verzió
+          vs=g(f'/v1/apps/{aid}/appStoreVersions', **{'limit':10}).get('data',[])
+          editable={'PREPARE_FOR_SUBMISSION','METADATA_REJECTED','DEVELOPER_REJECTED','REJECTED','INVALID_BINARY'}
+          ver=next((v for v in vs if v['attributes'].get('appStoreState') in editable), None)
+          if not ver:
+              print("!!! Nincs szerkeszthető (PREPARE_FOR_SUBMISSION) verzió. Verziók:",
+                    [(v['attributes'].get('versionString'),v['attributes'].get('appStoreState')) for v in vs]); raise SystemExit(1)
+          vid=ver['id']; print("Verzió:",ver['attributes'].get('versionString'),ver['attributes'].get('appStoreState'),vid)
+
+          # build 48 megkeresése
+          builds=g('/v1/builds', **{'filter[app]':aid,'limit':20,'sort':'-version'}).get('data',[])
+          bd=next((b for b in builds if b['attributes'].get('version')==BN), None)
+          if not bd:
+              print(f"!!! Nincs build {BN}. Elérhető:",[b['attributes'].get('version') for b in builds]); raise SystemExit(1)
+          bid=bd['id']; print(f"Build {BN}: id={bid} processing={bd['attributes'].get('processingState')}")
+          if bd['attributes'].get('processingState')!='VALID':
+              print("!!! A build még nincs feldolgozva (nem VALID)."); raise SystemExit(1)
+
+          # export compliance
+          req('PATCH', f'/v1/builds/{bid}', {'data':{'type':'builds','id':bid,'attributes':{'usesNonExemptEncryption':False}}})
+
+          # build rákötése a verzióra
+          req('PATCH', f'/v1/appStoreVersions/{vid}/relationships/build', {'data':{'type':'builds','id':bid}})
+
+          # ellenőrzés
+          cur=g(f'/v1/appStoreVersions/{vid}/build').get('data')
+          print("Verzióhoz rendelt build:", (cur or {}).get('id'))
+
+          if CONFIRM!='IGEN':
+              print("\n=== SZÁRAZ FUTÁS (confirm != IGEN) — NEM küldtem be. Build rákötve, minden kész a beküldésre. ===")
+              raise SystemExit(0)
+
+          # nyitott review submission újrahasznosítása vagy létrehozása
+          openst='AWAITING_FOR_REVIEW,IN_REVIEW,UNRESOLVED_ISSUES,COMPLETING,READY_FOR_REVIEW,WAITING_FOR_REVIEW,CANCELING'
+          rss=g('/v1/reviewSubmissions', **{'filter[app]':aid,'filter[platform]':'IOS','limit':20}).get('data',[])
+          openone=next((r for r in rss if r['attributes'].get('state') not in ('COMPLETE','CANCELED')), None)
+          if openone:
+              sid=openone['id']; print("Meglévő nyitott review submission:",sid,openone['attributes'].get('state'))
+          else:
+              r=req('POST','/v1/reviewSubmissions', {'data':{'type':'reviewSubmissions','attributes':{'platform':'IOS'},
+                   'relationships':{'app':{'data':{'type':'apps','id':aid}}}}})
+              if r.status_code>=300: raise SystemExit(1)
+              sid=r.json()['data']['id']; print("Új review submission:",sid)
+
+          # verzió mint item hozzáadása (ha még nincs)
+          items=g(f'/v1/reviewSubmissions/{sid}/items').get('data',[])
+          has=any((it.get('relationships',{}).get('appStoreVersion',{}).get('data') or {}).get('id')==vid for it in items)
+          if not has:
+              r=req('POST','/v1/reviewSubmissionItems', {'data':{'type':'reviewSubmissionItems',
+                   'relationships':{'reviewSubmission':{'data':{'type':'reviewSubmissions','id':sid}},
+                                    'appStoreVersion':{'data':{'type':'appStoreVersions','id':vid}}}}})
+              if r.status_code>=300:
+                  print("!!! Item hozzáadás hiba — valószínűleg hiányzó adatlap-elem (screenshot/jog/adatvédelem)."); raise SystemExit(1)
+          else:
+              print("A verzió már item a submissionben.")
+
+          # beküldés
+          r=req('PATCH', f'/v1/reviewSubmissions/{sid}', {'data':{'type':'reviewSubmissions','id':sid,'attributes':{'submitted':True}}})
+          if r.status_code>=300:
+              print("!!! Beküldés elutasítva — lásd a fenti hibát (gyakran: hiányzó screenshot/adatvédelem/jog-nyilatkozat)."); raise SystemExit(1)
+          st=g(f'/v1/reviewSubmissions/{sid}').get('data',{}).get('attributes',{}).get('state')
+          print("\n=== BEKÜLDVE. Review submission állapot:",st,"===")
+          PY
