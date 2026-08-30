@@ -60,33 +60,38 @@ jobs:
           app=next((a for a in apps if 'tourempire' in (a['attributes'].get('bundleId') or '')), None)
           aid=app['id']; print("App:",app['attributes'].get('name'),aid)
 
-          # Ha egy korábbi beküldés review-ban van (WAITING_FOR_REVIEW / még nem kezdték el),
-          # visszavonjuk, hogy a verzió újra szerkeszthető legyen és rákerülhessen az új build.
-          rss0=g('/v1/reviewSubmissions', **{'filter[app]':aid,'filter[platform]':'IOS','limit':20}).get('data',[])
-          for r0 in rss0:
-              stt=r0['attributes'].get('state')
-              if stt in ('WAITING_FOR_REVIEW','PENDING'):
-                  print("Visszavonom a beküldést:",r0['id'],stt)
-                  req('PATCH', f"/v1/reviewSubmissions/{r0['id']}", {'data':{'type':'reviewSubmissions','id':r0['id'],'attributes':{'canceled':True}}})
-                  time.sleep(6)
-
-          # szerkeszthető verzió
-          vs=g(f'/v1/apps/{aid}/appStoreVersions', **{'limit':10}).get('data',[])
-          editable={'PREPARE_FOR_SUBMISSION','METADATA_REJECTED','DEVELOPER_REJECTED','REJECTED','INVALID_BINARY'}
-          ver=next((v for v in vs if v['attributes'].get('appStoreState') in editable), None)
-          if not ver:
-              print("!!! Nincs szerkeszthető (PREPARE_FOR_SUBMISSION) verzió. Verziók:",
-                    [(v['attributes'].get('versionString'),v['attributes'].get('appStoreState')) for v in vs]); raise SystemExit(1)
-          vid=ver['id']; print("Verzió:",ver['attributes'].get('versionString'),ver['attributes'].get('appStoreState'),vid)
-
-          # build 48 megkeresése
+          # ELŐSZÖR a build: csak akkor nyúlunk bármihez, ha a kért build létezik és VALID.
           builds=g('/v1/builds', **{'filter[app]':aid,'limit':20,'sort':'-version'}).get('data',[])
           bd=next((b for b in builds if b['attributes'].get('version')==BN), None)
           if not bd:
               print(f"!!! Nincs build {BN}. Elérhető:",[b['attributes'].get('version') for b in builds]); raise SystemExit(1)
           bid=bd['id']; print(f"Build {BN}: id={bid} processing={bd['attributes'].get('processingState')}")
           if bd['attributes'].get('processingState')!='VALID':
-              print("!!! A build még nincs feldolgozva (nem VALID)."); raise SystemExit(1)
+              print("!!! A build még nincs feldolgozva (nem VALID) — várj, és futtasd újra."); raise SystemExit(1)
+
+          # A build VALID. Ha egy korábbi beküldés még review-ra vár (nem kezdték el),
+          # visszavonjuk, hogy a verzió újra szerkeszthető legyen és rákerülhessen az új build.
+          rss0=g('/v1/reviewSubmissions', **{'filter[app]':aid,'filter[platform]':'IOS','limit':20}).get('data',[])
+          canceled_any=False
+          for r0 in rss0:
+              stt=r0['attributes'].get('state')
+              if stt in ('WAITING_FOR_REVIEW','PENDING'):
+                  print("Visszavonom a beküldést:",r0['id'],stt)
+                  req('PATCH', f"/v1/reviewSubmissions/{r0['id']}", {'data':{'type':'reviewSubmissions','id':r0['id'],'attributes':{'canceled':True}}})
+                  canceled_any=True
+
+          # szerkeszthető verzió — visszavonás után várunk, míg PREPARE_FOR_SUBMISSION lesz
+          editable={'PREPARE_FOR_SUBMISSION','METADATA_REJECTED','DEVELOPER_REJECTED','REJECTED','INVALID_BINARY'}
+          ver=None
+          for attempt in range(12):
+              vs=g(f'/v1/apps/{aid}/appStoreVersions', **{'limit':10}).get('data',[])
+              ver=next((v for v in vs if v['attributes'].get('appStoreState') in editable), None)
+              if ver: break
+              print("  ...várok a verzió szerkeszthetővé válására",[(v['attributes'].get('versionString'),v['attributes'].get('appStoreState')) for v in vs])
+              time.sleep(8)
+          if not ver:
+              print("!!! Nincs szerkeszthető verzió (a visszavonás még folyamatban lehet — futtasd újra)."); raise SystemExit(1)
+          vid=ver['id']; print("Verzió:",ver['attributes'].get('versionString'),ver['attributes'].get('appStoreState'),vid)
 
           # export compliance
           req('PATCH', f'/v1/builds/{bid}', {'data':{'type':'builds','id':bid,'attributes':{'usesNonExemptEncryption':False}}})
