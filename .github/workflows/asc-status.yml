@@ -98,7 +98,7 @@ jobs:
               print("Hozzárendelt build:", (b or {}).get('id') if b else "NINCS")
 
           print("\n=== IN-APP PURCHASE TERMÉKEK ===")
-          iaps=g(f'/v2/apps/{aid}/inAppPurchases', **{'limit':50}).get('data',[])
+          iaps=g(f'/v1/apps/{aid}/inAppPurchasesV2', **{'limit':50}).get('data',[])
           if not iaps: print("(nincs egyetlen IAP-termék sem az appon)")
           for p in iaps:
               pa=p['attributes']
