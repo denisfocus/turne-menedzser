@@ -53,6 +53,28 @@ jobs:
               va=v['attributes']
               print(f"- {va.get('versionString')} | state={va.get('appStoreState')} | platform={va.get('platform')} | release={va.get('releaseType')} | id={v['id']}")
 
+          # --- RÉSZLETES SCREENSHOT-SET DUMP a szerkeszthető verzióhoz ---
+          editable0={'PREPARE_FOR_SUBMISSION','METADATA_REJECTED','DEVELOPER_REJECTED','REJECTED','INVALID_BINARY'}
+          ev0=next((v for v in vs if v['attributes'].get('appStoreState') in editable0), None)
+          if ev0:
+              vid0=ev0['id']
+              print("\n=== SCREENSHOT-SETEK (display type / darab) ===")
+              for l in g(f'/v1/appStoreVersions/{vid0}/appStoreVersionLocalizations').get('data',[]):
+                  la=l['attributes']
+                  sets=g(f"/v1/appStoreVersionLocalizations/{l['id']}/appScreenshotSets").get('data',[])
+                  print(f"  [{la.get('locale')}] setek: {len(sets)}")
+                  for s in sets:
+                      dt=s['attributes'].get('screenshotDisplayType')
+                      sc=g(f"/v1/appScreenshotSets/{s['id']}/appScreenshots").get('data',[])
+                      print(f"    - {dt}: {len(sc)} kép  (setId={s['id']})")
+              # age rating / jog / privacy
+              app_full=g(f'/v1/apps/{aid}', **{'include':'appInfos'})
+              print("\n=== BUILD DEVICE-FAMILY (a verzióhoz kötött) ===")
+              b0=g(f'/v1/appStoreVersions/{vid0}/build').get('data')
+              if b0:
+                  bf=g(f"/v1/builds/{b0['id']}")
+                  print("  build attrs:", {k:bf['data']['attributes'].get(k) for k in ('version','processingState','usesNonExemptEncryption','iconAssetToken')})
+
           # legfrissebb szerkeszthető verzió adatlap-teljesség
           editable={'PREPARE_FOR_SUBMISSION','METADATA_REJECTED','DEVELOPER_REJECTED','REJECTED','INVALID_BINARY','WAITING_FOR_REVIEW','DEVELOPER_REMOVED_FROM_SALE'}
           ev=next((v for v in vs if v['attributes'].get('appStoreState') in editable), vs[0] if vs else None)
