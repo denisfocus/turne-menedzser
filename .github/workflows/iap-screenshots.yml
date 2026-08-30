@@ -1,0 +1,114 @@
+name: IAP review-screenshot feltöltés
+
+# A live webről (Playwright) készít egy tiszta screenshotot a Kredit-vásárló
+# felületről (live felirattal), majd feltölti az App Store Connect-en mind a 3
+# kredit-IAP review-screenshotjának. Ettől a termékek kikerülnek a MISSING_METADATA-ból.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'A játék URL-je (?dbg)'
+        default: 'https://tourempire.github.io/?dbg'
+
+jobs:
+  shot:
+    runs-on: ubuntu-latest
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      GAME_URL: ${{ inputs.url }}
+    steps:
+      - name: Deps
+        run: pip install pyjwt cryptography requests playwright && python -m playwright install --with-deps chromium
+
+      - name: Screenshot + feltöltés
+        run: |
+          python3 - <<'PY'
+          import os, time, json, hashlib, jwt, requests
+          from playwright.sync_api import sync_playwright
+
+          URL=os.environ['GAME_URL']
+          IMG='iap.png'
+          # --- 1) SCREENSHOT ---
+          with sync_playwright() as p:
+              b=p.chromium.launch(args=['--no-sandbox'])
+              pg=b.new_page(viewport={'width':390,'height':844}, device_scale_factor=3)
+              pg.goto(URL, wait_until='networkidle', timeout=60000)
+              pg.wait_for_function("() => window.__G && window.__G.openShop", timeout=30000)
+              pg.evaluate("""() => {
+                 try{ __G.S.obDone=true; __G.S.tab='iroda'; if(__G.save)__G.save(); __G.render(); }catch(e){}
+                 try{ __G.S.credits = 925; }catch(e){}
+                 __G.openShop();
+                 // a 'Teszt-mód' feliratot lecseréljük az éles szövegre a review-képhez
+                 document.querySelectorAll('#modal .ev *').forEach(function(el){
+                   if(!el.children.length && el.textContent && el.textContent.indexOf('Teszt-mód')>=0){
+                     el.textContent='Biztonságos fizetés az App Store-on keresztül. A kredit a vásárlás után azonnal jóváíródik.';
+                   }
+                 });
+              }""")
+              pg.wait_for_timeout(700)
+              pg.screenshot(path=IMG)   # a látható viewport (390x844 * 3 = 1170x2532)
+              b.close()
+          size=os.path.getsize(IMG); data=open(IMG,'rb').read(); md5=hashlib.md5(data).hexdigest()
+          print("Screenshot kész:", size, "byte, md5", md5)
+
+          # --- 2) FELTÖLTÉS ASC ---
+          kid=os.environ['ASC_KEY_ID']; iss=os.environ['ASC_ISSUER_ID']; p8=os.environ['ASC_KEY_P8']
+          if 'BEGIN PRIVATE KEY' not in p8:
+              import base64; p8=base64.b64decode(p8).decode()
+          def token(): return jwt.encode({'iss':iss,'iat':int(time.time()),'exp':int(time.time())+1200,'aud':'appstoreconnect-v1'},p8,algorithm='ES256',headers={'kid':kid,'typ':'JWT'})
+          Bx='https://api.appstoreconnect.apple.com'
+          def H(): return {'Authorization':'Bearer '+token(),'Content-Type':'application/json'}
+          def g(u,**p):
+              r=requests.get(Bx+u,headers=H(),params=p);
+              if r.status_code>=300: print('GET FAIL',r.status_code,u,r.text[:400])
+              return r.json()
+
+          apps=g('/v1/apps').get('data',[])
+          app=next((a for a in apps if 'tourempire' in (a['attributes'].get('bundleId') or '')),None)
+          aid=app['id']
+          iaps=g(f'/v1/apps/{aid}/inAppPurchasesV2', **{'limit':50}).get('data',[])
+          targets=[p for p in iaps if (p['attributes'].get('productId') or '').startswith('tourempire.credits.')]
+          print("Cél IAP-k:", [p['attributes']['productId'] for p in targets])
+
+          for p in targets:
+              pid=p['id']; prod=p['attributes']['productId']
+              # már van screenshot?
+              ex=g(f'/v2/inAppPurchases/{pid}/appStoreReviewScreenshot').get('data')
+              if ex:
+                  print(f"  {prod}: már van screenshot, kihagyom"); continue
+              # reservation
+              r=requests.post(Bx+'/v2/inAppPurchaseAppStoreReviewScreenshots', headers=H(), json={
+                'data':{'type':'inAppPurchaseAppStoreReviewScreenshots',
+                        'attributes':{'fileName':'iap-review.png','fileSize':size},
+                        'relationships':{'inAppPurchaseV2':{'data':{'type':'inAppPurchases','id':pid}}}}})
+              print(f"  {prod}: reservation", r.status_code)
+              if r.status_code>=300: print('   ',r.text[:500]); continue
+              d=r.json()['data']; sid=d['id']; ops=d['attributes'].get('uploadOperations') or []
+              ok=True
+              for op in ops:
+                  hdrs={h['name']:h['value'] for h in (op.get('requestHeaders') or [])}
+                  off=op.get('offset',0); ln=op.get('length',len(data))
+                  up=requests.request(op.get('method','PUT'), op['url'], headers=hdrs, data=data[off:off+ln])
+                  if up.status_code>=300: print('   upload FAIL',up.status_code,up.text[:200]); ok=False
+              if not ok: continue
+              c=requests.patch(Bx+f'/v2/inAppPurchaseAppStoreReviewScreenshots/{sid}', headers=H(), json={
+                'data':{'type':'inAppPurchaseAppStoreReviewScreenshots','id':sid,
+                        'attributes':{'uploaded':True,'sourceFileChecksum':md5}}})
+              print(f"  {prod}: commit", c.status_code, '' if c.status_code<300 else c.text[:300])
+
+          print("\n=== ÚJ ÁLLAPOT ===")
+          for p in g(f'/v1/apps/{aid}/inAppPurchasesV2', **{'limit':50}).get('data',[]):
+              a=p['attributes']
+              if (a.get('productId') or '').startswith('tourempire.credits.'):
+                  print(f"- {a.get('productId')} | state={a.get('state')}")
+          PY
+
+      - name: Screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iap-review-screenshot
+          path: iap.png
+          if-no-files-found: warn
