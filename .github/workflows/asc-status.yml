@@ -101,8 +101,22 @@ jobs:
           iaps=g(f'/v1/apps/{aid}/inAppPurchasesV2', **{'limit':50}).get('data',[])
           if not iaps: print("(nincs egyetlen IAP-termék sem az appon)")
           for p in iaps:
-              pa=p['attributes']
+              pa=p['attributes']; pid=p['id']
               print(f"- {pa.get('productId')} | name={pa.get('name')} | type={pa.get('inAppPurchaseType')} | state={pa.get('state')}")
+              # lokalizációk (név/leírás)
+              locs=g(f'/v2/inAppPurchases/{pid}/inAppPurchaseLocalizations').get('data',[])
+              for l in locs:
+                  a2=l['attributes']
+                  print(f"    loc {a2.get('locale')}: name={a2.get('name')!r} desc={'IGEN' if a2.get('description') else 'NINCS'} state={a2.get('state')}")
+              # ár (van-e price schedule)
+              try:
+                  sch=g(f'/v2/inAppPurchases/{pid}/iapPriceSchedule')
+                  print("    price schedule:", 'VAN' if sch.get('data') else 'NINCS')
+              except Exception as e:
+                  print("    price schedule: ?", e)
+              # review-screenshot
+              ss=g(f'/v2/inAppPurchases/{pid}/appStoreReviewScreenshot').get('data')
+              print("    review-screenshot:", 'VAN' if ss else 'NINCS')
 
           print("\n=== BUILDEK (TestFlight, feldolgozás) ===")
           builds=g('/v1/builds', **{'filter[app]':aid,'limit':6,'sort':'-version'}).get('data',[])
