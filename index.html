@@ -3165,7 +3165,7 @@ function isNative(){return !!(window.Capacitor&&window.Capacitor.isNativePlatfor
 /* IAP_LIVE: amíg FALSE, NEM indítunk valós StoreKit-terhelést — a prototípus-ág fut (azonnal jóváír,
    nem fizettet). Így nincs „fizet, de nem szállít" helyzet, amíg a boltban be nincs állítva a 3 termék
    és eszközön nincs letesztelve a nyugta→jóváírás. Élesítéskor: IAP_LIVE=true + ASC-termékek + sandbox-teszt. */
-const IAP_LIVE=false;
+const IAP_LIVE=true;
 const Store={
  buy(pack,onOk){
   Analytics.track('iap_started',{pack:pack.c,price:pack.eur,native:isNative()?1:0});
@@ -3193,7 +3193,7 @@ function openShop(why){
    <span class="pr2">${k.eur}</span></button>`);
  h+=`</div>
    <div style="font-size:10.5px;color:var(--faint);margin-top:11px;line-height:1.45">
-     Teszt-mód — a kredit jóváíródik, valódi fizetés nélkül.</div>
+     ${(IAP_LIVE&&isNative())?'Biztonságos fizetés az App Store-on keresztül. A kredit a vásárlás után azonnal jóváíródik.':'Teszt-mód — a kredit jóváíródik, valódi fizetés nélkül.'}</div>
    <button class="btn dark sm" data-close="1" style="margin-top:12px">Bezárom</button>
    </div></div>`;
  const m=$('#modal');m.innerHTML=h;m.className='on';
