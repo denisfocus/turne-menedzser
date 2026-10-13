@@ -3144,7 +3144,11 @@ const Analytics={
    window.dataLayer=window.dataLayer||[];
    window.gtag=function(){window.dataLayer.push(arguments);};
    gtag('js',new Date());
-   gtag('config',GA4_ID,{anonymize_ip:true});
+   /* platform megkülönböztetés: natív app (iOS WebView) vs web — a GA4-ben a
+      'platform' user-property / event-param szerint szétválaszthatók a játékosok */
+   var _plat=(typeof isNative==='function'&&isNative())?('app_'+(typeof nativePlatform==='function'?nativePlatform():'ios')):'web';
+   gtag('config',GA4_ID,{anonymize_ip:true,platform:_plat});
+   gtag('set','user_properties',{platform:_plat});
    var s=document.createElement('script');s.async=true;
    s.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(GA4_ID);
    document.head.appendChild(s);
