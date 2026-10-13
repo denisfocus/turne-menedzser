@@ -3130,13 +3130,29 @@ function spendCredits(n){if(credits()<n)return false;S.credits=credits()-n;save(
    S.analyticsConsent kapcsolót.
    TODO éles bekötéskor: EU/GDPR alatt a consent alapértéke LEGYEN false, és egy
    consent-banner állítsa true-ra; a send() csak utána hívja a valódi SDK-t. */
+/* Google Analytics 4 mérési azonosító. ÜRES = kikapcsolva (semmit nem küld).
+   Élesítés: tedd ide a saját G-XXXXXXXXXX azonosítót (analytics.google.com → property). */
+const GA4_ID='G-2KPD9VBCGC';
 const Analytics={
  ready:false, queue:[], log:[],
  debug:(location.search.indexOf('debug=1')>=0||location.search.indexOf('dbg')>=0),
  consent(){return S&&S.analyticsConsent!==false;},
+ initGA(){
+  /* gtag.js betöltése + konfig — CSAK ha van GA4_ID és van hozzájárulás. IP-anonimizálás be. */
+  if(!GA4_ID||window.gtag||!this.consent())return;
+  try{
+   window.dataLayer=window.dataLayer||[];
+   window.gtag=function(){window.dataLayer.push(arguments);};
+   gtag('js',new Date());
+   gtag('config',GA4_ID,{anonymize_ip:true});
+   var s=document.createElement('script');s.async=true;
+   s.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(GA4_ID);
+   document.head.appendChild(s);
+  }catch(e){}
+ },
  init(){
   if(this.ready)return;this.ready=true;
-  /* TODO: itt inicializáld a valódi SDK-t (firebase initializeApp / gtag config). */
+  this.initGA();
   if(!S.firstOpen){S.firstOpen=1;this.track('first_open',{});}
   this.track('session_start',{level:level(),tours:S.toursDone||0,week:S.week});
   const q=this.queue.slice();this.queue.length=0;q.forEach(x=>this.send(x.e,x.p));
@@ -3152,9 +3168,8 @@ const Analytics={
   this.log.push({t:Date.now(),event:event,params:params});
   if(this.log.length>200)this.log.shift();
   if(this.debug)console.log('%c[analytics]','color:#C6FF3A;font-weight:700',event,params);
-  /* ÉLESBEN ide jön az egyetlen sor, pl.:
-     window.gtag && gtag('event', event, params);            // GA4
-     window.fbLogEvent && fbLogEvent(event, params);         // Firebase */
+  /* ÉLES: Google Analytics 4 (gtag) — csak ha betöltött. Anonim játék-események. */
+  try{ if(window.gtag) gtag('event', event, params); }catch(e){}
  }
 };
 const AD_TOUR_BONUS=0.50;   // a turné végi flagship reklám: +50% a jutalékra
